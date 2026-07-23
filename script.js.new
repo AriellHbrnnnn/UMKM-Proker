@@ -1,0 +1,2954 @@
+
+// ==========================================
+// USER STATE MANAGEMENT
+// ==========================================
+
+let wishlist = [];
+let recentlyViewed = [];
+let followedShops = [];
+let userCollections = [];
+
+function getUserKey(baseKey) {
+    if (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) {
+        return baseKey + '_' + currentUser.uid;
+    }
+    return baseKey + '_guest';
+}
+
+function loadUserState() {
+    wishlist = JSON.parse(localStorage.getItem(getUserKey('wishlist')) || '[]');
+    recentlyViewed = JSON.parse(localStorage.getItem(getUserKey('recentlyViewed')) || '[]');
+    userCollections = JSON.parse(localStorage.getItem(getUserKey('userCollections')) || '[]');
+    followedShops = JSON.parse(localStorage.getItem(getUserKey('followedShops')) || '[]');
+    
+    // Re-render UI depending on state
+    if (typeof renderWishlist === 'function') renderWishlist();
+    if (typeof renderTerakhirDilihat === 'function') renderTerakhirDilihat();
+    if (typeof renderFavoriteShops === 'function') renderFavoriteShops();
+    if (typeof renderUMKM === 'function') renderUMKM();
+
+    if (userCollections.length > 0) {
+        document.getElementById('cardCollectionName').innerText = userCollections[0];
+        document.getElementById('userCollectionCard').style.display = 'block';
+    } else {
+        document.getElementById('userCollectionCard').style.display = 'none';
+    }
+
+}
+
+let umkmData = [];
+const DATABASE_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/umkmData.json";
+
+// Mengambil data dari Firebase
+async function fetchUMKMData() {
+    try {
+        const response = await fetch(DATABASE_URL);
+        const data = await response.json();
+        
+        if (data) {
+            umkmData = Object.keys(data).map(key => ({
+                ...data[key],
+                id: key
+            }));
+            // Urutkan (opsional)
+            // umkmData.sort((a, b) => a.name.localeCompare(b.name));
+        } else {
+            umkmData = [];
+        }
+        
+        // Setelah data berhasil diambil, render grid
+        renderUMKM();
+        if(typeof renderFavoriteShops === "function") renderFavoriteShops();
+        if(typeof renderTerakhirDilihat === "function") renderTerakhirDilihat();
+        
+        // --- RESTORE SESSION STATE (Refresh-Proof) ---
+        const savedPage = sessionStorage.getItem('activePage') || 'tentangPage';
+        const savedStoreId = sessionStorage.getItem('activeStoreId');
+        
+        if (savedPage === 'storePage' && savedStoreId) {
+            // Jika sebelumnya di halaman detail UMKM, buka kembali UMKM tersebut
+            openStore(savedStoreId);
+        } else {
+            // Jika halaman lain, cukup ganti halamannya saja
+            switchPage(savedPage, true);
+        }
+        
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        const grid = document.getElementById('umkmGrid');
+        if(grid) grid.innerHTML = "<p style='text-align:center;width:100%;color:red;'>Gagal memuat data dari server.</p>";
+    }
+}
+
+// Format Rupiah
+const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(angka);
+};
+
+// Elements
+const homePage = document.getElementById('homePage');
+const storePage = document.getElementById('storePage');
+const helpPage = document.getElementById('helpPage');
+const tentangPage = document.getElementById('tentangPage');
+const termsPage = document.getElementById('termsPage');
+const privacyPage = document.getElementById('privacyPage');
+const faqPage = document.getElementById('faqPage');
+const productPage = document.getElementById('productPage');
+const umkmGrid = document.getElementById('umkmGrid');
+const storeInfoCard = document.getElementById('storeInfoCard');
+const productGrid = document.getElementById('productGrid');
+const ulasanContainer = document.getElementById('ulasanContainer');
+const galeriContainer = document.getElementById('galeriContainer');
+const logoBtn = document.getElementById('logoBtn');
+const breadcrumbHomeLinks = document.querySelectorAll('.breadcrumbHome');
+const bcStoreName = document.getElementById('bcStoreName');
+const categoryItems = document.querySelectorAll('.category-item');
+const storeTabBtns = document.querySelectorAll('.store-tabs .tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+const helpCenterLinks = document.querySelectorAll('.linkHelpCenter');
+const promoDesaLinks = document.querySelectorAll('.linkPromoDesa');
+const tentangLinks = document.querySelectorAll('.linkTentang');
+const termsLinks = document.querySelectorAll('.linkTerms');
+const privacyLinks = document.querySelectorAll('.linkPrivacy');
+
+// Search Elements
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.querySelector('.search-btn');
+const popularSearchLinks = document.querySelectorAll('.popular-searches a');
+
+const cartPage = document.getElementById('cartPage');
+const profilePage = document.getElementById('profilePage');
+const wishlistPage = document.getElementById('wishlistPage');
+const favoritesPage = document.getElementById('favoritesPage');
+
+// Objek untuk menyimpan posisi scroll tiap halaman
+const scrollPositions = {};
+let previousPageId = 'homePage';
+
+// Fungsi Pindah Halaman & Simpan State (Refresh Proof)
+function switchPage(pageId, skipHistory = false) {
+    // Simpan posisi scroll halaman yang akan ditinggalkan
+    const pages = [homePage, storePage, helpPage, tentangPage, termsPage, privacyPage, faqPage, productPage, cartPage, profilePage, wishlistPage, favoritesPage];
+    const activePage = pages.find(p => p && !p.classList.contains('hidden'));
+    if (activePage) {
+        scrollPositions[activePage.id] = window.scrollY;
+        if(activePage.id !== pageId) previousPageId = activePage.id;
+    }
+
+    // Sembunyikan semua
+    pages.forEach(p => {
+        if(p) {
+            p.classList.add('hidden');
+            p.classList.remove('page-enter');
+        }
+    });
+
+    // Tampilkan yang dituju dengan efek animasi
+    const target = document.getElementById(pageId);
+    if(target) {
+        target.classList.remove('hidden');
+        // Trigger reflow untuk mengulang animasi CSS
+        void target.offsetWidth; 
+        target.classList.add('page-enter');
+    }
+
+    // Mode profil desa
+    if (pageId === 'tentangPage') {
+        document.body.classList.add('village-mode');
+        // Panggil animasi jalannya angka statistik
+        animateCounters();
+    } else {
+        document.body.classList.remove('village-mode');
+    }
+
+    // Mode halaman bantuan (tanpa pencarian)
+    if (pageId === 'helpPage' || pageId === 'termsPage' || pageId === 'privacyPage' || pageId === 'faqPage') {
+        document.body.classList.add('hide-search');
+    } else {
+        document.body.classList.remove('hide-search');
+    }
+
+    // Sembunyikan tombol login/daftar di halaman tertentu
+    if (pageId === 'termsPage' || pageId === 'privacyPage') {
+        document.body.classList.add('hide-auth-buttons');
+    } else {
+        document.body.classList.remove('hide-auth-buttons');
+    }
+
+    // Mode halaman detail toko (untuk menyembunyikan header utama di mobile)
+    if (pageId === 'storePage') {
+        document.body.classList.add('store-mode');
+    } else {
+        document.body.classList.remove('store-mode');
+    }
+
+    // Ubah Teks Logo Sesuai Halaman Aktif
+    if (pageId === 'tentangPage' || pageId === 'helpPage' || pageId === 'termsPage' || pageId === 'privacyPage') {
+        logoBtn.innerHTML = '<svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;"><rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50"/></svg> Padukuhan<span>Karanganyar</span>';
+    } else {
+        logoBtn.innerHTML = '<svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;"><rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50"/></svg> Pasar<span>Karanganyar</span>';
+    }
+
+    // Reset animasi scroll reveal jika ada, agar bisa dimainkan ulang saat di-scroll
+    if(target) {
+        const reveals = target.querySelectorAll('.reveal');
+        reveals.forEach(r => {
+            r.classList.remove('active');
+            if (typeof globalScrollObserver !== 'undefined') {
+                globalScrollObserver.unobserve(r);
+                globalScrollObserver.observe(r);
+            }
+        });
+    }
+
+    // Simpan ke session storage
+    sessionStorage.setItem('activePage', pageId);
+    
+    // Simpan ke History API agar tombol Back Browser berfungsi
+    if (!skipHistory) {
+        const pageToHash = {
+            'homePage': '',
+            'termsPage': '#terms',
+            'privacyPage': '#privacy',
+            'faqPage': '#faq',
+            'tentangPage': '#tentang',
+            'helpPage': '#help'
+        };
+        const hashStr = pageToHash[pageId] !== undefined ? pageToHash[pageId] : '';
+        history.pushState({ pageId: pageId }, "", window.location.pathname + hashStr);
+    }
+    
+    // Tokopedia header mode
+    if(pageId === 'homePage' || pageId === 'tentangPage') {
+        document.body.classList.add('home-mode');
+    } else {
+        document.body.classList.remove('home-mode');
+    }
+    
+    // Update header mode directly
+    if(typeof updateHeaderMode === 'function') {
+        updateHeaderMode();
+    }
+    
+    // Pulihkan posisi scroll hanya jika kembali ke halaman utama (homePage)
+    if (pageId === 'homePage' && scrollPositions[pageId] !== undefined) {
+        // Gunakan setTimeout agar browser selesai me-render layout sebelum menggulir halaman
+        setTimeout(() => {
+            window.scrollTo(0, scrollPositions[pageId]);
+        }, 30);
+    } else {
+        window.scrollTo(0, 0);
+    }
+}
+
+// Tangkap event saat tombol Back/Forward browser ditekan
+window.addEventListener('popstate', (event) => {
+    if (event.state && event.state.pageId) {
+        switchPage(event.state.pageId, true);
+    } else {
+        // Jika tidak ada state, cek hash URL atau asumsikan kembali ke halaman awal
+        const hash = window.location.hash;
+        if(hash === '#terms') {
+            switchPage('termsPage', true);
+        } else if (hash === '#privacy') {
+            switchPage('privacyPage', true);
+        } else if (hash === '#faq') {
+            switchPage('faqPage', true);
+        } else if (hash === '#tentang') {
+            switchPage('tentangPage', true);
+        } else {
+            switchPage('tentangPage', true);
+        }
+    }
+});
+
+// Set state awal saat halaman pertama dimuat
+history.replaceState({ pageId: sessionStorage.getItem('activePage') || 'tentangPage' }, "", "");
+
+// Fungsi Animasi Counter Angka Statistik
+function animateCounters() {
+    const counters = document.querySelectorAll('.count-up');
+    const speed = 100; // Pembagi kecepatan, semakin kecil semakin cepat selesainya
+
+    counters.forEach(counter => {
+        counter.innerText = '0'; // reset ke 0 tiap buka halaman
+        const target = +counter.getAttribute('data-target');
+        
+        const updateCount = () => {
+            const count = +counter.innerText.replace(/\./g, '');
+            const inc = target / speed;
+
+            if (count < target) {
+                let current = Math.ceil(count + inc);
+                if (current >= 1000) {
+                    counter.innerText = current.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                } else {
+                    counter.innerText = current;
+                }
+                setTimeout(updateCount, 15);
+            } else {
+                if (target >= 1000) {
+                    counter.innerText = target.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                } else {
+                    counter.innerText = target;
+                }
+            }
+        };
+        updateCount();
+    });
+}
+
+// Render UMKM Grid di Home
+let currentCategory = 'all'; // Menyimpan state kategori aktif
+function renderUMKM(category = currentCategory, searchQuery = '') {
+    currentCategory = category;
+    umkmGrid.innerHTML = '';
+    
+    const lowerQuery = searchQuery.toLowerCase().trim();
+
+    const filteredData = umkmData.filter(item => {
+        const matchCategory = category === 'all' || item.category === category;
+        const matchSearch = item.name.toLowerCase().includes(lowerQuery) || 
+                            item.desc.toLowerCase().includes(lowerQuery) ||
+                            item.products.some(p => p.name.toLowerCase().includes(lowerQuery));
+        return matchCategory && matchSearch;
+    });
+
+    if (filteredData.length === 0) {
+        umkmGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 12px;">
+                <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
+                <h3 style="color: #334155; font-size: 1.3rem; margin-bottom: 8px;">Pencarian tidak ditemukan</h3>
+                <p style="color: #64748b;">Kami tidak dapat menemukan UMKM atau produk "${searchQuery}". Coba kata kunci lain.</p>
+            </div>
+        `;
+        return;
+    }
+
+    filteredData.forEach((umkm, index) => {
+        const card = document.createElement('div');
+        card.className = 'umkm-card reveal'; // Gunakan reveal untuk animasi scroll
+        card.style.transitionDelay = `${(index % 4) * 0.1}s`; // Efek stagger 
+        card.onclick = () => openStore(umkm.id);
+        
+        card.innerHTML = `
+            <div class="umkm-img-wrap">
+                <img src="${umkm.image}" alt="${umkm.name}">
+                <div class="badge-official"><i class="fas fa-check-circle"></i> Desa Official</div>
+            </div>
+            <div class="umkm-info">
+                <h3 class="umkm-name">${umkm.name}</h3>
+                <p class="umkm-desc">${umkm.desc}</p>
+                <div class="umkm-stats" style="margin-top:8px;">
+                    <span><i class="fas fa-map-marker-alt text-danger"></i> ${umkm.location}</span>
+                </div>
+            </div>
+        `;
+        umkmGrid.appendChild(card);
+        
+        // Daftarkan ke observer agar muncul saat di-scroll
+        if (typeof globalScrollObserver !== 'undefined') {
+            globalScrollObserver.observe(card);
+        }
+    });
+}
+
+// Fungsi Trigger Pencarian
+function handleSearch() {
+    if (!searchInput) return;
+    const query = searchInput.value;
+    
+    // Jika sedang tidak di halaman home, pindah ke home dulu
+    if (homePage.classList.contains('hidden')) {
+        switchPage('homePage');
+    }
+    
+    renderUMKM('all', query);
+    
+    // Update active state kategori ke "Semua"
+    categoryItems.forEach(c => c.classList.remove('active'));
+    document.querySelector('.category-item[data-filter="all"]').classList.add('active');
+}
+
+// Open Store Details
+function openStore(id) {
+    const umkm = umkmData.find(item => item.id === id);
+    if (!umkm) return;
+
+    // Simpan ke session storage agar toko tidak hilang saat direfresh
+    sessionStorage.setItem('activeStoreId', id);
+
+    // Toggle Pages
+    switchPage('storePage');
+
+    // Update Breadcrumb
+    bcStoreName.textContent = umkm.name;
+
+    // Reset store search input
+    const storeSearchInput = document.getElementById('storeSearchInput');
+    if (storeSearchInput) {
+        storeSearchInput.value = '';
+    }
+
+    // Tentukan badge Official (misalnya warna hijau atau ungu khas e-commerce)
+    const officialBadge = `<i class="fas fa-check-circle" style="color: #6a1b9a; font-size: 1rem;"></i>`;
+
+    // Render Store Info Sidebar (Tokopedia Style)
+    storeInfoCard.innerHTML = `
+        <img src="${umkm.image}" alt="${umkm.name}" class="store-avatar">
+        <h2>${officialBadge} ${umkm.name}</h2>
+        <p class="online-status">Online 5 Menit Lalu</p>
+        <p class="store-location"><i class="fas fa-map-marker-alt"></i> ${umkm.location}</p>
+        
+        <div class="store-action-buttons">
+            <button class="btn-follow" id="btnFollow_${umkm.id}" onclick="toggleFollow('${umkm.id}', '${umkm.name}', '${umkm.image}', event)" ${followedShops.some(s => s.id === umkm.id) ? 'style="background: #f3f4f5; color: #6D7588; border-color: #E5E7E9;"' : ''}>${followedShops.some(s => s.id === umkm.id) ? 'Mengikuti' : 'Ikuti'}</button>
+            <button class="btn-chat-outline" onclick="window.open('https://wa.me/${umkm.whatsapp}?text=Halo%20${encodeURIComponent(umkm.owner)},%20saya%20tertarik%20dengan%20produk%20Anda', '_blank')">Chat</button>
+        </div>
+
+        <div class="store-stats">
+            <div class="stat-item">
+                <span class="stat-value"><i class="fas fa-star" style="color:#ffc400;"></i> 4.9</span>
+                <span class="stat-label">Rating & Ulasan</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">± 2 Jam</span>
+                <span class="stat-label">Pesanan diproses</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">Buka</span>
+                <span class="stat-label">Jam Operasi</span>
+            </div>
+        </div>
+        
+        <p style="font-size:0.8rem; text-align:left; margin-top:15px; color:var(--text-muted); line-height: 1.4;">
+            ${umkm.desc}
+        </p>
+    `;
+    storeInfoCard.classList.add('reveal');
+    if (typeof globalScrollObserver !== 'undefined') {
+        globalScrollObserver.observe(storeInfoCard);
+    }
+    
+    // Fungsi render produk terfilter
+    const renderProducts = (filteredProducts) => {
+        productGrid.innerHTML = '';
+        if (filteredProducts.length === 0) {
+            productGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: white; border-radius: 12px; border: 1px solid var(--border);">
+                    <i class="fas fa-search" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 10px;"></i>
+                    <h4 style="color: #334155; margin-bottom: 5px;">Produk tidak ditemukan</h4>
+                    <p style="color: #64748b; font-size: 0.85rem;">Tidak ada produk di toko ini yang cocok dengan pencarian Anda.</p>
+                </div>
+            `;
+            return;
+        }
+
+        filteredProducts.forEach((product, index) => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card reveal';
+            productCard.style.transitionDelay = `${(index % 4) * 0.1}s`;
+            
+            // Generate random sold count and rating for demo effect
+            const soldCount = Math.floor(Math.random() * 200) + 10;
+            const rating = (Math.random() * 1 + 4).toFixed(1); // 4.0 - 5.0
+
+            productCard.innerHTML = `
+                <img src="${product.image}" alt="${product.name}" class="prod-img">
+                <div class="prod-info">
+                    <h3 class="prod-name">${product.name}</h3>
+                    <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
+                    
+                    <div class="prod-shop">
+                        <i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.location}
+                    </div>
+
+                    <div class="prod-stats">
+                        <span><i class="fas fa-star" style="color:#ffc400;"></i> ${rating}</span>
+                        <span style="color:#d1d5db; margin: 0 5px;">|</span>
+                        <span>Terjual ${soldCount}+</span>
+                    </div>
+                </div>
+            `;
+            productCard.onclick = () => {
+                openProductDetail(umkm.id, index);
+            };
+            productGrid.appendChild(productCard);
+            
+            if (typeof globalScrollObserver !== 'undefined') {
+                globalScrollObserver.observe(productCard);
+            }
+        });
+    };
+
+    // Render Awal produk
+    renderProducts(umkm.products);
+
+    // Setup input handler
+    if (storeSearchInput) {
+        storeSearchInput.oninput = (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            const filtered = umkm.products.filter(product => 
+                product.name.toLowerCase().includes(keyword) || 
+                (product.desc && product.desc.toLowerCase().includes(keyword))
+            );
+            renderProducts(filtered);
+        };
+    }
+
+    // Render Ulasan (Dummy)
+    ulasanContainer.innerHTML = `
+        <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                <img src="https://ui-avatars.com/api/?name=Budi&background=random" style="width:30px; border-radius:50%;">
+                <strong style="font-size:0.9rem;">Budi Warga RT 02</strong>
+                <span class="rating" style="font-size:0.8rem;"><i class="fas fa-star"></i> 5.0</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Sangat memuaskan! Kualitas pelayanan dari ${umkm.name} selalu juara. Pengirimannya juga cepat.</p>
+        </div>
+        <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                <img src="https://ui-avatars.com/api/?name=Ani&background=random" style="width:30px; border-radius:50%;">
+                <strong style="font-size:0.9rem;">Ani (Pembeli Luar Desa)</strong>
+                <span class="rating" style="font-size:0.8rem;"><i class="fas fa-star"></i> ${umkm.rating}</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Barang sesuai dengan deskripsi. Sangat merekomendasikan untuk belanja di toko UMKM ini.</p>
+        </div>
+    `;
+
+    // Render Galeri (Dummy)
+    if (galeriContainer) {
+        galeriContainer.innerHTML = `
+            <div class="product-card" style="border:none; box-shadow:none;">
+                <img src="${umkm.image}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+            </div>
+            <div class="product-card" style="border:none; box-shadow:none;">
+                <img src="https://picsum.photos/id/20/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+            </div>
+            <div class="product-card" style="border:none; box-shadow:none;">
+                <img src="https://picsum.photos/id/40/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+            </div>
+        `;
+    }
+
+    // Reset tab active ke Produk
+    storeTabBtns.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(c => c.classList.add('hidden'));
+    storeTabBtns[0].classList.add('active'); // Tombol Produk
+    document.getElementById('tabProduk').classList.remove('hidden');
+}
+
+// Logic Tab di halaman Toko
+storeTabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Hapus kelas active dari semua tombol & sembunyikan konten
+        storeTabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.add('hidden'));
+        
+        // Aktifkan yang diklik
+        const targetId = e.currentTarget.dataset.target;
+        e.currentTarget.classList.add('active');
+        document.getElementById(targetId).classList.remove('hidden');
+    });
+});
+
+// Fungsi kembali ke Home atau Tentang
+const goHome = (e) => {
+    if(e) e.preventDefault();
+    
+    // Jika tombol logo diklik saat logo adalah "Padukuhan Karanganyar", kembali ke Tentang Karanganyar
+    if (e && e.currentTarget === logoBtn && logoBtn.innerHTML.includes('Padukuhan')) {
+        switchPage('tentangPage');
+        return;
+    }
+
+    // Jika navigasi dipicu oleh klik logo atau menu Promo Desa, paksa scroll ke 0 (atas)
+    if (e && (e.currentTarget === logoBtn || (e.currentTarget.classList && e.currentTarget.classList.contains('linkPromoDesa')))) {
+        scrollPositions['homePage'] = 0;
+    }
+    switchPage('homePage');
+};
+
+logoBtn.addEventListener('click', goHome);
+breadcrumbHomeLinks.forEach(link => link.addEventListener('click', goHome));
+promoDesaLinks.forEach(link => link.addEventListener('click', goHome));
+
+// Event listener untuk menu footer & link lainnya
+tentangLinks.forEach(link => link.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchPage('tentangPage');
+}));
+
+termsLinks.forEach(link => link.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchPage('termsPage');
+}));
+
+privacyLinks.forEach(link => link.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchPage('privacyPage');
+}));
+
+// Fitur Filter Kategori
+categoryItems.forEach(item => {
+    item.addEventListener('click', () => {
+        categoryItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const filter = item.dataset.filter;
+        renderUMKM(filter);
+    });
+});
+
+// Logic Slider Hero Banner
+const slides = document.querySelectorAll('.slide');
+const dots = document.querySelectorAll('.dot');
+const prevBtn = document.querySelector('.prev-slide');
+const nextBtn = document.querySelector('.next-slide');
+let currentSlide = 0;
+let slideInterval;
+
+function goToSlide(index) {
+    if(slides.length === 0) return;
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    currentSlide = (index + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+}
+
+function nextSlide() {
+    goToSlide(currentSlide + 1);
+}
+
+function prevSlide() {
+    goToSlide(currentSlide - 1);
+}
+
+function startSlider() {
+    slideInterval = setInterval(nextSlide, 5000);
+}
+
+function resetSlider() {
+    clearInterval(slideInterval);
+    startSlider();
+}
+
+if(prevBtn && nextBtn) {
+    prevBtn.addEventListener('click', () => {
+        prevSlide();
+        resetSlider();
+    });
+
+    nextBtn.addEventListener('click', () => {
+        nextSlide();
+        resetSlider();
+    });
+}
+
+dots.forEach((dot, index) => {
+    dot.addEventListener('click', () => {
+        goToSlide(index);
+        resetSlider();
+    });
+});
+
+startSlider();
+
+// Logic Sistem Login (Prototype)
+/* =========================================
+   AUTH, CART, AND USER PROFILE SYSTEM
+========================================= */
+// 1. Firebase Configuration (PLACEHOLDER)
+const firebaseConfig = {
+    apiKey: "AIzaSyCB2O20Z9NzTLfXUkqZnPUATe1KJwLU6r8",
+    authDomain: "umkm-karanganyar.firebaseapp.com",
+    databaseURL: "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "umkm-karanganyar",
+    storageBucket: "umkm-karanganyar.firebasestorage.app",
+    messagingSenderId: "433865445262",
+    appId: "1:433865445262:web:0af1da5d3f24df48405edf"
+};
+
+// Initialize Firebase
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
+
+// State
+let currentUser = null;
+let cart = JSON.parse(localStorage.getItem('umkm_cart')) || {}; 
+
+// UI Elements
+const authButtonsContainer = document.getElementById('authButtonsContainer');
+const userProfileContainer = document.getElementById('userProfileContainer');
+const cartIconBtn = document.getElementById('cartIconBtn');
+const cartBadgeCount = document.getElementById('cartBadgeCount');
+const userAvatar = document.getElementById('userAvatar');
+const userNameDisplay = document.getElementById('userNameDisplay');
+const userProfileBtnHeader = document.getElementById('userProfileBtnHeader');
+const profileDropdown = document.getElementById('profileDropdown');
+const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+/* ======================= AVATAR GENERATOR ======================= */
+function getRandomAvatar(seed) {
+    // Generate a blue-themed cute animated avatar using DiceBear Micah style (always happy!)
+    return `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(seed)}&mouth=smile,laughing&backgroundColor=b6e3f4`;
+}
+
+/* ======================= AUTH LOGIC (FIREBASE OBSERVER) ======================= */
+if (auth) {
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            loadUserState(); // INIT USER DATA
+            if(authButtonsContainer) {
+                authButtonsContainer.classList.add('hidden');
+                authButtonsContainer.style.display = 'none';
+            }
+            if(userProfileContainer) userProfileContainer.classList.remove('hidden');
+            if(cartIconBtn) cartIconBtn.classList.remove('hidden');
+            
+            const fallbackName = user.email ? user.email.split('@')[0] : 'Pengguna';
+            const firstName = user.displayName ? user.displayName.split(' ')[0] : fallbackName;
+            if(userNameDisplay) userNameDisplay.textContent = firstName;
+            
+            const dropdownName = document.getElementById('dropdownName');
+            if(dropdownName) dropdownName.textContent = user.displayName || fallbackName;
+            
+            const localAvatar = localStorage.getItem('local_avatar_' + user.uid);
+            let avatarUrl = localAvatar || user.photoURL || getRandomAvatar(user.email || user.uid);
+            
+            // Fix previously saved broken Dicebear URLs in Firebase Auth
+            if(avatarUrl.includes('dicebear.com') && avatarUrl.includes('mouth=smile,laugh&')) {
+                avatarUrl = avatarUrl.replace('mouth=smile,laugh&', 'mouth=smile,laughing&');
+                user.updateProfile({ photoURL: avatarUrl }).catch(()=>console.log('silent fail'));
+            }
+            
+            if (userAvatar) userAvatar.src = avatarUrl;
+            
+            const dropdownAvatar = document.getElementById('dropdownAvatar');
+            if (dropdownAvatar) dropdownAvatar.src = avatarUrl;
+            
+            const profilePageAvatar = document.getElementById('profilePageAvatar');
+            if(profilePageAvatar) profilePageAvatar.src = avatarUrl;
+            
+            const profileEditAvatar = document.getElementById('profileEditAvatar');
+            if(profileEditAvatar) profileEditAvatar.src = avatarUrl;
+            
+            const profilePageName = document.getElementById('profilePageName');
+            if(profilePageName) profilePageName.textContent = user.displayName || fallbackName;
+            
+            const displayEditName = document.getElementById('displayEditName');
+            if(displayEditName) displayEditName.textContent = user.displayName || fallbackName;
+            
+            const profileEditName = document.getElementById('profileEditName');
+            if(profileEditName) profileEditName.value = user.displayName || fallbackName;
+            
+            const displayEditEmail = document.getElementById('displayEditEmail');
+            if(displayEditEmail) displayEditEmail.textContent = user.email || '';
+            
+            const profileEditEmail = document.getElementById('profileEditEmail');
+            if(profileEditEmail) profileEditEmail.value = user.email || '';
+            
+            if(typeof loadBiodataExtras === 'function') loadBiodataExtras();
+            
+            if(loginModal) loginModal.classList.add('hidden');
+            if(typeof updateCartBadge === 'function') updateCartBadge();
+        } else {
+            currentUser = null;
+            loadUserState(); // INIT USER DATA
+            if(authButtonsContainer) {
+                authButtonsContainer.classList.remove('hidden');
+                authButtonsContainer.style.display = 'flex';
+            }
+            if(userProfileContainer) userProfileContainer.classList.add('hidden');
+            if(cartIconBtn) cartIconBtn.classList.add('hidden');
+            if(profileDropdown) profileDropdown.classList.add('hidden');
+        }
+    });
+}
+
+if(userProfileBtnHeader) {
+    userProfileBtnHeader.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('show');
+    });
+}
+
+window.addEventListener('click', (e) => {
+    if (profileDropdown && !profileDropdown.contains(e.target) && userProfileBtnHeader && !userProfileBtnHeader.contains(e.target)) {
+        profileDropdown.classList.remove('show');
+    }
+    if (loginModal && e.target === loginModal) {
+        loginModal.classList.add('hidden');
+    }
+});
+
+if(dropdownLogoutBtn) {
+    dropdownLogoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sessionStorage.setItem('activePage', 'homePage');
+        if(auth) auth.signOut();
+    });
+}
+
+/* ======================= TOKOPEDIA AUTH UI & LOGIC ======================= */
+const loginModal = document.getElementById('loginModal');
+// Screens
+const authScreen1 = document.getElementById('authScreen1');
+const authScreen2 = document.getElementById('authScreen2');
+const authScreen3 = document.getElementById('authScreen3');
+const authScreen4 = document.getElementById('authScreen4');
+const authScreen5 = document.getElementById('authScreen5');
+const authScreen6 = document.getElementById('authScreen6');
+const authScreen7 = document.getElementById('authScreen7');
+const authScreen8 = document.getElementById('authScreen8');
+const authScreen9 = document.getElementById('authScreen9');
+
+// ======================= AUTH ERROR HELPERS =======================
+function showInputError(inputId, message) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.style.borderColor = '#f83245'; // Red border
+    
+    // Check if error message already exists
+    let errorEl = input.parentElement.querySelector('.input-error-msg');
+    if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.className = 'input-error-msg';
+        errorEl.style.color = '#f83245';
+        errorEl.style.fontSize = '0.8rem';
+        errorEl.style.marginTop = '4px';
+        input.parentElement.appendChild(errorEl);
+    }
+    errorEl.textContent = message;
+}
+
+function clearInputErrors() {
+    document.querySelectorAll('.input-error-msg').forEach(el => el.remove());
+    ['authInputEmail1', 'authInputPassword', 'authRegEmail', 'authRegName', 'authRegPassword', 'authForgotEmail'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.style.borderColor = '#E5E7E9';
+    });
+}
+
+// Inputs
+const authInputEmail1 = document.getElementById('authInputEmail1');
+const authInputPassword = document.getElementById('authInputPassword');
+const authDisplayEmail = document.getElementById('authDisplayEmail');
+const authForgotEmail = document.getElementById('authForgotEmail');
+const authRegName = document.getElementById('authRegName');
+const authRegEmail = document.getElementById('authRegEmail');
+const authRegPassword = document.getElementById('authRegPassword');
+// Buttons & Links
+const authBtnNext = document.getElementById('authBtnNext');
+const authBtnOtherMethods = document.getElementById('authBtnOtherMethods');
+const authGoToForgot = document.getElementById('authGoToForgot');
+const authGoToRegister = document.getElementById('authGoToRegister');
+const authBtnLogin = document.getElementById('authBtnLogin');
+const authBtnRegister = document.getElementById('authBtnRegister');
+const authBtnReset = document.getElementById('authBtnReset');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+
+// Navigation Helpers
+function showAuthScreen(screen) {
+    if(typeof clearInputErrors === 'function') clearInputErrors();
+    [authScreen1, authScreen2, authScreen3, authScreen4, authScreen5, authScreen6, authScreen7, authScreen8, authScreen9].forEach(s => {
+        if(s) s.classList.add('hidden');
+    });
+    if(screen) screen.classList.remove('hidden');
+}
+
+// Close Buttons
+[1,2,3,4,5,6,7,8,9].forEach(num => {
+    const btn = document.getElementById(`closeModal${num}`);
+    if(btn) btn.addEventListener('click', () => {
+        loginModal.classList.add('hidden');
+    });
+});
+
+// Back Buttons
+['authBackTo1', 'authBackTo1FromMethods', 'authBackTo1FromForgot', 'authBackTo1FromRegister'].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.addEventListener('click', () => showAuthScreen(authScreen1));
+});
+
+window.openLoginModal = (toRegister = false) => {
+    if(loginModal) {
+        loginModal.classList.remove('hidden');
+        if(toRegister) {
+            showAuthScreen(authScreen5);
+        } else {
+            const savedAccStr = localStorage.getItem('saved_tokopedia_account');
+            if(savedAccStr) {
+                const acc = JSON.parse(savedAccStr);
+                const nameEl = document.getElementById('savedAccountName');
+                const avatarEl = document.getElementById('savedAccountAvatar');
+                const emailEl = document.getElementById('savedAccountEmail');
+                
+                if(nameEl) nameEl.textContent = acc.name || 'Pengguna';
+                if(avatarEl) avatarEl.src = acc.photoURL || 'https://ui-avatars.com/api/?name=User&background=random';
+                
+                let masked = acc.email;
+                if(acc.email) {
+                    const parts = acc.email.split('@');
+                    if(parts.length === 2 && parts[0].length > 2) {
+                        masked = parts[0][0] + '*'.repeat(parts[0].length - 2) + parts[0].slice(-1) + '@' + parts[1];
+                    }
+                }
+                if(emailEl) emailEl.textContent = masked;
+                showAuthScreen(authScreen6);
+            } else {
+                showAuthScreen(authScreen1);
+                if(authInputEmail1) {
+                    authInputEmail1.value = '';
+                    authInputEmail1.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+    }
+};
+
+const headerBtnMasuk = document.querySelector('.btn-masuk');
+const headerBtnDaftar = document.querySelector('.btn-daftar');
+if(headerBtnMasuk) headerBtnMasuk.addEventListener('click', () => openLoginModal(false));
+if(headerBtnDaftar) headerBtnDaftar.addEventListener('click', () => openLoginModal(true));
+
+// Screen 1: Next Logic
+if(authInputEmail1 && authBtnNext) {
+    authInputEmail1.addEventListener('input', () => {
+        if(authInputEmail1.value.trim().length > 0) {
+            authBtnNext.style.background = 'var(--primary)';
+            authBtnNext.style.color = 'white';
+            authBtnNext.style.cursor = 'pointer';
+        } else {
+            authBtnNext.style.background = '#E5E7E9';
+            authBtnNext.style.color = '#B3B9C1';
+            authBtnNext.style.cursor = 'not-allowed';
+        }
+    });
+    
+    authBtnNext.addEventListener('click', () => {
+        if(typeof clearInputErrors === 'function') clearInputErrors();
+        const email = authInputEmail1.value.trim();
+        if(email.length > 0) {
+            if(!auth) {
+                if(typeof showInputError === 'function') showInputError('authInputEmail1', "Firebase Auth SDK tidak ditemukan.");
+                return;
+            }
+            if(!email.includes('@') || !email.includes('.')) {
+                if(typeof showInputError === 'function') showInputError('authInputEmail1', "Harap masukkan format email yang valid (contoh: user@gmail.com).");
+                return;
+            }
+            if(authDisplayEmail) authDisplayEmail.textContent = email;
+            showAuthScreen(authScreen2);
+        }
+    });
+}
+
+// Screen 1 Links
+if(authGoToForgot) authGoToForgot.addEventListener('click', (e) => {
+    e.preventDefault();
+    if(authForgotEmail && authInputEmail1) authForgotEmail.value = authInputEmail1.value;
+    showAuthScreen(authScreen4);
+});
+if(authGoToRegister) authGoToRegister.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAuthScreen(authScreen5);
+});
+if(authBtnOtherMethods) authBtnOtherMethods.addEventListener('click', () => {
+    showAuthScreen(authScreen3);
+});
+
+// Firebase Auth Actions
+if(authBtnLogin) {
+    authBtnLogin.addEventListener('click', () => {
+        if(typeof clearInputErrors === 'function') clearInputErrors();
+        if(!auth) {
+            if(typeof showInputError === 'function') showInputError('authInputPassword', "Sistem auth tidak siap.");
+            return;
+        }
+        const email = authDisplayEmail.textContent;
+        const password = authInputPassword.value;
+        if(!password) {
+            if(typeof showInputError === 'function') showInputError('authInputPassword', "Kata sandi tidak boleh kosong.");
+            return;
+        }
+        authBtnLogin.textContent = "Loading...";
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+                authBtnLogin.textContent = "Masuk";
+                authInputPassword.value = '';
+                
+                if(!sessionStorage.getItem('phonePromptShown')) {
+                    sessionStorage.setItem('phonePromptShown', 'true');
+                    setTimeout(() => {
+                        loginModal.classList.remove('hidden');
+                        showAuthScreen(authScreen7);
+                    }, 500);
+                } else {
+                    loginModal.classList.add('hidden');
+                }
+            })
+            .catch((error) => {
+                authBtnLogin.textContent = "Masuk";
+                if(typeof showInputError === 'function') {
+                    if(error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
+                        showInputError('authInputPassword', "Akun tidak ditemukan atau kata sandi salah.");
+                    } else if (error.code === 'auth/wrong-password') {
+                        showInputError('authInputPassword', "Kata sandi salah. Silakan coba lagi.");
+                    } else {
+                        showInputError('authInputPassword', "Terjadi kesalahan: " + error.message);
+                    }
+                }
+            });
+    });
+}
+
+// Screen 5 links
+const authGoToLogin = document.getElementById('authGoToLogin');
+if(authGoToLogin) authGoToLogin.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAuthScreen(authScreen1);
+});
+
+const googleRegisterBtn = document.getElementById('googleRegisterBtn');
+if(googleRegisterBtn) {
+    googleRegisterBtn.addEventListener('click', () => {
+        if (!auth) {
+            if(typeof showInputError === 'function') showInputError('googleRegisterBtn', "Sistem auth tidak siap.");
+            return;
+        }
+        if(firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY_ANDA") return;
+        const originalHtml = googleRegisterBtn.innerHTML;
+        googleRegisterBtn.innerHTML = '<div class="loading-spinner"></div>';
+        googleRegisterBtn.style.pointerEvents = 'none';
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then(() => {
+            setTimeout(() => {
+                googleRegisterBtn.innerHTML = originalHtml;
+                googleRegisterBtn.style.pointerEvents = 'auto';
+                if(!sessionStorage.getItem('phonePromptShown')) {
+                    sessionStorage.setItem('phonePromptShown', 'true');
+                    loginModal.classList.remove('hidden');
+                    showAuthScreen(authScreen7);
+                } else {
+                    loginModal.classList.add('hidden');
+                }
+            }, 3000);
+        }).catch((error) => {
+            console.error(error);
+            googleRegisterBtn.innerHTML = originalHtml;
+            googleRegisterBtn.style.pointerEvents = 'auto';
+        });
+    });
+}
+
+// Register Flow Logic
+const authRegNameGroup = document.getElementById('authRegNameGroup');
+const authRegPasswordGroup = document.getElementById('authRegPasswordGroup');
+if(authRegEmail && authBtnRegister) {
+    authRegEmail.addEventListener('input', () => {
+        if(authRegEmail.value.trim().length > 0) {
+            authBtnRegister.style.background = 'var(--primary)';
+            authBtnRegister.style.color = 'white';
+            authBtnRegister.style.cursor = 'pointer';
+        } else {
+            authBtnRegister.style.background = '#E5E7E9';
+            authBtnRegister.style.color = '#B3B9C1';
+            authBtnRegister.style.cursor = 'not-allowed';
+            if(authRegNameGroup) authRegNameGroup.classList.add('hidden');
+            if(authRegPasswordGroup) authRegPasswordGroup.classList.add('hidden');
+            authBtnRegister.textContent = "Daftar";
+        }
+    });
+    
+    authBtnRegister.addEventListener('click', () => {
+        if(typeof clearInputErrors === 'function') clearInputErrors();
+        const email = authRegEmail.value.trim();
+        if(email.length === 0) {
+            if(typeof showInputError === 'function') showInputError('authRegEmail', 'Email tidak boleh kosong.');
+            return;
+        }
+        
+        // Step 1: Validate Email and show Name/Password
+        if(authRegNameGroup && authRegNameGroup.classList.contains('hidden')) {
+            if(!email.includes('@') || !email.includes('.')) {
+                if(typeof showInputError === 'function') showInputError('authRegEmail', "Format email tidak valid.");
+                return;
+            }
+            authBtnRegister.textContent = "Memeriksa...";
+            auth.fetchSignInMethodsForEmail(email).then((methods) => {
+                if(methods.length > 0) {
+                    authBtnRegister.textContent = "Daftar";
+                    if(typeof showInputError === 'function') showInputError('authRegEmail', "Email ini sudah terdaftar. Silakan gunakan email lain atau masuk.");
+                } else {
+                    authRegNameGroup.classList.remove('hidden');
+                    authRegPasswordGroup.classList.remove('hidden');
+                    authBtnRegister.textContent = "Selesaikan Pendaftaran";
+                }
+            }).catch(e => {
+                authBtnRegister.textContent = "Daftar";
+                if(e.code === 'auth/operation-not-allowed' || e.code === 'auth/unauthorized-domain') {
+                    authRegNameGroup.classList.remove('hidden');
+                    authRegPasswordGroup.classList.remove('hidden');
+                    authBtnRegister.textContent = "Selesaikan Pendaftaran";
+                } else {
+                    if(typeof showInputError === 'function') showInputError('authRegEmail', "Kesalahan: " + e.message);
+                }
+            });
+            return;
+        }
+
+        // Step 2: Register User
+        if(!auth) return;
+        const password = authRegPassword.value;
+        const name = authRegName.value;
+        let hasError = false;
+        
+        if(!name) { if(typeof showInputError === 'function') showInputError('authRegName', "Nama tidak boleh kosong."); hasError = true; }
+        if(!password) { if(typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi tidak boleh kosong."); hasError = true; }
+        else if(password.length < 6) { if(typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi minimal 6 karakter."); hasError = true; }
+        
+        if(hasError) return;
+        
+        authBtnRegister.textContent = "Loading...";
+        auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                const avatarUrl = getRandomAvatar(email);
+                return userCredential.user.updateProfile({ displayName: name, photoURL: avatarUrl });
+            })
+            .then(() => {
+                authBtnRegister.textContent = "Selesaikan Pendaftaran";
+                if(userNameDisplay) userNameDisplay.textContent = name.split(' ')[0];
+                loginModal.classList.add('hidden');
+            })
+            .catch((error) => {
+                authBtnRegister.textContent = "Selesaikan Pendaftaran";
+                if(typeof showInputError === 'function') {
+                    if(error.code === 'auth/email-already-in-use') {
+                        showInputError('authRegEmail', "Email ini sudah terdaftar.");
+                    } else if(error.code === 'auth/weak-password') {
+                        showInputError('authRegPassword', "Kata sandi terlalu lemah (minimal 6 karakter).");
+                    } else {
+                        showInputError('authRegPassword', "Kesalahan: " + error.message);
+                    }
+                }
+            });
+    });
+}
+
+if(authBtnReset) {
+    authBtnReset.addEventListener('click', () => {
+        if(typeof clearInputErrors === 'function') clearInputErrors();
+        if(!auth) return;
+        const email = authForgotEmail.value;
+        if(!email) {
+            if(typeof showInputError === 'function') showInputError('authForgotEmail', "Masukkan email.");
+            return;
+        }
+        if(!email.includes('@') || !email.includes('.')) {
+            if(typeof showInputError === 'function') showInputError('authForgotEmail', "Format email tidak valid.");
+            return;
+        }
+        authBtnReset.textContent = "Loading...";
+        auth.sendPasswordResetEmail(email)
+            .then(() => {
+                authBtnReset.textContent = "Lanjut";
+                if(typeof showInputError === 'function') {
+                    showInputError('authForgotEmail', "Tautan reset telah dikirim ke email Anda!");
+                    document.getElementById('authForgotEmail').style.borderColor = 'var(--primary)';
+                    document.getElementById('authForgotEmail').parentElement.querySelector('.input-error-msg').style.color = 'var(--primary)';
+                }
+            })
+            .catch((error) => {
+                authBtnReset.textContent = "Lanjut";
+                if(typeof showInputError === 'function') {
+                    if(error.code === 'auth/user-not-found') {
+                        showInputError('authForgotEmail', "Email ini tidak terdaftar.");
+                    } else {
+                        showInputError('authForgotEmail', "Gagal: " + error.message);
+                    }
+                }
+            });
+    });
+}
+
+if(googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', () => {
+        if (!auth) return;
+        if(firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY_ANDA") return;
+        const originalHtml = googleLoginBtn.innerHTML;
+        googleLoginBtn.innerHTML = '<div class="loading-spinner"></div>';
+        googleLoginBtn.style.pointerEvents = 'none';
+        
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then(() => {
+            setTimeout(() => {
+                googleLoginBtn.innerHTML = originalHtml;
+                googleLoginBtn.style.pointerEvents = 'auto';
+                if(!sessionStorage.getItem('phonePromptShown')) {
+                    sessionStorage.setItem('phonePromptShown', 'true');
+                    loginModal.classList.remove('hidden');
+                    showAuthScreen(authScreen7);
+                } else {
+                    loginModal.classList.add('hidden');
+                }
+            }, 3000);
+        }).catch((error) => {
+            console.error(error);
+            googleLoginBtn.innerHTML = originalHtml;
+            googleLoginBtn.style.pointerEvents = 'auto';
+        });
+    });
+}
+
+// Logic untuk Layar 6 (Account Picker)
+const savedAccountCard = document.getElementById('savedAccountCard');
+const deleteSavedAccountBtn = document.getElementById('deleteSavedAccountBtn');
+const authGoToLoginFromPicker = document.getElementById('authGoToLoginFromPicker');
+const authGoToRegisterFromPicker = document.getElementById('authGoToRegisterFromPicker');
+
+if(savedAccountCard) {
+    savedAccountCard.addEventListener('click', (e) => {
+        if(e.target === deleteSavedAccountBtn) return; // Prevent double trigger
+        const savedAccStr = localStorage.getItem('saved_tokopedia_account');
+        if(savedAccStr) {
+            const acc = JSON.parse(savedAccStr);
+            if(authInputEmail1) {
+                authInputEmail1.value = acc.email;
+                if(authDisplayEmail) authDisplayEmail.textContent = acc.email;
+            }
+            showAuthScreen(authScreen2);
+        }
+    });
+}
+if(deleteSavedAccountBtn) {
+    deleteSavedAccountBtn.addEventListener('click', () => {
+        localStorage.removeItem('saved_tokopedia_account');
+        showAuthScreen(authScreen1);
+    });
+}
+if(authGoToLoginFromPicker) {
+    authGoToLoginFromPicker.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAuthScreen(authScreen1);
+    });
+}
+if(authGoToRegisterFromPicker) {
+    authGoToRegisterFromPicker.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAuthScreen(authScreen5);
+    });
+}
+
+// Logic untuk Layar 7 & 8 (Prompt HP)
+const authBtnGoToAddPhone = document.getElementById('authBtnGoToAddPhone');
+const authBackTo7 = document.getElementById('authBackTo7');
+const authInputPhone = document.getElementById('authInputPhone');
+const authBtnSubmitPhone = document.getElementById('authBtnSubmitPhone');
+
+if(authBtnGoToAddPhone) {
+    authBtnGoToAddPhone.addEventListener('click', () => showAuthScreen(authScreen8));
+}
+if(authBackTo7) {
+    authBackTo7.addEventListener('click', () => showAuthScreen(authScreen7));
+}
+if(authInputPhone && authBtnSubmitPhone) {
+    authInputPhone.addEventListener('input', () => {
+        if(authInputPhone.value.trim().length > 5) {
+            authBtnSubmitPhone.style.background = 'var(--primary)';
+            authBtnSubmitPhone.style.color = 'white';
+            authBtnSubmitPhone.style.cursor = 'pointer';
+        } else {
+            authBtnSubmitPhone.style.background = '#E5E7E9';
+            authBtnSubmitPhone.style.color = '#B3B9C1';
+            authBtnSubmitPhone.style.cursor = 'not-allowed';
+        }
+    });
+    authBtnSubmitPhone.addEventListener('click', () => {
+        if(authInputPhone.value.trim().length > 5) {
+            alert("Nomor HP berhasil ditambahkan ke profil Anda!");
+            loginModal.classList.add('hidden');
+        }
+    });
+}
+
+// Intercept Logout Logic (Layar 9)
+if(dropdownLogoutBtn) {
+    // Timpa event listener sebelumnya dengan cloning node
+    const newLogoutBtn = dropdownLogoutBtn.cloneNode(true);
+    dropdownLogoutBtn.parentNode.replaceChild(newLogoutBtn, dropdownLogoutBtn);
+    
+    newLogoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginModal.classList.remove('hidden');
+        showAuthScreen(authScreen9);
+    });
+}
+
+const authBtnLogoutDontSave = document.getElementById('authBtnLogoutDontSave');
+const authBtnLogoutSave = document.getElementById('authBtnLogoutSave');
+
+if(authBtnLogoutDontSave) {
+    authBtnLogoutDontSave.addEventListener('click', () => {
+        localStorage.removeItem('saved_tokopedia_account');
+        sessionStorage.setItem('activePage', 'homePage');
+        if(auth) auth.signOut().then(() => location.reload());
+    });
+}
+if(authBtnLogoutSave) {
+    authBtnLogoutSave.addEventListener('click', () => {
+        if(currentUser) {
+            localStorage.setItem('saved_tokopedia_account', JSON.stringify({
+                name: currentUser.displayName,
+                email: currentUser.email,
+                photoURL: currentUser.photoURL
+            }));
+        }
+        sessionStorage.setItem('activePage', 'homePage');
+        if(auth) auth.signOut().then(() => location.reload());
+    });
+}
+
+// ======================= CART LOGIC =======================
+function saveCart() {
+    localStorage.setItem('umkm_cart', JSON.stringify(cart));
+    updateCartBadge();
+}
+
+function updateCartBadge() {
+    let totalItems = 0;
+    Object.values(cart).forEach(storeItems => {
+        Object.values(storeItems.items).forEach(item => { totalItems += item.qty; });
+    });
+    if(cartBadgeCount) {
+        cartBadgeCount.textContent = totalItems;
+        cartBadgeCount.style.display = totalItems > 0 ? 'inline-block' : 'none';
+    }
+    if(cartIconBtn) {
+        if(currentUser) {
+            cartIconBtn.classList.remove('hidden');
+        } else {
+            cartIconBtn.classList.add('hidden');
+        }
+    }
+}
+
+/* ======================= CART LOGIC (PAGE) ======================= */
+const cartPageItemsContainer = document.getElementById('cartPageItemsContainer');
+const cartSummaryItemCount = document.getElementById('cartSummaryItemCount');
+const cartSummaryTotal = document.getElementById('cartSummaryTotal');
+const cartSummaryGrandTotal = document.getElementById('cartSummaryGrandTotal');
+const cartCheckoutBtn = document.getElementById('cartCheckoutBtn');
+
+// State for checked items
+let checkedCartItems = {}; // { storeId: { prodId: boolean } }
+
+// Ensure checked items state is clean
+function syncCheckedItems() {
+    for (const storeId in cart) {
+        if (!checkedCartItems[storeId]) checkedCartItems[storeId] = {};
+        for (const prodId in cart[storeId].items) {
+            if (checkedCartItems[storeId][prodId] === undefined) {
+                checkedCartItems[storeId][prodId] = true; // default checked
+            }
+        }
+    }
+}
+
+function updateCartSummary() {
+    let totalCheckedItems = 0;
+    let grandTotal = 0;
+    let activeStores = 0;
+    let lastActiveStore = null;
+
+    for (const storeId in cart) {
+        let hasCheckedInStore = false;
+        for (const prodId in cart[storeId].items) {
+            if (checkedCartItems[storeId] && checkedCartItems[storeId][prodId]) {
+                const item = cart[storeId].items[prodId];
+                totalCheckedItems += item.qty;
+                grandTotal += (item.price * item.qty);
+                hasCheckedInStore = true;
+            }
+        }
+        if(hasCheckedInStore) {
+            activeStores++;
+            lastActiveStore = storeId;
+        }
+    }
+
+    if(cartSummaryItemCount) cartSummaryItemCount.textContent = totalCheckedItems;
+    if(cartSummaryTotal) cartSummaryTotal.textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
+    if(cartSummaryGrandTotal) cartSummaryGrandTotal.textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
+    
+    if(cartCheckoutBtn) {
+        if (totalCheckedItems === 0) {
+            cartCheckoutBtn.disabled = true;
+            cartCheckoutBtn.style.opacity = '0.5';
+            cartCheckoutBtn.onclick = null;
+        } else {
+            cartCheckoutBtn.disabled = false;
+            cartCheckoutBtn.style.opacity = '1';
+            cartCheckoutBtn.onclick = () => {
+                if (activeStores > 1) {
+                    alert("Maaf, checkout via WhatsApp hanya bisa dilakukan untuk 1 UMKM dalam satu waktu. Silakan centang produk dari 1 toko saja.");
+                    return;
+                }
+                checkoutStore(lastActiveStore);
+            };
+        }
+    }
+}
+
+function renderCartPage() {
+    if(!cartPageItemsContainer) return;
+    cartPageItemsContainer.innerHTML = '';
+    syncCheckedItems();
+    
+    if (Object.keys(cart).length === 0) {
+        cartPageItemsContainer.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; background:white; border-radius:8px; border:1px solid #f0f0f0;">
+                <i class="fas fa-shopping-cart" style="font-size:4rem; margin-bottom:20px; color:#ddd;"></i>
+                <h3 style="color:#666;">Wah, keranjang belanjamu kosong</h3>
+                <p style="color:#999; margin-top:10px;">Yuk, isi dengan barang-barang UMKM yang menarik!</p>
+                <button class="btn-primary" onclick="switchPage('homePage')" style="margin-top:20px; padding:10px 20px; border-radius:8px;">Belanja Sekarang</button>
+            </div>
+        `;
+        updateCartSummary();
+        return;
+    }
+    
+    for (const storeId in cart) {
+        const store = cart[storeId];
+        const storeGroup = document.createElement('div');
+        storeGroup.className = 'cart-page-store';
+        
+        // Cek apakah semua produk di toko ini dicentang
+        let allChecked = true;
+        for (const prodId in store.items) {
+            if (!checkedCartItems[storeId][prodId]) allChecked = false;
+        }
+
+        let itemsHTML = '';
+        for (const prodId in store.items) {
+            const item = store.items[prodId];
+            const isChecked = checkedCartItems[storeId][prodId];
+            itemsHTML += `
+                <div class="cart-page-item">
+                    <input type="checkbox" class="custom-checkbox item-checkbox" data-store="${storeId}" data-prod="${prodId}" ${isChecked ? 'checked' : ''} onchange="toggleCartItem('${storeId}', '${prodId}', this.checked)">
+                    <img src="${item.image}" alt="${item.name}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #eee;">
+                    <div class="cart-item-details-full">
+                        <div style="font-weight:600; font-size:1.1rem; margin-bottom:5px;">${item.name}</div>
+                        <div style="font-weight:bold; color:var(--text-color); margin-bottom:15px;">Rp ${item.price.toLocaleString('id-ID')}</div>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:15px;">
+                            <button onclick="removeCartItem('${storeId}', '${prodId}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button>
+                            <div class="cart-qty-control">
+                                <button class="cart-qty-btn" onclick="updateCartQty('${storeId}', '${prodId}', -1)">-</button>
+                                <input type="text" class="cart-qty-input" value="${item.qty}" readonly>
+                                <button class="cart-qty-btn" onclick="updateCartQty('${storeId}', '${prodId}', 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        storeGroup.innerHTML = `
+            <div class="cart-page-header">
+                <input type="checkbox" class="custom-checkbox store-checkbox" data-store="${storeId}" ${allChecked ? 'checked' : ''} onchange="toggleStoreItems('${storeId}', this.checked)">
+                <i class="fas fa-store" style="color:#f44336;"></i> ${store.storeName}
+            </div>
+            ${itemsHTML}
+        `;
+        cartPageItemsContainer.appendChild(storeGroup);
+    }
+    updateCartSummary();
+}
+
+window.toggleCartItem = function(storeId, prodId, checked) {
+    if(!checkedCartItems[storeId]) checkedCartItems[storeId] = {};
+    checkedCartItems[storeId][prodId] = checked;
+    renderCartPage();
+};
+
+window.toggleStoreItems = function(storeId, checked) {
+    if(!checkedCartItems[storeId]) checkedCartItems[storeId] = {};
+    if(cart[storeId]) {
+        for (const prodId in cart[storeId].items) {
+            checkedCartItems[storeId][prodId] = checked;
+        }
+    }
+    renderCartPage();
+};
+
+window.updateCartQty = function(storeId, prodId, change) {
+    if (cart[storeId] && cart[storeId].items[prodId]) {
+        cart[storeId].items[prodId].qty += change;
+        if (cart[storeId].items[prodId].qty <= 0) { delete cart[storeId].items[prodId]; }
+        if (Object.keys(cart[storeId].items).length === 0) { delete cart[storeId]; }
+        saveCart();
+        renderCartPage();
+    }
+};
+
+window.removeCartItem = function(storeId, prodId) {
+    if (cart[storeId] && cart[storeId].items[prodId]) {
+        delete cart[storeId].items[prodId];
+        if (Object.keys(cart[storeId].items).length === 0) { delete cart[storeId]; }
+        saveCart();
+        renderCartPage();
+    }
+};
+
+window.checkoutStore = function(storeId) {
+    const store = cart[storeId];
+    if (!store || !currentUser) return;
+    
+    const userName = currentUser.displayName || 'Pelanggan';
+    let text = `Halo *${store.storeName}*,\nSaya ${userName} ingin memesan dari Pasar Desa Karanganyar:\n\n`;
+    
+    let total = 0; let i = 1;
+    for (const prodId in store.items) {
+        if(checkedCartItems[storeId] && checkedCartItems[storeId][prodId]) {
+            const item = store.items[prodId];
+            total += item.price * item.qty;
+            text += `${i}. ${item.name} (${item.qty}x) - Rp ${(item.price * item.qty).toLocaleString('id-ID')}\n`;
+            i++;
+        }
+    }
+    
+    text += `\n*Total Pesanan: Rp ${total.toLocaleString('id-ID')}*\n\nMohon informasikan ketersediaan dan ongkos kirim. Terima kasih!`;
+    window.open(`https://wa.me/${store.storeWhatsapp}?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+if(cartIconBtn) {
+    cartIconBtn.addEventListener('click', () => {
+        renderCartPage();
+        switchPage('cartPage');
+    });
+}
+
+window.addToCart = function(umkm, product, qty) {
+    if (!cart[umkm.id]) {
+        cart[umkm.id] = { storeName: umkm.name, storeWhatsapp: umkm.whatsapp, items: {} };
+    }
+    const prodId = product.name; // Use name as unique ID for now
+    if (cart[umkm.id].items[prodId]) {
+        cart[umkm.id].items[prodId].qty += qty;
+    } else {
+        cart[umkm.id].items[prodId] = {
+            name: product.name,
+            price: product.price,
+            image: product.image.split('|||')[0],
+            qty: qty
+        };
+    }
+    // Set baru ke checked
+    if(!checkedCartItems[umkm.id]) checkedCartItems[umkm.id] = {};
+    checkedCartItems[umkm.id][prodId] = true;
+    
+    saveCart();
+};
+
+/* ======================= PROFILE LOGIC ======================= */
+const dropdownProfileMenu = document.getElementById('dropdownProfileMenu');
+const profilePageAvatar = document.getElementById('profilePageAvatar');
+const profilePageName = document.getElementById('profilePageName');
+const profileEditName = document.getElementById('profileEditName');
+const profileEditEmail = document.getElementById('profileEditEmail');
+const profileSaveBtn = document.getElementById('profileSaveBtn');
+
+if(dropdownProfileMenu) {
+    dropdownProfileMenu.addEventListener('click', (e) => {
+        e.preventDefault();
+        const pd = document.getElementById('profileDropdown');
+        if(pd) pd.classList.remove('show');
+        
+        if (currentUser) {
+            const localAvatar = localStorage.getItem('local_avatar_' + currentUser.uid);
+            let avatarUrl = localAvatar || currentUser.photoURL || getRandomAvatar(currentUser.email || currentUser.uid);
+            
+            if(avatarUrl.includes('dicebear.com') && avatarUrl.includes('mouth=smile,laugh&')) {
+                avatarUrl = avatarUrl.replace('mouth=smile,laugh&', 'mouth=smile,laughing&');
+            }
+            
+            if(profilePageAvatar) profilePageAvatar.src = avatarUrl;
+            
+            const profileEditAvatar = document.getElementById('profileEditAvatar');
+            if(profileEditAvatar) profileEditAvatar.src = avatarUrl;
+            const fallbackName = currentUser.email ? currentUser.email.split('@')[0] : 'Pengguna';
+            
+            if(profilePageName) profilePageName.textContent = currentUser.displayName || fallbackName;
+            
+            const displayEditName = document.getElementById('displayEditName');
+            if(displayEditName) displayEditName.textContent = currentUser.displayName || fallbackName;
+            if(profileEditName) profileEditName.value = currentUser.displayName || fallbackName;
+            
+            const displayEditEmail = document.getElementById('displayEditEmail');
+            if(displayEditEmail) displayEditEmail.textContent = currentUser.email || '';
+            if(profileEditEmail) profileEditEmail.value = currentUser.email || '';
+            
+            if(typeof loadBiodataExtras === 'function') loadBiodataExtras();
+        }
+        
+        switchPage('profilePage');
+    });
+}
+
+// Tab Switching Logic
+const profileTabs = document.querySelectorAll('.profile-tab');
+profileTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Remove active class from all tabs
+        profileTabs.forEach(t => t.classList.remove('active'));
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        
+        // Hide all contents
+        document.querySelectorAll('.profile-tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Show target content
+        const targetId = `tab-${tab.getAttribute('data-tab')}`;
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+            targetContent.classList.remove('hidden');
+        }
+    });
+});
+
+/* ======================= TOAST NOTIFICATION ======================= */
+function showToast(message, type = 'success') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    
+    let iconHTML = '';
+    if (type === 'success') iconHTML = '<i class="fas fa-check-circle" style="color: #4CAF50; font-size: 1.2rem;"></i>';
+    else if (type === 'error') iconHTML = '<i class="fas fa-exclamation-circle" style="color: #F44336; font-size: 1.2rem;"></i>';
+    else iconHTML = '<i class="fas fa-info-circle" style="color: #2196F3; font-size: 1.2rem;"></i>';
+    
+    toast.innerHTML = `${iconHTML} <span>${message}</span>`;
+    
+    toastContainer.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Animate out after 3s
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}
+
+const btnBackProfile = document.getElementById('btnBackProfile');
+if(btnBackProfile) {
+    btnBackProfile.addEventListener('click', () => {
+        switchPage(previousPageId);
+    });
+}
+
+if(profileSaveBtn) {
+    profileSaveBtn.addEventListener('click', () => {
+        if (!currentUser) return;
+        const newName = profileEditName.value;
+        const oldName = currentUser.displayName;
+        currentUser.updateProfile({ displayName: newName }).then(() => {
+            showToast('Biodata berhasil diperbarui!');
+            if(profilePageName) profilePageName.textContent = newName;
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if(userNameDisplay) userNameDisplay.textContent = newName.split(' ')[0];
+            
+            const dropdownName = document.getElementById('dropdownName');
+            if(dropdownName) dropdownName.textContent = newName;
+            
+        }).catch(err => {
+            console.error(err);
+            showToast('Gagal memperbarui profil: ' + err.message, 'error');
+        });
+    });
+}
+
+// Fitur Buka Halaman Bantuan
+helpCenterLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchPage('helpPage');
+    });
+});
+
+// Fitur Buka Halaman Tentang Karanganyar
+tentangLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchPage('tentangPage');
+    });
+});
+
+// Fitur Buka Halaman Syarat & Ketentuan
+termsLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchPage('termsPage');
+    });
+});
+
+// Fitur Buka Halaman Kebijakan Privasi
+privacyLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchPage('privacyPage');
+    });
+});
+
+// Interaksi Accordion FAQ
+const faqQuestions = document.querySelectorAll('.faq-question');
+faqQuestions.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const parent = btn.parentElement;
+        // Toggle item yang diklik
+        parent.classList.toggle('active');
+    });
+});
+
+// Event Listener Search Bar
+if (searchInput) {
+    const searchIcon = document.querySelector('.search-icon-left');
+    if (searchIcon) {
+        searchIcon.addEventListener('click', handleSearch);
+        searchIcon.style.cursor = 'pointer'; // Menjadikan ikon kaca pembesar terlihat bisa diklik
+    }
+    
+    // Live Search: Pencarian langsung saat pengguna mengetik (tidak perlu Enter)
+    searchInput.addEventListener('input', () => {
+        handleSearch();
+    });
+}
+
+// Event Listener Popular Searches
+if (popularSearchLinks) {
+    popularSearchLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const keyword = e.target.innerText;
+            if (searchInput) {
+                searchInput.value = keyword;
+                handleSearch();
+            }
+        });
+    });
+}
+
+// Global Scroll Observer (bisa diakses oleh fungsi render dinamis)
+const globalScrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+        }
+    });
+}, { threshold: 0.1 });
+
+// Tombol Kembali Khusus Mobile di Halaman Detail Toko
+const mobileBackStoreBtn = document.getElementById('mobileBackStoreBtn');
+if (mobileBackStoreBtn) {
+    mobileBackStoreBtn.addEventListener('click', () => {
+        switchPage('homePage');
+    });
+}
+
+// Init Status Halaman setelah Refresh
+const lastActivePage = sessionStorage.getItem('activePage') || 'tentangPage';
+const activeStoreId = sessionStorage.getItem('activeStoreId');
+
+if (lastActivePage === 'storePage' && activeStoreId) {
+    // Buka otomatis toko yang terakhir dilihat
+    openStore(parseInt(activeStoreId));
+} else {
+    switchPage(lastActivePage);
+}
+function setupScrollReveal() {
+    const reveals = document.querySelectorAll('.reveal');
+    reveals.forEach(reveal => {
+        globalScrollObserver.observe(reveal);
+    });
+}
+setupScrollReveal();
+
+// ==========================================
+// Fitur Mobile Side Menu (Hamburger)
+// ==========================================
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const mobileSideMenu = document.getElementById('mobileSideMenu');
+const closeSideMenu = document.getElementById('closeSideMenu');
+const sideMenuOverlay = document.getElementById('sideMenuOverlay');
+const sideMenuLinks = document.querySelectorAll('.mobile-side-menu .side-menu-links a');
+
+function openMobileMenu() {
+    mobileSideMenu.classList.add('active');
+    sideMenuOverlay.classList.add('active');
+    // Mencegah body di-scroll saat menu terbuka
+
+}
+
+function closeMobileMenu() {
+    mobileSideMenu.classList.remove('active');
+    sideMenuOverlay.classList.remove('active');
+
+}
+
+if (mobileMenuBtn && mobileSideMenu && closeSideMenu && sideMenuOverlay) {
+    mobileMenuBtn.addEventListener('click', openMobileMenu);
+    closeSideMenu.addEventListener('click', closeMobileMenu);
+    sideMenuOverlay.addEventListener('click', closeMobileMenu);
+    
+    // Tutup menu otomatis saat salah satu tautan ditekan
+    sideMenuLinks.forEach(link => {
+        link.addEventListener('click', closeMobileMenu);
+    });
+}
+
+
+
+// ==========================================
+// Fitur Dropdown Kategori (Mobile Click Toggle & Dynamic Content)
+// ==========================================
+const categoryBtn = document.querySelector('.category-btn');
+const categoryDropdown = document.querySelector('.category-dropdown');
+const categorySidebarItems = document.querySelectorAll('.category-sidebar li');
+const categoryContentBox = document.querySelector('.category-content');
+
+const categoryData = {
+    "Makanan & Minuman": ["Keripik Pisang", "Telur Asin", "Jamu Tradisional", "Kopi Asli Desa", "Peyek Kacang"],
+    "Kerajinan Tangan": ["Anyaman Bambu", "Batik Tulis Tangan", "Kerajinan Tanah Liat", "Pahatan Kayu Jati"],
+    "Kebutuhan Harian": ["Beras Organik Mentik Wangi", "Minyak Kelapa", "Sabun Cuci", "Gula Merah Aren"],
+    "Pertanian & Peternakan": ["Sayur Segar Musiman", "Bibit Buah", "Pupuk Kompos", "Telur Ayam Kampung"],
+    "Jasa Warga": ["Servis Motor Panggilan", "Tukang Kayu Profesional", "Jasa Jahit Pakaian", "Pijat Tradisional"]
+};
+
+if (categoryBtn && categoryDropdown) {
+    categoryBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Mencegah event click merambat ke window
+        categoryDropdown.classList.toggle('active');
+    });
+
+    // Menutup menu kategori saat pengguna mengklik di area luar menu
+    window.addEventListener('click', (e) => {
+        if (!categoryDropdown.contains(e.target)) {
+            categoryDropdown.classList.remove('active');
+        }
+    });
+}
+
+// Logika dinamis untuk merender isi menu saat sisi kiri dipilih
+if (categorySidebarItems.length > 0 && categoryContentBox) {
+    categorySidebarItems.forEach(item => {
+        const updateCategory = () => {
+            // Hapus kelas active dari semua item
+            categorySidebarItems.forEach(i => i.classList.remove('active'));
+            // Tambahkan ke item yang dipilih
+            item.classList.add('active');
+            
+            const categoryName = item.textContent.trim();
+            const subcats = categoryData[categoryName] || [];
+            
+            let html = `<h4>${categoryName}</h4><div class="sub-categories">`;
+            subcats.forEach(sub => {
+                html += `<a href="#" class="cat-link">${sub}</a>`;
+            });
+            html += `</div>`;
+            
+            categoryContentBox.innerHTML = html;
+            
+            // Tambahkan event click pada sub-kategori baru
+            const newLinks = categoryContentBox.querySelectorAll('.cat-link');
+            newLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Tutup menu
+                    categoryDropdown.classList.remove('active');
+                    // Isi search box
+                    const searchInput = document.getElementById('searchInput');
+                    if(searchInput) {
+                        searchInput.value = link.textContent;
+                        // Gulir (scroll) layar ke bagian grid produk
+                        const umkmGrid = document.getElementById('umkmGrid');
+                        if (umkmGrid) {
+                            umkmGrid.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }
+                    }
+                });
+            });
+        };
+        
+        // Responsif untuk sentuhan di HP maupun sentuhan mouse di PC
+        item.addEventListener('mouseenter', updateCategory);
+        item.addEventListener('click', updateCategory);
+    });
+}
+
+// Inisialisasi UMKM Grid di halaman Home (semua kategori)
+fetchUMKMData();
+
+// ==========================================
+// Halaman Detail Produk (PDP) - Tokopedia Style
+// ==========================================
+function openProductDetail(umkmId, prodIndex) {
+    // Hapus jika sudah ada, lalu masukkan ke depan
+    const existingIndex = recentlyViewed.findIndex(item => item.umkmId === umkmId && item.prodIndex === prodIndex);
+
+    if(existingIndex > -1) recentlyViewed.splice(existingIndex, 1);
+    recentlyViewed.unshift({umkmId, prodIndex});
+    // Batasi 10 terakhir
+    if(recentlyViewed.length > 10) recentlyViewed.pop();
+    localStorage.setItem(getUserKey("recentlyViewed"), JSON.stringify(recentlyViewed));
+    if(typeof renderTerakhirDilihat === "function") renderTerakhirDilihat();
+    const umkm = umkmData.find(u => u.id === umkmId);
+    if (!umkm || !umkm.products || !umkm.products[prodIndex]) return;
+
+    const product = umkm.products[prodIndex];
+    
+    // Switch to PDP
+    switchPage('productPage');
+    window.scrollTo(0, 0);
+
+    // Breadcrumbs
+    document.getElementById('pdpStoreBreadcrumb').textContent = umkm.name;
+    document.getElementById('pdpStoreBreadcrumb').onclick = (e) => {
+        e.preventDefault();
+        openStore(umkm.id);
+    };
+    document.getElementById('pdpProductNameBreadcrumb').textContent = product.name;
+
+    // Gallery interactivity
+    const mainImg = document.getElementById('pdpMainImage');
+    const thumbContainer = document.querySelector('.pdp-thumbnails');
+    
+    // Split images if multiple images exist
+    const images = product.image.split('|||');
+    mainImg.src = images[0];
+    
+    // Clear and rebuild thumbnails dynamically
+    thumbContainer.innerHTML = '';
+    
+    // Only show thumbnails if there are multiple images
+    if (images.length > 1) {
+        images.forEach((imgSrc, i) => {
+            const thumb = document.createElement('img');
+            thumb.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
+            thumb.src = imgSrc;
+            thumb.onclick = () => {
+                mainImg.src = imgSrc;
+                document.querySelectorAll('.pdp-thumb').forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+            };
+            thumbContainer.appendChild(thumb);
+        });
+    }
+
+    // Info Produk
+    document.getElementById('pdpProductName').textContent = product.name;
+    
+    // Randomize stats for demo effect
+    const soldCount = Math.floor(Math.random() * 200) + 10;
+    const rating = (Math.random() * 1 + 4).toFixed(1);
+    
+    document.getElementById('pdpSoldCount').textContent = soldCount;
+    document.getElementById('pdpRatingValue').textContent = rating;
+
+    // Price
+    document.getElementById('pdpPrice').textContent = 'Rp ' + product.price.toLocaleString('id-ID');
+
+    // Description
+    const descText = product.desc ? product.desc : 'Produk unggulan dari ' + umkm.name + '. Kualitas terbaik asli Karanganyar.';
+    document.getElementById('pdpDescText').textContent = descText;
+
+    // Store Profile in PDP
+    document.getElementById('pdpStoreImage').src = umkm.image;
+    document.getElementById('pdpStoreName').innerHTML = `<i class="fas fa-check-circle" style="color: #00AA5B;"></i> ${umkm.name}`;
+
+    // Action Box (Right side)
+    document.getElementById('pdpActionThumb').src = images[0];
+    
+    // Quantity and Subtotal logic
+    const qtyInput = document.querySelector('.quantity-control input');
+    const minusBtn = document.querySelector('.quantity-control button:first-child');
+    const plusBtn = document.querySelector('.quantity-control button:last-child');
+    const subtotalEl = document.getElementById('pdpSubtotal');
+    
+    let currentQty = 1;
+    qtyInput.value = currentQty;
+    subtotalEl.textContent = 'Rp ' + (product.price * currentQty).toLocaleString('id-ID');
+    
+    minusBtn.onclick = () => {
+        if (currentQty > 1) {
+            currentQty--;
+            qtyInput.value = currentQty;
+            subtotalEl.textContent = 'Rp ' + (product.price * currentQty).toLocaleString('id-ID');
+        }
+    };
+    
+    plusBtn.onclick = () => {
+        if (currentQty < 99) {
+            currentQty++;
+            qtyInput.value = currentQty;
+            subtotalEl.textContent = 'Rp ' + (product.price * currentQty).toLocaleString('id-ID');
+        }
+    };
+
+    // Button Tambah ke Keranjang
+    const pdpAddToCartBtn = document.getElementById('pdpAddToCartBtn');
+    if (pdpAddToCartBtn) {
+        pdpAddToCartBtn.onclick = () => {
+            if (!currentUser) {
+                alert("Harap Masuk atau Daftar terlebih dahulu untuk menggunakan Keranjang.");
+                openLoginModal();
+                return;
+            }
+            addToCart(umkm, product, currentQty);
+            const originalText = pdpAddToCartBtn.innerHTML;
+            pdpAddToCartBtn.innerHTML = '<i class="fas fa-check"></i> Berhasil';
+            setTimeout(() => { pdpAddToCartBtn.innerHTML = originalText; }, 1500);
+        };
+    }
+
+    // Button Beli Langsung -> WhatsApp
+    document.getElementById('pdpBuyBtn').onclick = () => {
+        if (!currentUser) {
+            alert("Harap Masuk atau Daftar terlebih dahulu untuk membeli.");
+            openLoginModal();
+            return;
+        }
+        const textMessage = `Halo *${umkm.name}*,\nSaya ${currentUser.displayName || 'Pelanggan'} ingin memesan produk:\n\n- ${product.name} (${currentQty}x) - Rp ${(product.price * currentQty).toLocaleString('id-ID')}\n\n*Total: Rp ${(product.price * currentQty).toLocaleString('id-ID')}*\n\nMohon informasikan ketersediaan dan ongkos kirimnya. Terima kasih!`;
+        window.open(`https://wa.me/${umkm.whatsapp}?text=${encodeURIComponent(textMessage)}`, '_blank');
+    };
+
+    // Button Chat -> WhatsApp
+    document.getElementById('pdpChatBtn').onclick = () => {
+        const textMessage = `Halo ${umkm.owner}, saya ingin bertanya tentang produk ${product.name} yang ada di toko Anda.`;
+        window.open(`https://wa.me/${umkm.whatsapp}?text=${encodeURIComponent(textMessage)}`, '_blank');
+    };
+
+    // Wishlist Button in PDP
+    const pdpWishlistBtn = document.getElementById('pdpWishlistBtn');
+    if (pdpWishlistBtn) {
+        const isWishlisted = wishlist.some(w => w.umkmId === umkm.id && w.prodIndex === prodIndex);
+        if (isWishlisted) {
+            pdpWishlistBtn.innerHTML = '<i class="fas fa-heart" style="color:#f44336"></i> Wishlist';
+        } else {
+            pdpWishlistBtn.innerHTML = '<i class="far fa-heart"></i> Wishlist';
+        }
+        
+        pdpWishlistBtn.onclick = () => {
+            if (typeof toggleWishlist === 'function') {
+                toggleWishlist(umkm.id, prodIndex);
+                
+                const nowWishlisted = wishlist.some(w => w.umkmId === umkm.id && w.prodIndex === prodIndex);
+                if (nowWishlisted) {
+                    pdpWishlistBtn.innerHTML = '<i class="fas fa-heart" style="color:#f44336"></i> Wishlist';
+                    if (typeof showPdpWishlistPopup === 'function') showPdpWishlistPopup();
+                } else {
+                    pdpWishlistBtn.innerHTML = '<i class="far fa-heart"></i> Wishlist';
+                }
+            }
+        };
+    }
+}
+
+// SPA Router on Load
+window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash;
+    if(hash === '#terms') {
+        switchPage('termsPage');
+    } else if (hash === '#privacy') {
+        switchPage('privacyPage');
+    } else if (hash === '#faq') {
+        switchPage('faqPage');
+    } else if (hash === '#tentang') {
+        switchPage('tentangPage');
+    }
+});
+
+
+/* ======================= BIODATA MODALS ======================= */
+const dobModal = document.getElementById('dobModal');
+const genderModal = document.getElementById('genderModal');
+const btnDob = document.getElementById('btnDob');
+const btnGender = document.getElementById('btnGender');
+const displayDob = document.getElementById('displayDob');
+const displayGender = document.getElementById('displayGender');
+
+// Populate DOB Selects
+const dobDay = document.getElementById('dobDay');
+const dobMonth = document.getElementById('dobMonth');
+const dobYear = document.getElementById('dobYear');
+
+if(dobDay) {
+    for (let i = 1; i <= 31; i++) {
+        let opt = document.createElement('option');
+        opt.value = i; opt.textContent = i;
+        dobDay.appendChild(opt);
+    }
+}
+if(dobMonth) {
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    months.forEach((m, i) => {
+        let opt = document.createElement('option');
+        opt.value = i + 1; opt.textContent = m;
+        dobMonth.appendChild(opt);
+    });
+}
+if(dobYear) {
+    const currentYear = new Date().getFullYear();
+    for (let i = currentYear; i >= 1950; i--) {
+        let opt = document.createElement('option');
+        opt.value = i; opt.textContent = i;
+        dobYear.appendChild(opt);
+    }
+}
+
+function loadBiodataExtras() {
+    if(!currentUser) return;
+    const extrasStr = localStorage.getItem('user_profile_' + currentUser.uid);
+    if(extrasStr) {
+        const extras = JSON.parse(extrasStr);
+        if(extras.dob) {
+            if(displayDob) {
+                displayDob.textContent = extras.dob;
+                displayDob.style.display = 'inline';
+            }
+            if(btnDob) btnDob.textContent = 'Ubah';
+        }
+        if(extras.gender) {
+            if(displayGender) {
+                displayGender.textContent = extras.gender;
+                displayGender.style.display = 'inline';
+            }
+            if(btnGender) btnGender.textContent = 'Ubah';
+        }
+    }
+    const phone = localStorage.getItem('phone_' + currentUser.uid);
+    const displayEditPhone = document.getElementById('displayEditPhone');
+    const btnEditPhone = document.getElementById('btnEditPhone');
+    if(phone) {
+        if(displayEditPhone) {
+            displayEditPhone.textContent = phone;
+            displayEditPhone.style.display = 'inline-block';
+        }
+        if(btnEditPhone) btnEditPhone.textContent = 'Ubah';
+    }
+}
+
+if(btnDob) {
+    btnDob.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(dobModal) dobModal.classList.add('active');
+    });
+}
+if(btnGender) {
+    btnGender.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(genderModal) genderModal.classList.add('active');
+    });
+}
+
+const closeDobModal = document.getElementById('closeDobModal');
+if(closeDobModal) {
+    closeDobModal.addEventListener('click', () => dobModal.classList.remove('active'));
+}
+const closeGenderModal = document.getElementById('closeGenderModal');
+if(closeGenderModal) {
+    closeGenderModal.addEventListener('click', () => genderModal.classList.remove('active'));
+}
+
+const saveDobBtn = document.getElementById('saveDobBtn');
+if(saveDobBtn) {
+    saveDobBtn.addEventListener('click', () => {
+        if(!currentUser) {
+            alert("Harap login terlebih dahulu.");
+            return;
+        }
+        if(!dobDay.value || !dobMonth.value || !dobYear.value) {
+            if(typeof showToast === 'function') showToast("Pilih tanggal, bulan, dan tahun terlebih dahulu", "error");
+            return;
+        }
+        const dobStr = `${dobDay.value} ${dobMonth.options[dobMonth.selectedIndex].text} ${dobYear.value}`;
+        
+        let extras = JSON.parse(localStorage.getItem('user_profile_' + currentUser.uid) || '{}');
+        extras.dob = dobStr;
+        localStorage.setItem('user_profile_' + currentUser.uid, JSON.stringify(extras));
+        
+        dobModal.classList.remove('active');
+        loadBiodataExtras();
+        if(typeof showToast === 'function') showToast("Tanggal lahir berhasil disimpan", "success");
+    });
+}
+
+const saveGenderBtn = document.getElementById('saveGenderBtn');
+if(saveGenderBtn) {
+    saveGenderBtn.addEventListener('click', () => {
+        if(!currentUser) {
+            alert("Harap login terlebih dahulu.");
+            return;
+        }
+        const selectedGender = document.querySelector('input[name="genderRadio"]:checked');
+        if(!selectedGender) {
+            if(typeof showToast === 'function') showToast("Pilih jenis kelamin terlebih dahulu", "error");
+            return;
+        }
+        
+        let extras = JSON.parse(localStorage.getItem('user_profile_' + currentUser.uid) || '{}');
+        extras.gender = selectedGender.value;
+        localStorage.setItem('user_profile_' + currentUser.uid, JSON.stringify(extras));
+        
+        genderModal.classList.remove('active');
+        loadBiodataExtras();
+        if(typeof showToast === 'function') showToast("Jenis kelamin berhasil disimpan", "success");
+    });
+}
+
+
+/* ======================= PHOTO MODAL ======================= */
+const photoModal = document.getElementById('photoModal');
+const btnPilihFoto = document.getElementById('btnPilihFoto');
+const closePhotoModal = document.getElementById('closePhotoModal');
+const defaultAvatarsContainer = document.getElementById('defaultAvatarsContainer');
+const uploadPhotoInput = document.getElementById('uploadPhotoInput');
+
+if(btnPilihFoto) {
+    btnPilihFoto.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(!currentUser) return alert("Harap login terlebih dahulu.");
+        
+        // Populate default avatars if empty
+        if(defaultAvatarsContainer && defaultAvatarsContainer.innerHTML.trim() === '') {
+            const seeds = ['Milo', 'Bella', 'Charlie', 'Luna', 'Oliver', 'Lucy'];
+            seeds.forEach(seed => {
+                const url = `https://api.dicebear.com/9.x/micah/svg?seed=${seed}&mouth=smile,laughing&backgroundColor=b6e3f4`;
+                const img = document.createElement('img');
+                img.src = url;
+                img.style.width = '60px';
+                img.style.height = '60px';
+                img.style.borderRadius = '50%';
+                img.style.cursor = 'pointer';
+                img.style.border = '2px solid transparent';
+                img.style.transition = 'all 0.2s';
+                
+                img.onmouseover = () => img.style.borderColor = '#03AC0E';
+                img.onmouseout = () => img.style.borderColor = 'transparent';
+                
+                img.onclick = () => updateProfileAvatar(url);
+                
+                defaultAvatarsContainer.appendChild(img);
+            });
+        }
+        
+        if(photoModal) photoModal.classList.add('active');
+    });
+}
+
+if(closePhotoModal) {
+    closePhotoModal.addEventListener('click', () => {
+        if(photoModal) photoModal.classList.remove('active');
+    });
+}
+
+if(uploadPhotoInput) {
+    uploadPhotoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        
+        // Check size (10MB)
+        if(file.size > 10000000) {
+            if(typeof showToast === 'function') showToast("Ukuran file maksimal 10MB", "error");
+            else alert("Ukuran file maksimal 10MB");
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            updateProfileAvatar(event.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function updateProfileAvatar(url) {
+    if(!currentUser) return;
+    
+    const applyAvatar = () => {
+        const avatars = [
+            document.getElementById('userAvatar'),
+            document.getElementById('dropdownAvatar'),
+            document.getElementById('profilePageAvatar'),
+            document.getElementById('profileEditAvatar')
+        ];
+        avatars.forEach(av => {
+            if(av) av.src = url;
+        });
+        if(photoModal) photoModal.classList.remove('active');
+        if(typeof showToast === 'function') showToast("Foto profil berhasil diubah", "success");
+    };
+
+    if(url.startsWith('data:')) {
+        // Firebase photoURL has length limits, so for base64 we save it locally
+        try {
+            localStorage.setItem('local_avatar_' + currentUser.uid, url);
+            applyAvatar();
+        } catch (e) {
+            if(typeof showToast === 'function') showToast("Gambar terlalu besar untuk disimpan.", "error");
+        }
+    } else {
+        // It's a standard URL (DiceBear), save to Firebase
+        currentUser.updateProfile({ photoURL: url }).then(() => {
+            localStorage.removeItem('local_avatar_' + currentUser.uid); // Clear local if using URL
+            applyAvatar();
+        }).catch((err) => {
+            if(typeof showToast === 'function') showToast("Gagal mengubah foto: " + err.message, "error");
+        });
+    }
+}
+
+
+/* ======================= NAME MODAL ======================= */
+const btnEditName = document.getElementById('btnEditName');
+const nameModal = document.getElementById('nameModal');
+const closeNameModal = document.getElementById('closeNameModal');
+const nameInputModal = document.getElementById('nameInputModal');
+const saveNameBtn = document.getElementById('saveNameBtn');
+let originalName = '';
+
+if(btnEditName) {
+    btnEditName.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(!currentUser) {
+            if(typeof showToast === 'function') showToast("Silakan login terlebih dahulu", "error");
+            return;
+        }
+        originalName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Pengguna');
+        nameInputModal.value = originalName;
+        saveNameBtn.classList.add('tkp-btn-disabled');
+        saveNameBtn.classList.remove('tkp-btn-active');
+        nameModal.classList.add('active');
+    });
+}
+
+if(closeNameModal) {
+    closeNameModal.addEventListener('click', () => {
+        nameModal.classList.remove('active');
+    });
+}
+
+if(nameInputModal) {
+    nameInputModal.addEventListener('input', () => {
+        if(nameInputModal.value.trim() !== '' && nameInputModal.value.trim() !== originalName) {
+            saveNameBtn.classList.remove('tkp-btn-disabled');
+            saveNameBtn.classList.add('tkp-btn-active');
+        } else {
+            saveNameBtn.classList.add('tkp-btn-disabled');
+            saveNameBtn.classList.remove('tkp-btn-active');
+        }
+    });
+}
+
+if(saveNameBtn) {
+    saveNameBtn.addEventListener('click', () => {
+        if(saveNameBtn.classList.contains('tkp-btn-disabled')) return;
+        
+        const newName = nameInputModal.value.trim();
+        if(newName.length === 0) return;
+        
+        if(!currentUser) return;
+        
+        saveNameBtn.textContent = 'Menyimpan...';
+        currentUser.updateProfile({ displayName: newName })
+            .then(() => {
+                saveNameBtn.textContent = 'Simpan';
+                nameModal.classList.remove('active');
+                if(typeof showToast === 'function') showToast("Nama berhasil diubah", "success");
+                
+                // Update UI elements
+                const profilePageName = document.getElementById('profilePageName');
+                if(profilePageName) profilePageName.textContent = newName;
+                
+                const displayEditName = document.getElementById('displayEditName');
+                if(displayEditName) displayEditName.textContent = newName;
+                
+                const profileEditName = document.getElementById('profileEditName');
+                if(profileEditName) profileEditName.value = newName;
+                
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                if(userNameDisplay) userNameDisplay.textContent = newName.split(' ')[0];
+                
+                const dropdownName = document.getElementById('dropdownName');
+                if(dropdownName) dropdownName.textContent = newName;
+                
+            })
+            .catch((error) => {
+                saveNameBtn.textContent = 'Simpan';
+                if(typeof showToast === 'function') showToast("Gagal mengubah nama: " + error.message, "error");
+            });
+    });
+}
+
+
+/* ======================= PHONE MODAL ======================= */
+const btnEditPhone = document.getElementById('btnEditPhone');
+const phoneModal = document.getElementById('phoneModal');
+const closePhoneModal = document.getElementById('closePhoneModal');
+const phoneInputModal = document.getElementById('phoneInputModal');
+const savePhoneBtn = document.getElementById('savePhoneBtn');
+let originalPhone = '';
+
+if(btnEditPhone) {
+    btnEditPhone.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(!currentUser) {
+            if(typeof showToast === 'function') showToast("Silakan login terlebih dahulu", "error");
+            return;
+        }
+        // Assuming phone is stored in localStorage temporarily if not in custom claims, or just check displayEditPhone text
+        const displayEditPhone = document.getElementById('displayEditPhone');
+        originalPhone = (displayEditPhone && displayEditPhone.textContent && displayEditPhone.textContent !== '...' && displayEditPhone.textContent !== '') ? displayEditPhone.textContent : '';
+        phoneInputModal.value = originalPhone;
+        
+        savePhoneBtn.classList.add('tkp-btn-disabled');
+        savePhoneBtn.classList.remove('tkp-btn-active');
+        phoneModal.classList.add('active');
+    });
+}
+
+if(closePhoneModal) {
+    closePhoneModal.addEventListener('click', () => {
+        phoneModal.classList.remove('active');
+    });
+}
+
+if(phoneInputModal) {
+    phoneInputModal.addEventListener('input', () => {
+        const currentBtn = document.getElementById('savePhoneBtn');
+        if(!currentBtn) return;
+        if(phoneInputModal.value.trim() !== '' && phoneInputModal.value.trim() !== originalPhone) {
+            currentBtn.classList.remove('tkp-btn-disabled');
+            currentBtn.classList.add('tkp-btn-active');
+        } else {
+            currentBtn.classList.add('tkp-btn-disabled');
+            currentBtn.classList.remove('tkp-btn-active');
+        }
+    });
+}
+
+// Simple direct save logic
+if(savePhoneBtn) {
+    savePhoneBtn.addEventListener('click', () => {
+        if(savePhoneBtn.classList.contains('tkp-btn-disabled')) return;
+        
+        let newPhone = phoneInputModal.value.trim();
+        if(newPhone.length === 0) return;
+        
+        // Save directly to localStorage
+        if(currentUser) {
+            localStorage.setItem('phone_' + currentUser.uid, newPhone);
+        } else {
+            localStorage.setItem('phone_guest', newPhone);
+        }
+        
+        // Update UI
+        const displayEditPhone = document.getElementById('displayEditPhone');
+        const btnPhone = document.getElementById('btnEditPhone');
+        if(displayEditPhone) {
+            displayEditPhone.textContent = newPhone;
+            displayEditPhone.style.display = 'inline-block';
+            if(btnPhone) btnPhone.textContent = 'Ubah';
+        }
+        
+        // Close modal
+        phoneModal.classList.remove('active');
+        
+        // Show success toast
+        if(typeof showToast === 'function') {
+            showToast("Nomor HP berhasil disimpan!", "success");
+        }
+    });
+}
+
+// Tokopedia Transparent Header Logic
+function updateHeaderMode() {
+    const header = document.querySelector('.header');
+    if(document.body.classList.contains('home-mode')) {
+        if(window.scrollY < 50) {
+            header.classList.add('transparent-mode');
+        } else {
+            header.classList.remove('transparent-mode');
+        }
+    } else {
+        header.classList.remove('transparent-mode');
+    }
+}
+
+window.addEventListener('scroll', updateHeaderMode);
+
+
+// ==================== WISHLIST & FAVORITES STATE ====================
+
+
+
+function toggleWishlist(umkmId, prodIndex) {
+    const existingIndex = wishlist.findIndex(item => item.umkmId === umkmId && item.prodIndex === prodIndex);
+    if (existingIndex > -1) {
+        wishlist.splice(existingIndex, 1);
+        if(typeof showToast === 'function') showToast("Dihapus dari Wishlist");
+    } else {
+        wishlist.push({ umkmId, prodIndex });
+        if(typeof showToast === 'function') showToast("Ditambahkan ke Wishlist", "success");
+    }
+    localStorage.setItem(getUserKey("wishlist"), JSON.stringify(wishlist));
+    
+    // Jika sedang di halaman wishlist, re-render
+    const wishlistPage = document.getElementById('wishlistPage');
+    if (wishlistPage && !wishlistPage.classList.contains('hidden')) {
+        renderWishlist();
+    }
+    
+    // Jika sedang di halaman toko, re-render tombol love-nya (simple trick: klik ulang tab produk/refresh)
+    // atau biarkan re-render manual jika perlu
+}
+
+function renderWishlist() {
+    const emptyState = document.getElementById('wishlistEmpty');
+    const filledState = document.getElementById('wishlistFilled');
+    const grid = document.getElementById('wishlistGrid');
+    
+    if (wishlist.length === 0) {
+        if(emptyState) emptyState.style.display = 'flex';
+        if(filledState) filledState.classList.add('hidden');
+    } else {
+        if(emptyState) emptyState.style.display = 'none';
+        if(filledState) filledState.classList.remove('hidden');
+        
+        grid.innerHTML = '';
+        wishlist.forEach(item => {
+            const umkm = umkmData.find(u => u.id === item.umkmId);
+            if(umkm && umkm.products[item.prodIndex]) {
+                const product = umkm.products[item.prodIndex];
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card reveal active';
+                
+                productCard.innerHTML = `
+                    <div style="position:relative;">
+                        <img src="${product.image}" alt="${product.name}" class="prod-img">
+                        <button onclick="event.stopPropagation(); toggleWishlist('${umkm.id}', ${item.prodIndex})" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:#f44336; z-index: 10;">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                    <div class="prod-info">
+                        <h3 class="prod-name">${product.name}</h3>
+                        <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
+                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.name}</div>
+                    </div>
+                `;
+                productCard.onclick = () => openProductDetail(umkm.id, item.prodIndex);
+                grid.appendChild(productCard);
+            }
+        });
+    }
+}
+
+function switchFavTab(tab) {
+    localStorage.setItem('activeFavTab', tab);
+    const tabToko = document.getElementById('tabTokoFavorit');
+    const tabTerakhir = document.getElementById('tabTerakhirDilihat');
+    const contentToko = document.getElementById('contentTokoFavorit');
+    const contentTerakhir = document.getElementById('contentTerakhirDilihat');
+    
+    if (tab === 'toko') {
+        tabToko.style.color = 'var(--primary)';
+        tabToko.style.borderBottom = '3px solid var(--primary)';
+        tabTerakhir.style.color = '#6D7588';
+        tabTerakhir.style.borderBottom = 'none';
+        
+        contentToko.classList.remove('hidden');
+        contentTerakhir.classList.add('hidden');
+    } else {
+        tabTerakhir.style.color = 'var(--primary)';
+        tabTerakhir.style.borderBottom = '3px solid var(--primary)';
+        tabToko.style.color = '#6D7588';
+        tabToko.style.borderBottom = 'none';
+        
+        contentTerakhir.classList.remove('hidden');
+        contentToko.classList.add('hidden');
+        
+        renderTerakhirDilihat();
+    }
+}
+
+function renderTerakhirDilihat() {
+    const emptyState = document.getElementById('terakhirDilihatEmpty');
+    const filledState = document.getElementById('terakhirDilihatFilled');
+    const grid = document.getElementById('terakhirGrid');
+    
+    if (recentlyViewed.length === 0) {
+        if(emptyState) emptyState.style.display = 'flex';
+        if(filledState) filledState.classList.add('hidden');
+    } else {
+        if(emptyState) emptyState.style.display = 'none';
+        if(filledState) filledState.classList.remove('hidden');
+        
+        grid.innerHTML = '';
+        recentlyViewed.forEach(item => {
+            const umkm = umkmData.find(u => u.id === item.umkmId);
+            if(umkm && umkm.products[item.prodIndex]) {
+                const product = umkm.products[item.prodIndex];
+                const isWishlisted = wishlist.some(w => w.umkmId === umkm.id && w.prodIndex === item.prodIndex);
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card reveal active';
+                
+                productCard.innerHTML = `
+                    <div style="position:relative;">
+                        <img src="${product.image}" alt="${product.name}" class="prod-img">
+                        <button onclick="event.stopPropagation(); toggleWishlist('${umkm.id}', ${item.prodIndex}); renderTerakhirDilihat();" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:${isWishlisted ? '#f44336' : '#ccc'}; z-index: 10;">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                    <div class="prod-info">
+                        <h3 class="prod-name">${product.name}</h3>
+                        <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
+                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.name}</div>
+                    </div>
+                `;
+                productCard.onclick = () => openProductDetail(umkm.id, item.prodIndex);
+                grid.appendChild(productCard);
+            }
+        });
+    }
+}
+// ====================================================================
+
+// ==========================================
+// LOGIKA KOLEKSI WISHLIST
+// ==========================================
+
+function openModalBuatKoleksi() {
+    document.getElementById('modalBuatKoleksi').classList.add('active');
+    document.getElementById('inputNamaKoleksi').focus();
+}
+
+function closeModalBuatKoleksi() {
+    document.getElementById('modalBuatKoleksi').classList.remove('active');
+}
+
+function updateKoleksiCharCount(val) {
+    document.getElementById('koleksiCharCount').innerText = val.length + '/20';
+    const btn = document.getElementById('btnSubmitKoleksi');
+    if(val.trim().length > 0) {
+        btn.disabled = false;
+        btn.classList.remove('btn-disabled');
+    } else {
+        btn.disabled = true;
+        btn.classList.add('btn-disabled');
+    }
+}
+
+
+
+function submitKoleksi() {
+    const name = document.getElementById('inputNamaKoleksi').value.trim();
+    if(!name) return;
+    
+    userCollections.push(name);
+    localStorage.setItem(getUserKey("userCollections"), JSON.stringify(userCollections));
+    
+    // Hide default empty state
+    document.getElementById('wishlistEmpty').classList.add('hidden');
+    document.getElementById('wishlistCollectionView').classList.add('hidden');
+    
+    // Show Collections Grid
+    document.getElementById('wishlistFilled').classList.remove('hidden');
+    
+    // Update the card name
+    document.getElementById('cardCollectionName').innerText = name;
+    document.getElementById('userCollectionCard').style.display = 'block'; // Show the custom card
+    
+    closeModalBuatKoleksi();
+}
+
+function openCollection(name) {
+    if (name === 'Custom') name = document.getElementById('cardCollectionName').innerText;
+    
+    // Hide grid
+    document.getElementById('wishlistFilled').classList.add('hidden');
+    document.getElementById('wishlistEmpty').classList.add('hidden');
+    
+    // Show specific collection view
+    document.getElementById('wishlistCollectionView').classList.remove('hidden');
+    document.getElementById('koleksiTitle').innerText = name;
+    document.getElementById('breadcrumbKoleksiName').innerText = name;
+}
+
+function showWishlistEmpty() {
+    // Go back to Collections Grid (or empty state if no collections)
+    document.getElementById('wishlistCollectionView').classList.add('hidden');
+    if(userCollections.length > 0) {
+        document.getElementById('wishlistFilled').classList.remove('hidden');
+    } else {
+        document.getElementById('wishlistEmpty').classList.remove('hidden');
+    }
+}
+
+function openModalUbahKoleksi() {
+    // Check if we are opening from the Grid or from inside the Collection View
+    const dropdownMenu = document.getElementById('collectionDropdownMenu');
+    let currentName = '';
+    
+    if(!document.getElementById('wishlistFilled').classList.contains('hidden')) {
+        // Opened from Grid
+        currentName = document.getElementById('cardCollectionName').innerText;
+    } else {
+        // Opened from Collection View
+        currentName = document.getElementById('koleksiTitle').innerText;
+    }
+    
+    const input = document.getElementById('inputUbahKoleksi');
+    input.value = currentName;
+    
+    document.getElementById('modalUbahKoleksi').classList.add('active');
+    input.focus();
+    updateUbahKoleksiCharCount(currentName, currentName);
+}
+
+function closeModalUbahKoleksi() {
+    document.getElementById('modalUbahKoleksi').classList.remove('active');
+}
+
+function updateUbahKoleksiCharCount(val, originalName) {
+    if(!originalName) {
+        if(!document.getElementById('wishlistFilled').classList.contains('hidden')) {
+            originalName = document.getElementById('cardCollectionName').innerText;
+        } else {
+            originalName = document.getElementById('koleksiTitle').innerText;
+        }
+    }
+    
+    document.getElementById('ubahKoleksiCharCount').innerText = val.length + '/20';
+    const btn = document.getElementById('btnSubmitUbahKoleksi');
+    
+    if(val.trim().length > 0 && val.trim() !== originalName) {
+        btn.disabled = false;
+        btn.classList.remove('btn-disabled');
+    } else {
+        btn.disabled = true;
+        btn.classList.add('btn-disabled');
+    }
+}
+
+function submitUbahKoleksi() {
+    const name = document.getElementById('inputUbahKoleksi').value.trim();
+    if(!name) return;
+    
+    // Update both places
+    document.getElementById('cardCollectionName').innerText = name;
+    document.getElementById('koleksiTitle').innerText = name;
+    document.getElementById('breadcrumbKoleksiName').innerText = name;
+    
+    closeModalUbahKoleksi();
+}
+
+// 3-Dots Menu Logic
+function toggleCollectionMenu(e) {
+    e.stopPropagation(); // Prevent card click
+    const menu = document.getElementById('collectionDropdownMenu');
+    menu.classList.toggle('hidden');
+}
+
+function closeCollectionMenu() {
+    const menu = document.getElementById('collectionDropdownMenu');
+    if(menu) menu.classList.add('hidden');
+}
+
+function hapusKoleksi() {
+    closeCollectionMenu();
+    userCollections = [];
+    localStorage.setItem(getUserKey("userCollections"), JSON.stringify(userCollections));
+    document.getElementById('userCollectionCard').style.display = 'none';
+    
+    // Optional: If you want it to go back to empty state when all custom collections are deleted
+    if(userCollections.length === 0) {
+        const grid = document.getElementById('wishlistFilled');
+        grid.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        grid.style.opacity = '0';
+        grid.style.transform = 'translateY(10px)';
+        
+        setTimeout(() => {
+            grid.classList.add('hidden');
+            grid.style.opacity = '1';
+            grid.style.transform = 'translateY(0)';
+            
+            document.getElementById('wishlistCollectionView').classList.add('hidden');
+            
+            const emptyState = document.getElementById('wishlistEmpty');
+            emptyState.classList.remove('hidden');
+            
+            // Re-trigger enter animation
+            emptyState.classList.remove('page-enter');
+            void emptyState.offsetWidth;
+            emptyState.classList.add('page-enter');
+        }, 400);
+    }
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('collectionDropdownMenu');
+    if (menu && !menu.classList.contains('hidden') && !e.target.closest('.collection-menu-wrapper')) {
+        menu.classList.add('hidden');
+    }
+});
+
+
+// ==========================================
+// LOGIKA TOKO FAVORIT & IKUTI (FOLLOW)
+// ==========================================
+
+
+
+function toggleFollow(id, name, imgUrl, e) {
+    if(e) e.stopPropagation();
+    const btnId = 'btnFollow_' + id;
+    const btn = document.getElementById(btnId);
+    
+    const index = followedShops.findIndex(shop => shop.id === id);
+    
+    if (index === -1) {
+        // Not followed -> Follow
+        followedShops.push({ id, name, imgUrl });
+        if(btn) {
+            btn.innerText = 'Mengikuti';
+            btn.style.background = '#f3f4f5';
+            btn.style.color = '#6D7588';
+            btn.style.borderColor = '#E5E7E9';
+        }
+    } else {
+        // Followed -> Unfollow
+        followedShops.splice(index, 1);
+        if(btn) {
+            btn.innerText = 'Ikuti';
+            btn.style.background = 'white';
+            btn.style.color = 'var(--primary)';
+            btn.style.borderColor = 'var(--primary)';
+        }
+    }
+    
+    localStorage.setItem(getUserKey("followedShops"), JSON.stringify(followedShops));
+    renderFavoriteShops();
+}
+
+// Render Toko Favorit Grid
+function renderFavoriteShops() {
+    const emptyState = document.getElementById('tokoFavoritEmpty');
+    const filledState = document.getElementById('tokoFavoritFilled');
+    const grid = document.getElementById('tokoFavoritGrid');
+    
+    if(!grid) return;
+    
+    if(followedShops.length === 0) {
+        // Show empty state with animation
+        filledState.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        emptyState.classList.remove('page-enter');
+        void emptyState.offsetWidth; // trigger reflow
+        emptyState.classList.add('page-enter');
+    } else {
+        emptyState.classList.add('hidden');
+        filledState.classList.remove('hidden');
+        
+        // Render shops (using CSS Grid to make it compact like Tokopedia)
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(320px, 1fr))';
+        grid.style.gap = '20px';
+        grid.style.flexDirection = 'unset';
+
+        grid.innerHTML = followedShops.map(shop => {
+            // Find shop in umkmData
+            const shopData = typeof umkmData !== 'undefined' ? umkmData.find(s => s.id === shop.id) : null;
+            let productThumbnails = '';
+            
+            if (shopData && shopData.products && shopData.products.length > 0) {
+                const limit = Math.min(3, shopData.products.length);
+                for(let i=0; i<limit; i++) {
+                    productThumbnails += `<img src="${shopData.products[i].image}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 8px; border: 1px solid #E5E7E9;">`;
+                }
+            }
+            
+            return `
+            <div style="background: white; border: 1px solid #E5E7E9; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <!-- Header Toko -->
+                <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${shop.imgUrl}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #E5E7E9;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-check-circle" style="color: #9C27B0; font-size: 0.85rem;"></i>
+                                <h4 style="margin: 0; font-size: 1rem; color: #31353B; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${shop.name}</h4>
+                            </div>
+                            <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #6D7588;"><i class="fas fa-map-marker-alt"></i> Kab. Karanganyar</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleFollow('${shop.id}', '${shop.name}', '${shop.imgUrl}', event)" style="padding: 6px 15px; font-weight: 700; font-size: 0.85rem; background: white; border: 1px solid #E5E7E9; color: #6D7588; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f5'" onmouseout="this.style.background='white'">Following</button>
+                </div>
+                
+                ${productThumbnails ? `
+                <!-- Separator -->
+                <div style="height: 1px; background: #E5E7E9; width: 100%;"></div>
+                
+                <!-- Produk Sample -->
+                <div style="display: flex; gap: 10px;">
+                    ${productThumbnails}
+                </div>
+                ` : ''}
+            </div>
+        `}).join('');
+    }
+}
+
+
+// ==========================================
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    if(typeof renderFavoriteShops === 'function') renderFavoriteShops();
+    if(typeof renderTerakhirDilihat === "function") renderTerakhirDilihat();
+    const activeFavTab = localStorage.getItem('activeFavTab');
+    if (activeFavTab) {
+        if(typeof switchFavTab === 'function') switchFavTab(activeFavTab);
+    }
+});
+
+
+// ==========================================
+// PDP WISHLIST POPUP
+// ==========================================
+function showPdpWishlistPopup() {
+    const modal = document.getElementById('pdpWishlistModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+function closePdpWishlistModal() {
+    const modal = document.getElementById('pdpWishlistModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}

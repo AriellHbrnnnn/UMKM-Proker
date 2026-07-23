@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Pasar Desa Karanganyar</title>
+    <!-- Favicon (Ikon Tab Browser) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='42' y='10' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='50' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='90' width='16' height='10' rx='4' fill='%232e7d32'/><path d='M58 50 Q 85 30 90 45 Q 70 65 58 50' fill='%234caf50'/><path d='M42 90 Q 15 70 10 85 Q 30 105 42 90' fill='%234caf50'/></svg>">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <svg class="login-icon" width="1em" height="1em" viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><rect x="42" y="10" width="16" height="35" rx="4"/><rect x="42" y="50" width="16" height="35" rx="4"/><rect x="42" y="90" width="16" height="10" rx="4"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90"/></svg>
+                <h2>Admin Karanganyar</h2>
+                <p>Masukkan kredensial untuk mengelola data UMKM.</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="loginUser" required placeholder="Masukkan Username">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPass" required placeholder="Masukkan Password">
+                </div>
+                <div id="loginError" class="login-error hidden">
+                    <i class="fas fa-exclamation-triangle"></i> Username atau Password salah!
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; margin-top: 10px; font-size: 1.05rem;">Masuk</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="admin-container hidden" id="mainAdminContainer">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><rect x="42" y="10" width="16" height="35" rx="4"/><rect x="42" y="50" width="16" height="35" rx="4"/><rect x="42" y="90" width="16" height="10" rx="4"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90"/></svg>
+                <h2>Admin Desa</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active" id="navDashboard"><a href="#" onclick="switchAdminTab('dashboard'); return false;"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li id="navUmkm"><a href="#" onclick="switchAdminTab('umkm'); return false;"><i class="fas fa-store"></i> Kelola UMKM</a></li>
+                <li id="navTentang"><a href="#" onclick="switchAdminTab('tentang'); return false;"><i class="fas fa-info-circle"></i> Kelola Profil Desa</a></li>
+                <li id="navPengguna"><a href="#" onclick="switchAdminTab('pengguna'); return false;"><i class="fas fa-users-cog"></i> Kelola Pengguna</a></li>
+                <li id="navPengaturan"><a href="#" onclick="switchAdminTab('pengaturan'); return false;"><i class="fas fa-cog"></i> Pengaturan</a></li>
+            </ul>
+            <div style="padding: 20px; margin-top: auto;">
+                <button id="sidebarLogoutBtn" class="btn-primary" style="width:100%; background:#dc3545; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fas fa-sign-out-alt"></i> Keluar Admin
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Data UMKM Karanganyar</h1>
+                <div class="user-profile" style="display:flex; align-items:center; gap:15px;">
+                    <div>
+                        <span id="adminDisplayName" style="font-weight:700;">Admin Desa</span>
+                    </div>
+                    <button id="topHeaderLogoutBtn" title="Keluar dari Admin" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-sign-out-alt"></i> Keluar
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- --- DASHBOARD TAB --- -->
+                <div id="dashboardTab" class="admin-tab-pane">
+                    <div class="dashboard-stats-grid" id="dashboardStatsContainer">
+                        <p style="text-align:center; grid-column: 1/-1;">Memuat statistik...</p>
+                    </div>
+                    
+                    <div class="dashboard-category-chart" id="dashboardCategoryContainer">
+                        <!-- Chart Kategori -->
+                    </div>
+                </div>
+
+                <!-- --- KELOLA UMKM TAB --- -->
+                <div id="umkmTab" class="admin-tab-pane hidden">
+                    <!-- Action Bar -->
+                    <div class="action-bar">
+                    <button class="btn-primary" id="addUmkmBtn"><i class="fas fa-plus"></i> Tambah UMKM Baru</button>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Cari UMKM...">
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-container">
+                    <table id="umkmTable">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Toko / Pemilik</th>
+                                <th>Kategori</th>
+                                <th>Lokasi / RT</th>
+                                <th>Kelola Produk</th>
+                                <th>Aksi Toko</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="6" class="text-center">Memuat data dari database...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div id="paginationControls" class="pagination">
+                    <!-- Tombol pagination akan di-render di sini oleh JS -->
+                </div>
+                </div> <!-- End umkmTab -->
+                <!-- --- TENTANG KARANGANYAR TAB --- -->
+                <div id="tentangTab" class="admin-tab-pane hidden" style="height: calc(100vh - 100px); padding: 0;">
+                    <iframe src="../index.html?mode=admin" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+                </div>
+            
+                <!-- --- KELOLA PENGGUNA TAB --- -->
+                <div id="penggunaTab" class="admin-tab-pane hidden">
+                    <!-- Stat Cards Pengguna -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+                        <div style="background:white; padding:18px; border-radius:12px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+                            <div style="width:45px; height:45px; border-radius:12px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:1.2rem;"><i class="fas fa-users"></i></div>
+                            <div>
+                                <h3 id="statTotalUsers" style="margin:0; font-size:1.5rem; font-weight:800;">0</h3>
+                                <p style="margin:2px 0 0 0; color:#64748b; font-size:0.85rem; font-weight:600;">Total Pengguna Terdaftar</p>
+                            </div>
+                        </div>
+                        <div style="background:white; padding:18px; border-radius:12px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+                            <div style="width:45px; height:45px; border-radius:12px; background:#f0fdf4; color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:1.2rem;"><i class="fas fa-user-edit"></i></div>
+                            <div>
+                                <h3 id="statManualUsers" style="margin:0; font-size:1.5rem; font-weight:800;">0</h3>
+                                <p style="margin:2px 0 0 0; color:#64748b; font-size:0.85rem; font-weight:600;">Pendaftaran Manual</p>
+                            </div>
+                        </div>
+                        <div style="background:white; padding:18px; border-radius:12px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+                            <div style="width:45px; height:45px; border-radius:12px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:1.2rem;"><i class="fab fa-google"></i></div>
+                            <div>
+                                <h3 id="statGoogleUsers" style="margin:0; font-size:1.5rem; font-weight:800;">0</h3>
+                                <p style="margin:2px 0 0 0; color:#64748b; font-size:0.85rem; font-weight:600;">Google Sign-In</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action & Search Bar -->
+                    <div class="action-bar" style="margin-bottom:15px;">
+                        <h3 style="margin:0;">Daftar Akun Pengguna Terdaftar</h3>
+                        <div class="search-box" style="margin:0; width:280px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="userSearchInput" placeholder="Cari nama atau email...">
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Foto</th>
+                                    <th>Username / Nama</th>
+                                    <th>Email Pengguna</th>
+                                    <th>Metode Daftar</th>
+                                    <th>Tanggal Daftar</th>
+                                    <th>Status Akun</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr><td colspan="7" class="text-center">Memuat data pengguna...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- --- PENGATURAN ADMIN TAB --- -->
+                <div id="pengaturanTab" class="admin-tab-pane hidden">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+                        <!-- Card 1: Ubah Username & Password -->
+                        <div style="background:white; padding:25px; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                            <h3 style="margin-top:0; margin-bottom:15px; color:#1e293b; display:flex; align-items:center; gap:10px;">
+                                <i class="fas fa-user-shield" style="color:#03ac0e;"></i> Ubah Kredensial Admin
+                            </h3>
+                            <form id="adminCredentialsForm">
+                                <div class="form-group">
+                                    <label>Username Admin</label>
+                                    <input type="text" id="settingAdminUser" required placeholder="Username Admin">
+                                </div>
+                                <div class="form-group">
+                                    <label>Password Lama</label>
+                                    <input type="password" id="settingOldPass" required placeholder="Masukkan Password Lama">
+                                </div>
+                                <div class="form-group">
+                                    <label>Password Baru (Min 6 Karakter)</label>
+                                    <input type="password" id="settingNewPass" required placeholder="Masukkan Password Baru">
+                                </div>
+                                <div class="form-group">
+                                    <label>Konfirmasi Password Baru</label>
+                                    <input type="password" id="settingConfirmPass" required placeholder="Ulangi Password Baru">
+                                </div>
+                                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">
+                                    <i class="fas fa-save"></i> Simpan Kredensial Baru
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Card 2: Pemulihan / Lupa Kata Sandi Admin -->
+                        <div style="background:white; padding:25px; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                            <h3 style="margin-top:0; margin-bottom:15px; color:#1e293b; display:flex; align-items:center; gap:10px;">
+                                <i class="fas fa-key" style="color:#d97706;"></i> Pemulihan & Lupa Kata Sandi
+                            </h3>
+                            <p style="color:#64748b; font-size:0.9rem; line-height:1.5; margin-bottom:20px;">
+                                Daftarkan email pemulihan admin untuk mereset kata sandi jika Anda lupa kata sandi di kemudian hari.
+                            </p>
+                            <form id="adminRecoveryForm">
+                                <div class="form-group">
+                                    <label>Email Pemulihan Admin</label>
+                                    <input type="email" id="settingAdminEmail" required placeholder="Contoh: admin.karanganyar@gmail.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>PIN Kunci Keamanan (6 Digit)</label>
+                                    <input type="password" id="settingSecurityPin" maxLength="6" placeholder="Bisa dikosongkan (Default: 123456)">
+                                </div>
+                                <button type="submit" class="btn-primary" style="width:100%; padding:12px; background:#d97706; border-color:#d97706; margin-top:10px;">
+                                    <i class="fas fa-shield-alt"></i> Simpan Email Pemulihan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+</div> <!-- End content-wrapper -->
+        </main>
+    </div>
+
+    <!-- Modal Form (Hidden by default) -->
+    <div class="modal-overlay hidden" id="formModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah UMKM Baru</h3>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="umkmForm">
+                    <input type="hidden" id="umkmId">
+                    
+                    <div class="form-group">
+                        <label>Nama Toko / Usaha</label>
+                        <input type="text" id="name" required placeholder="Contoh: Toko Berkah">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nama Pemilik</label>
+                        <input type="text" id="owner" required placeholder="Contoh: Bpk. Sugeng">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="category" required>
+                            <option value="makanan">Makanan & Minuman</option>
+                            <option value="kerajinan">Kerajinan & Meubel</option>
+                            <option value="kebutuhan">Kebutuhan Harian</option>
+                            <option value="pertanian">Pertanian & Sayur</option>
+                            <option value="jasa">Jasa Warga</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Lokasi (RT/RW)</label>
+                        <input type="text" id="location" required placeholder="Contoh: KARANGANYAR, RT.01/05">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nomor WhatsApp</label>
+                        <input type="text" id="whatsapp" required placeholder="Contoh: 628123456789">
+                        <small>Gunakan awalan 62, jangan 0.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Deskripsi Singkat</label>
+                        <textarea id="desc" rows="3" required placeholder="Jelaskan apa yang dijual..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Foto Toko (Drag & Drop atau Klik)</label>
+                        <input type="file" id="imageFile" accept="image/*" class="file-input">
+                        <input type="hidden" id="image">
+                        <div class="img-preview-container" style="position:relative; display:inline-block; margin-top: 10px;">
+                            <img id="imagePreview" src="" alt="Preview Toko" style="display:none; max-width: 200px; height: auto; border-radius: 8px;">
+                            <button type="button" id="deleteImageBtn" style="display:none; position:absolute; top:5px; right:5px; background:rgba(220,53,69,0.9); color:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-weight:bold; align-items:center; justify-content:center;">&times;</button>
+                        </div>
+                    </div>
+
+                    <!-- Produk dihapus dari form ini, dipindah ke modal khusus produk -->
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelBtn">Batal</button>
+                        <button type="submit" class="btn-primary" id="saveBtn">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kelola Produk -->
+    <div class="modal-overlay hidden" id="productModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="productModalTitle">Kelola Produk: Toko A</h3>
+                <button class="close-btn" id="closeProductModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Form Tambah Produk -->
+                <form id="productForm" style="background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <h4 id="productFormTitle" style="margin-bottom:10px;">Tambah Produk Baru</h4>
+                    <input type="hidden" id="activeUmkmIdForProduct">
+                    <input type="hidden" id="activeProdIndex">
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Nama Produk</label>
+                            <input type="text" id="prodName" required placeholder="Contoh: Keripik Pisang">
+                        </div>
+                        <div class="form-group">
+                            <label>Harga Produk (Rp)</label>
+                            <input type="number" id="prodPrice" required placeholder="Contoh: 15000">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Deskripsi Produk (Opsional)</label>
+                        <textarea id="prodDesc" rows="2" placeholder="Deskripsi singkat produk..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Foto Produk (Bisa pilih lebih dari 1 foto sekaligus)</label>
+                        <input type="file" id="prodImageFile" accept="image/*" class="file-input" multiple required>
+                        <input type="hidden" id="prodImage">
+                        <div id="prodImagePreviewsContainer" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                            <!-- Dinamis diisi JS -->
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="saveProductBtn"><i class="fas fa-plus"></i> Simpan Produk</button>
+                </form>
+
+                <!-- Tabel Produk -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0;">Daftar Produk</h4>
+                    <div class="search-box" style="margin: 0; width: 250px;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="productSearchInput" placeholder="Cari nama produk...">
+                    </div>
+                </div>
+                <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                    <table id="productTable">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Nama Produk</th>
+                                <th>Harga</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                            <!-- Data produk dirender di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden">Data berhasil disimpan!</div>
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <div style="font-size: 3rem; color: #dc3545; margin-bottom: 15px;">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3 style="margin-bottom: 10px;">Konfirmasi Hapus</h3>
+            <p id="deleteConfirmMessage" style="color: var(--text-muted); margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="cancelDeleteBtn" class="btn-secondary" style="flex: 1;">Batal</button>
+                <button id="confirmDeleteBtn" class="btn-primary" style="background: #dc3545; flex: 1;">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    
+    
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Modal Detail Profil Pengguna (UI/UX Premium) -->
+    <div id="userDetailModal" class="modal-overlay hidden" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px); z-index: 999999; align-items: center; justify-content: center; padding: 20px;">
+        <div class="modal-content" style="max-width: 520px; width: 100%; border-radius: 24px; overflow: hidden; padding: 0; border: none; background: white; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); animation: modalFadeIn 0.25s ease-out;">
+            <!-- Modal Header Banner -->
+            <div style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); padding: 25px 25px 50px 25px; position: relative; color: white;">
+                <button id="closeUserDetailModalBtn" onclick="window.closeUserDetailModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.2s;">&times;</button>
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-id-card"></i> Detail Profil Pengguna
+                </h3>
+                <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 0.85rem;">Informasi akun terdaftar dari database realtime.</p>
+            </div>
+
+            <!-- Modal Avatar & Body Content -->
+            <div style="padding: 0 25px 25px 25px; margin-top: -38px; position: relative;">
+                <div style="display: flex; align-items: flex-end; gap: 15px; margin-bottom: 22px;">
+                    <img id="detailUserAvatar" src="" alt="Avatar" style="width: 84px; height: 84px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 6px 16px rgba(0,0,0,0.15); background: white;">
+                    <div style="padding-bottom: 5px;">
+                        <h4 id="detailUserDisplayName" style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #0f172a;">-</h4>
+                        <div id="detailUserBadge" style="display: inline-block; margin-top: 5px;"></div>
+                    </div>
+                </div>
+
+                <!-- Detail Grid Info -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; background: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                    <div style="grid-column: 1 / -1; background: white; padding: 12px 16px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-user" style="color: #0284c7;"></i> Username / Nama Lengkap
+                        </label>
+                        <div id="detailUsername" style="font-weight: 800; color: #0f172a; font-size: 1rem; margin-top: 3px;">-</div>
+                    </div>
+
+                    <div style="grid-column: 1 / -1; background: white; padding: 12px 16px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-envelope" style="color: #16a34a;"></i> Alamat Email
+                        </label>
+                        <div id="detailUserEmail" style="font-weight: 700; color: #0f172a; font-size: 0.95rem; margin-top: 3px; word-break: break-all;">-</div>
+                    </div>
+
+                    <div style="background: white; padding: 12px 14px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-calendar-alt" style="color: #d97706;"></i> Tanggal Lahir
+                        </label>
+                        <div id="detailUserDob" style="font-weight: 800; color: #0f172a; font-size: 0.95rem; margin-top: 3px;">-</div>
+                    </div>
+
+                    <div style="background: white; padding: 12px 14px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-venus-mars" style="color: #8b5cf6;"></i> Jenis Kelamin
+                        </label>
+                        <div id="detailUserGender" style="font-weight: 800; color: #0f172a; font-size: 0.95rem; margin-top: 3px;">-</div>
+                    </div>
+
+                    <div style="background: white; padding: 12px 14px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-clock" style="color: #64748b;"></i> Tanggal Terdaftar
+                        </label>
+                        <div id="detailUserCreated" style="font-weight: 700; color: #334155; font-size: 0.88rem; margin-top: 3px;">-</div>
+                    </div>
+
+                    <div style="background: white; padding: 12px 14px; border-radius: 12px; border: 1px solid #cbd5e1;">
+                        <label style="font-size: 0.72rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-check-circle" style="color: #16a34a;"></i> Status Akun
+                        </label>
+                        <div style="font-weight: 800; color: #16a34a; font-size: 0.9rem; margin-top: 3px;">Aktif (Member)</div>
+                    </div>
+                </div>
+
+                <!-- Footer Close Button -->
+                <div style="margin-top: 20px; text-align: right;">
+                    <button id="closeUserDetailBtn2" onclick="window.closeUserDetailModal()" class="btn-primary" style="padding: 10px 28px; border-radius: 12px; font-weight: 700; background: #0f172a; border-color: #0f172a; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+
+    
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

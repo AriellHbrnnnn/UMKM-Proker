@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasar Desa Karanganyar</title>
+    <!-- Favicon (Ikon Tab Browser) -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='42' y='10' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='50' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='90' width='16' height='10' rx='4' fill='%232e7d32'/><path d='M58 50 Q 85 30 90 45 Q 70 65 58 50' fill='%234caf50'/><path d='M42 90 Q 15 70 10 85 Q 30 105 42 90' fill='%234caf50'/></svg>">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDK (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .swal2-container {
+            z-index: 999999 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header E-commerce Profesional -->
+    <header class="header">
+        <div class="topbar">
+            <div class="container topbar-content">
+                <div class="topbar-links">
+                    <a href="#" class="linkTentang">Tentang Karanganyar</a>
+                    <a href="#" class="linkPromoDesa">Promo Desa</a>
+                    <a href="#" class="linkHelpCenter">Pusat Bantuan</a>
+                </div>
+            </div>
+        </div>
+        <div class="main-header container">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="#" class="logo" id="logoBtn">
+                <svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+                    style="vertical-align: -0.125em;">
+                    <rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32" />
+                    <rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32" />
+                    <rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32" />
+                    <path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50" />
+                    <path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50" />
+                </svg> Pasar<span>Karanganyar</span>
+            </a>
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <div class="category-dropdown">
+                        <button class="category-btn">Kategori</button>
+                        <div class="category-menu">
+                            <div class="category-sidebar">
+                                <ul>
+                                    <li class="active">Makanan & Minuman</li>
+                                    <li>Kerajinan Tangan</li>
+                                    <li>Kebutuhan Harian</li>
+                                    <li>Pertanian & Peternakan</li>
+                                    <li>Jasa Warga</li>
+                                </ul>
+                            </div>
+                            <div class="category-content">
+                                <h4>Makanan & Minuman</h4>
+                                <div class="sub-categories">
+                                    <a href="#">Keripik Pisang</a>
+                                    <a href="#">Telur Asin</a>
+                                    <a href="#">Jamu Tradisional</a>
+                                    <a href="#">Kopi Asli Desa</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon-left"></i>
+                        <input type="text" id="searchInput" placeholder="Cari di Pasar Karanganyar">
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <!-- Ikon Keranjang -->
+                <!-- Ikon Keranjang dengan Dropdown -->
+                <div class="cart-wrapper" style="position:relative; display:flex; align-items:center; height: 100%;">
+                    <button class="header-icon-btn hidden" id="cartIconBtn" title="Keranjang"
+                        style="background:none; border:none; color:var(--text-color); font-size:1.2rem; cursor:pointer; position:relative; padding: 10px 0;">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cartBadgeCount"
+                            style="position:absolute; top:-2px; right:-8px; background:#ef144a; color:white; font-size:0.7rem; font-weight:bold; padding:2px 6px; border-radius:50%; display:none;">0</span>
+                    </button>
+                    <!-- Kotak Dropdown Hover Keranjang -->
+                    <div class="cart-dropdown hidden" id="cartDropdownHover">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; padding: 15px; border-bottom: 1px solid #e5e7e9;">
+                            <span style="font-weight: 700; font-size: 1rem; color: var(--text-color);">Keranjang</span>
+                            <a href="#"
+                                style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.9rem;">Lihat</a>
+                        </div>
+                        <div style="padding: 30px 15px; text-align: center;">
+                            <img src="https://images.tokopedia.net/img/illustration/empty-state/cart.svg"
+                                alt="Keranjang Kosong" style="width: 150px; margin-bottom: 15px;">
+                            <h4 style="font-size: 1.1rem; color: var(--text-color); margin: 0 0 5px 0;">Wah, keranjang
+                                belanjamu kosong</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 20px 0;">Yuk, isi dengan
+                                barang-barang impianmu!</p>
+                            <button class="btn-primary" style="padding: 10px 30px; font-weight: 700; width: auto;"
+                                onclick="switchPage('homePage')">Mulai Belanja</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol Auth (Jika belum login) -->
+                <div class="auth-buttons" id="authButtonsContainer" style="display: flex;">
+                    <button class="btn-masuk">Masuk</button>
+                    <button class="btn-daftar">Daftar</button>
+                </div>
+
+                <!-- Profil User (Jika sudah login) -->
+                <div class="user-profile-menu hidden" id="userProfileContainer"
+                    style="position:relative; padding: 10px 0;">
+                    <button class="user-profile-btn" id="userProfileBtnHeader"
+                        style="background:none; border:none; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text-color);">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="userAvatar"
+                            alt="Avatar" style="width:32px; height:32px; border-radius:50%;">
+                        <span id="userNameDisplay">Akun Saya</span>
+                        <i class="fas fa-chevron-down" style="font-size:0.8rem; color:#888;"></i>
+                    </button>
+                    <!-- Overlay Background for Dropdown -->
+                    <div class="profile-dropdown-overlay" id="profileDropdownOverlay"></div>
+                    <!-- Dropdown Profil Baru -->
+                    <div class="profile-dropdown-container" id="profileDropdown"
+                        style="position:absolute; top:65px; right:-10px; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.15); border-radius:12px; width:450px; z-index:1001; padding:16px; border:1px solid #E5E7E9; display: flex; gap: 16px; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.3s ease;">
+                        <!-- Kolom Kiri: Profil & Saldo -->
+                        <div style="flex: 1.5; background: #F8F8F8; padding: 12px; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 12px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 12px; cursor: pointer;"
+                                id="dropdownProfileMenu">
+                                <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                    id="dropdownAvatar" style="width: 40px; height: 40px; border-radius: 50%;">
+                                <div style="font-weight: 700; color: #31353B; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;"
+                                    id="dropdownName">Akun Saya</div>
+                            </div>
+
+                        </div>
+
+                        <!-- Kolom Kanan: Menu Navigasi -->
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px;">
+                                <a href="#" onclick="switchPage('wishlistPage'); return false;"
+                                    style="color: #6D7588; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: color 0.2s;"
+                                    onmouseover="this.style.color='var(--primary)'"
+                                    onmouseout="this.style.color='#6D7588'">Wishlist</a>
+                                <a href="#" onclick="switchPage('favoritesPage'); return false;"
+                                    style="color: #6D7588; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: color 0.2s;"
+                                    onmouseover="this.style.color='var(--primary)'"
+                                    onmouseout="this.style.color='#6D7588'">Toko Favorit</a>
+                                <a href="#" onclick="switchPage('profilePage'); return false;"
+                                    style="color: #6D7588; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: color 0.2s;"
+                                    onmouseover="this.style.color='var(--primary)'"
+                                    onmouseout="this.style.color='#6D7588'">Pengaturan</a>
+
+                            </div>
+                            <div style="border-top: 1px solid #E5E7E9; padding-top: 12px; margin-top: auto;">
+                                <a href="#" id="dropdownLogoutBtn"
+                                    style="color: #6D7588; text-decoration: none; font-size: 0.9rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #E5E7E9; transition: color 0.2s;"
+                                    onmouseover="this.style.color='var(--primary)'"
+                                    onmouseout="this.style.color='#6D7588'">
+                                    Keluar <i class="fas fa-sign-out-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </header>
+
+    <!-- Halaman Utama UMKM -->
+    <main id="homePage">
+        <!-- Hero Banner Slider -->
+        <section class="hero-banner">
+            <div class="slider-container">
+                <!-- 5 Gambar Latar Bertema Desa Karanganyar -->
+                <div class="slide active"
+                    style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/hero_general.png') center/cover no-repeat;">
+                    <div class="banner-content">
+                        <h2>Malas belanja ke mal?</h2>
+                        <p>Coba Official Store Desa, jaminan pasti ori dan berkualitas!</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('umkmGrid').scrollIntoView({behavior: 'smooth', block: 'start'})">Cek
+                            Sekarang</button>
+                    </div>
+                </div>
+
+                <div class="slide"
+                    style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/hero_farm.png') center/cover no-repeat;">
+                    <div class="banner-content">
+                        <h2>Sayuran Segar Tiap Pagi</h2>
+                        <p>Dapatkan hasil panen warga langsung ke dapur Anda.</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('umkmGrid').scrollIntoView({behavior: 'smooth', block: 'start'})">Beli
+                            Sayur</button>
+                    </div>
+                </div>
+
+                <div class="slide"
+                    style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/hero_mechanic.png') center/cover no-repeat;">
+                    <div class="banner-content">
+                        <h2>Otomotif & Servis</h2>
+                        <p>Motor bermasalah? Panggil montir desa berpengalaman tanpa perlu antre.</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('umkmGrid').scrollIntoView({behavior: 'smooth', block: 'start'})">Cari
+                            Bengkel</button>
+                    </div>
+                </div>
+
+                <div class="slide"
+                    style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/hero_wood.png') center/cover no-repeat;">
+                    <div class="banner-content">
+                        <h2>Mencari Furniture?</h2>
+                        <p>Dukung pengerajin kayu Karanganyar dengan kualitas meubel jati terbaik.</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('umkmGrid').scrollIntoView({behavior: 'smooth', block: 'start'})">Lihat
+                            Meubel</button>
+                    </div>
+                </div>
+
+                <div class="slide"
+                    style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/hero_craft.png') center/cover no-repeat;">
+                    <div class="banner-content">
+                        <h2>Bingkisan Khas Desa</h2>
+                        <p>Bawakan oleh-oleh terbaik berupa kerajinan rajut asli karya para ibu.</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('umkmGrid').scrollIntoView({behavior: 'smooth', block: 'start'})">Cari
+                            Oleh-oleh</button>
+                    </div>
+                </div>
+
+                <!-- Tombol Navigasi Slider -->
+                <button class="slider-arrow prev-slide"><i class="fas fa-chevron-left"></i></button>
+                <button class="slider-arrow next-slide"><i class="fas fa-chevron-right"></i></button>
+
+                <!-- Indikator Slide (Dots) -->
+                <div class="slider-dots">
+                    <span class="dot active" data-index="0"></span>
+                    <span class="dot" data-index="1"></span>
+                    <span class="dot" data-index="2"></span>
+                    <span class="dot" data-index="3"></span>
+                    <span class="dot" data-index="4"></span>
+                </div>
+            </div>
+        </section>
+
+        <div class="container">
+            <!-- Kategori -->
+            <section class="categories-section">
+                <h3 class="section-title">Kategori Pilihan</h3>
+                <div class="category-grid">
+                    <div class="category-item" data-filter="makanan">
+                        <div class="cat-icon"><i class="fas fa-utensils"></i></div>
+                        <span>Makanan & Minuman</span>
+                    </div>
+                    <div class="category-item" data-filter="kerajinan">
+                        <div class="cat-icon"><i class="fas fa-hammer"></i></div>
+                        <span>Kerajinan & Meubel</span>
+                    </div>
+                    <div class="category-item" data-filter="kebutuhan">
+                        <div class="cat-icon"><i class="fas fa-store"></i></div>
+                        <span>Kebutuhan Harian</span>
+                    </div>
+                    <div class="category-item" data-filter="pertanian">
+                        <div class="cat-icon"><i class="fas fa-seedling"></i></div>
+                        <span>Pertanian & Sayur</span>
+                    </div>
+                    <div class="category-item" data-filter="jasa">
+                        <div class="cat-icon"><i class="fas fa-tools"></i></div>
+                        <span>Jasa Warga</span>
+                    </div>
+                    <div class="category-item" data-filter="all" class="active">
+                        <div class="cat-icon"><i class="fas fa-th-large"></i></div>
+                        <span>Semua</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daftar UMKM -->
+            <section class="umkm-section">
+                <div class="section-header">
+                    <h3 class="section-title">Official Store Desa (UMKM)</h3>
+                </div>
+                <div class="umkm-grid" id="umkmGrid">
+                    <!-- Diisi oleh JS -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Halaman Detail Toko -->
+    <main id="storePage" class="hidden">
+        <div class="container">
+            <!-- Breadcrumb -->
+            <div class="breadcrumb">
+                <a href="#" class="breadcrumbHome">Home</a> > <span>Detail UMKM</span> > <span id="bcStoreName">Nama
+                    Toko</span>
+            </div>
+
+            <!-- Sticky Mobile Store Header -->
+            <div class="store-mobile-header">
+                <button id="mobileBackStoreBtn" class="mobile-back-store-btn-icon">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="store-search-container">
+                    <i class="fas fa-search store-search-icon"></i>
+                    <input type="text" id="storeSearchInput" placeholder="Cari produk di toko ini...">
+                </div>
+            </div>
+
+            <!-- Header Toko -->
+            <div class="store-header" id="storeHeader">
+                <!-- Diisi oleh JS -->
+            </div>
+
+            <div class="store-layout">
+                <div class="store-sidebar">
+                    <div class="store-info-card" id="storeInfoCard">
+                        <!-- Diisi oleh JS -->
+                    </div>
+                </div>
+                <div class="store-main-content">
+                    <div class="store-tabs">
+                        <button class="tab-btn active" data-target="tabProduk">Produk</button>
+
+                    </div>
+
+                    <div id="tabProduk" class="tab-content">
+                        <div class="product-filters">
+                            <span>Urutkan: </span>
+                            <select>
+                                <option>Paling Sesuai</option>
+                                <option>Terbaru</option>
+                                <option>Harga Terendah</option>
+                            </select>
+                        </div>
+
+                        <div class="product-grid" id="productGrid">
+                            <!-- Diisi oleh JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman Detail Produk (PDP) -->
+    <main id="productPage" class="hidden">
+        <div class="container">
+            <!-- Mobile Sticky Top Header -->
+            <div class="pdp-mobile-header">
+                <button id="mobileBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="mobile-back-store-btn-icon" title="Kembali ke Toko">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="pdp-mobile-title" id="pdpMobileTitle">Detail Produk</span>
+                <button class="pdp-mobile-share-icon" id="pdpMobileShareBtn" title="Bagikan Produk">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+
+            <!-- Desktop Nav Bar with Back Button & Breadcrumbs -->
+            <div class="pdp-top-nav-bar" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                <button id="desktopBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="btn-back-pdp" style="display:inline-flex; align-items:center; gap:8px; background:white; border:1px solid #cbd5e1; padding:8px 18px; border-radius:24px; font-weight:700; font-size:0.9rem; color:#1e293b; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.04); transition:all 0.2s;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> Kembali ke Toko UMKM
+                </button>
+                <div class="breadcrumb" style="margin-bottom:0; font-size:0.88rem;">
+                    <a href="#" class="breadcrumbHome">Home</a> &gt;
+                    <a href="#" onclick="switchPage('storePage')" id="pdpStoreBreadcrumb">Nama Toko</a> &gt;
+                    <span id="pdpProductNameBreadcrumb" style="font-weight:600; color:#334155;">Nama Produk</span>
+                </div>
+            </div>
+
+            <div class="pdp-layout">
+                <!-- Kiri: Galeri Gambar -->
+                <div class="pdp-gallery">
+                    <img id="pdpMainImage" src="images/default.jpg" alt="Produk" class="pdp-main-img">
+                    <div class="pdp-thumbnails">
+                        <img id="pdpThumb1" src="images/default.jpg" class="pdp-thumb active">
+                        <img id="pdpThumb2" src="images/default.jpg" class="pdp-thumb">
+                    </div>
+                </div>
+
+                <!-- Tengah & Utama: Info Produk -->
+                <div class="pdp-info">
+                    <h1 id="pdpProductName" class="pdp-title">Nama Produk</h1>
+
+                    
+
+                    <div class="pdp-price-section" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px;">
+                        <div id="pdpPrice" class="pdp-price" style="font-size:1.8rem; font-weight:800; color:var(--primary);">Rp 0</div>
+                        <div style="font-size:0.75rem; color:#e53935; margin-top:4px; font-style:italic;">*Harga dapat berubah sewaktu-waktu</div>
+                    </div>
+
+                    <!-- BOKS AKSI (Atur Jumlah Dan Catatan + Beli) -->
+                    <div class="pdp-action-box" id="pdpActionBox">
+                        <h3 style="font-size:1rem; margin-bottom:15px; display:flex; align-items:center; gap:6px;"><i class="fas fa-sliders-h" style="color:var(--primary);"></i> Atur jumlah dan catatan</h3>
+
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                            <img id="pdpActionThumb" src="images/default.jpg" style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #e2e8f0;">
+                            <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);">Default</span>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
+                            <div class="quantity-control">
+                                <button type="button">-</button>
+                                <input type="text" value="1" readonly>
+                                <button type="button">+</button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <span style="color:var(--text-muted); font-size:0.9rem;">Subtotal</span>
+                            <span id="pdpSubtotal" style="font-weight:800; font-size:1.3rem; color:var(--primary);">Rp 0</span>
+                        </div>
+
+                        <button class="btn-primary" id="pdpAddToCartBtn" style="width:100%; margin-bottom:10px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;"><i class="fas fa-cart-plus"></i> + Keranjang</button>
+                        <button class="btn-outline-primary" id="pdpBuyBtn" style="width:100%; margin-bottom:20px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;">Beli Langsung</button>
+
+                        <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:15px;">
+                            <button class="pdp-icon-action" id="pdpChatBtn"><i class="far fa-comment-dots"></i> Chat</button>
+                            <span class="pdp-separator">|</span>
+                            <button class="pdp-icon-action" id="pdpWishlistBtn"><i class="far fa-heart"></i> Wishlist</button>
+                            <span class="pdp-separator">|</span>
+                            <button class="pdp-icon-action" id="pdpShareBtn"><i class="fas fa-share-alt"></i> Share</button>
+                        </div>
+                    </div>
+
+                    <!-- Profil Toko Penjual -->
+                    <div class="pdp-store-profile">
+                        <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px;">
+                            <img id="pdpStoreImage" src="images/default.jpg" class="pdp-store-img">
+                            <div>
+                                <h3 id="pdpStoreName" style="font-size:1.1rem; display:flex; align-items:center; gap:5px;"><i class="fas fa-check-circle" style="color: #6a1b9a;"></i> Nama Toko</h3>
+                                <p style="font-size:0.85rem; color:var(--text-muted);">Online 5 Menit Lalu</p>
+                            </div>
+                            <button id="pdpFollowBtn" class="btn-follow" style="margin-left:auto; width:auto; padding: 6px 16px; border-radius:20px;">Follow</button>
+                        </div>
+                        <div style="font-size:0.9rem; color:var(--text-main);">
+                            <p><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> Dikirim dari <strong>Padukuhan Karanganyar</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Detail & Deskripsi Produk -->
+                    <div class="pdp-tabs">
+                        <div class="pdp-tab active">Detail Produk</div>
+                    </div>
+
+                    <div class="pdp-description-box">
+                        <p>Kondisi: <strong>Baru</strong></p>
+                        <p>Berat Satuan: <strong>250 g</strong></p>
+                        <p>Kategori: <strong style="color:var(--primary);">Produk UMKM Karanganyar</strong></p>
+                        <p>Etalase: <strong style="color:var(--primary);">Semua Etalase</strong></p>
+
+                        <div class="pdp-desc-text" id="pdpDescText">
+                            Deskripsi produk akan muncul di sini.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman Pusat Bantuan -->
+    <main id="helpPage" class="hidden">
+        <div class="container">
+
+            <div class="help-container">
+                <div class="help-header">
+                    <h2>Halo, ada yang bisa kami bantu?</h2>
+                    <p style="color:var(--text-muted); margin-bottom:20px;">Temukan solusi untuk masalah Anda di bawah
+                        ini.</p>
+                </div>
+
+                <div class="faq-section">
+                    <h3 style="margin-bottom: 20px; font-size: 1.2rem;">Pertanyaan Populer (FAQ)</h3>
+
+                    <div class="faq-item">
+                        <button class="faq-question">Bagaimana cara memesan produk UMKM? <i
+                                class="fas fa-chevron-down"></i></button>
+                        <div class="faq-answer">
+                            <p>Anda cukup mengklik tombol <strong>"Chat Penjual"</strong> pada halaman detail toko. Anda
+                                akan diarahkan ke WhatsApp untuk berdiskusi langsung dengan pemiliki UMKM. Pastikan Anda
+                                sudah login terlebih dahulu.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">Bagaimana sistem pembayarannya? <i
+                                class="fas fa-chevron-down"></i></button>
+                        <div class="faq-answer">
+                            <p>Pembayaran dilakukan secara mandiri di luar sistem web ini, berdasarkan kesepakatan
+                                dengan penjual di WhatsApp (biasanya transfer bank atau Bayar di Tempat/COD).</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">Bagaimana jika pesanan saya tidak dikirim? <i
+                                class="fas fa-chevron-down"></i></button>
+                        <div class="faq-answer">
+                            <p>Kami sarankan selalu menggunakan fitur COD jika Anda ragu. Jika terbukti ada toko
+                                fiktif/menipu, silakan hubungi tim Admin Desa agar toko tersebut segera dihapus dari
+                                website.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">Bagaimana cara mendaftarkan toko/UMKM saya? <i
+                                class="fas fa-chevron-down"></i></button>
+                        <div class="faq-answer">
+                            <p>Website ini khusus untuk warga Padukuhan Karanganyar. Silakan hubungi perangkat desa
+                                (RT/Dukuh) atau tim Admin dengan menyiapkan: Nama Toko, Foto Produk, dan Nomor WhatsApp
+                                aktif.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-admin"
+                    style="text-align: center; margin-top: 40px; padding: 30px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm);">
+                    <h3 style="margin-bottom: 10px;">Masih belum menemukan jawaban?</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Hubungi tim Admin Desa untuk bantuan lebih
+                        lanjut.</p>
+                    <a href="https://wa.me/6280000000000?text=Halo%20Admin,%20saya%20butuh%20bantuan%20terkait%20website%20UMKM."
+                        target="_blank" class="btn-primary" style="display:inline-block;"><i
+                            class="fab fa-whatsapp"></i> Hubungi Admin (WhatsApp)</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman Tentang Karanganyar (Profil Desa) -->
+    <main id="tentangPage" class="hidden">
+        <!-- 1. Hero Section (Tokopedia Style) -->
+        <div class="tkp-hero">
+            <div class="tkp-hero-overlay"></div>
+            <div class="tkp-hero-content container">
+                <h1>Kenali lebih dekat<br>Karanganyar</h1>
+            </div>
+            <div class="tkp-scroll-indicator">
+                <div class="mouse"></div>
+            </div>
+        </div>
+
+        <!-- 2. Tantangan Kami / Peta -->
+        <section class="tkp-section tkp-challenge">
+            <div class="container" style="text-align: center;">
+                <h4 class="tkp-section-label">TANTANGAN KAMI</h4>
+                <h2 class="tkp-section-title">Membangun Kemandirian Desa di Era Digital</h2>
+                <p class="tkp-section-desc mx-auto">Kami berupaya untuk memberdayakan seluruh elemen masyarakat
+                    Karanganyar agar mampu bersaing, menciptakan peluang baru, dan memajukan perekonomian desa secara
+                    gotong royong.</p>
+
+                <div class="tkp-map-container reveal">
+                    <!-- Google Maps Iframe for Karanganyar -->
+                    <iframe
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15814.735071195617!2d110.3341381!3d-7.9271617!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7b003a27fecf31%3A0xc39f28688435165c!2sKaranganyar%2C%20Kec.%20Panggang%2C%20Kabupaten%20Gunung%20Kidul%2C%20Daerah%20Istimewa%20Yogyakarta!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
+                        width="100%" height="450" style="border:0; border-radius: 20px; box-shadow: var(--shadow-md);"
+                        allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Misi Kami & Sejarah (Kolase) -->
+        <section class="tkp-section tkp-mission" style="background: white;">
+            <div class="container">
+                <div class="tkp-split-layout">
+                    <!-- Left: Collage -->
+                    <div class="tkp-collage reveal">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img1" alt="Sejarah 1">
+                        <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img2" alt="Sejarah 2">
+                        <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img3" alt="Sejarah 3">
+                    </div>
+                    <!-- Right: Text -->
+                    <div class="tkp-mission-text reveal">
+                        <h4 class="tkp-section-label">SEJARAH KAMI</h4>
+                        <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 25px;">Menilik Sejarah
+                            Nama Karanganyar</h2>
+                        <p class="tkp-section-desc" style="text-align: left; max-width: 100%; margin-bottom: 20px;">
+                            Secara etimologis, <strong>Karanganyar</strong> bermakna "pekarangan atau lahan permukiman
+                            baru", yang mengindikasikan perluasan lahan oleh generasi penerus di masa lampau untuk
+                            merespons pertumbuhan populasi.
+                        </p>
+                        <p class="tkp-section-desc" style="text-align: left; max-width: 100%; margin-bottom: 20px;">
+                            Tokoh utama yang berperan sebagai cikal bakal masyarakat di wilayah ini adalah <strong>Eyang
+                                Meles</strong> (Patih Harya Bangah), loyalis Prabu Brawijaya V dari Majapahit. Beliau
+                            menyingkir ke kawasan Ngalang dan mewariskan ilmu pertanian serta kesenian.
+                        </p>
+                        <p class="tkp-section-desc" style="text-align: left; max-width: 100%; margin-bottom: 0;">
+                            Kini, Padukuhan Karanganyar merepresentasikan masyarakat pedesaan Jawa yang tangguh. Melalui
+                            semangat Eyang Meles, relasi antarwarga terus diikat oleh sistem gotong royong yang
+                            termanifestasi dalam ekonomi dan budaya.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Bisnis Kami / Data Wilayah -->
+        <section class="tkp-section tkp-stats" style="background: #f8f9fa;">
+            <div class="container">
+                <div class="tkp-stats-box reveal">
+                    <div class="tkp-stats-left">
+                        <h4 class="tkp-section-label"><i class="fas fa-map-marked-alt" style="margin-right: 8px; color: #03ac0e;"></i>DATA WILAYAH</h4>
+                        <h2 class="tkp-section-title" style="text-align: left;">Membangun desa dengan infrastruktur dan sumber daya terbaik</h2>
+                        <p style="color: #64748B; line-height: 1.6; margin-top: 12px; font-size: 0.95rem;">
+                            Padukuhan Karanganyar dikelola dengan tata kelola wilayah yang rapi, transparan, dan berpusat pada kesejahteraan warga.
+                        </p>
+                    </div>
+                    <div class="tkp-stats-right" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="tkp-stat-card">
+                            <div class="tkp-stat-icon"><i class="fas fa-home"></i></div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span class="count-up" data-target="5">0</span> / <span class="count-up" data-target="1">0</span></h3>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">RT / RW</p>
+                            </div>
+                        </div>
+                        <div class="tkp-stat-card">
+                            <div class="tkp-stat-icon" style="background: #E0F2FE; color: #0284C7;"><i class="fas fa-users"></i></div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span class="count-up" data-target="218">0</span></h3>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">Kepala Keluarga (KK)</p>
+                            </div>
+                        </div>
+                        <div class="tkp-stat-card" style="grid-column: 1 / -1;">
+                            <div class="tkp-stat-icon" style="background: #F3E8FF; color: #9333EA;"><i class="fas fa-user-friends"></i></div>
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+                                    <span><span class="count-up" data-target="331">0</span> <span style="font-size: 1rem; color: #0284C7; font-weight: 700;">Laki-laki</span></span>
+                                    <span><span class="count-up" data-target="347">0</span> <span style="font-size: 1rem; color: #EC4899; font-weight: 700;">Perempuan</span></span>
+                                </h3>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">Total Penduduk (<span class="count-up" data-target="678">0</span> Jiwa)</p>
+                            </div>
+                        </div>
+                        <div class="tkp-stat-card" style="grid-column: 1 / -1; flex-direction: column; align-items: flex-start; padding: 22px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%;">
+                                <div class="tkp-stat-icon" style="width: 36px; height: 36px; font-size: 1rem; background: #FEF3C7; color: #D97706;"><i class="fas fa-compass"></i></div>
+                                <h4 style="margin: 0; font-weight: 700; font-size: 1rem; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">Batas Wilayah</h4>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
+                                <div class="batas-card">
+                                    <div style="color: #03ac0e; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">UTARA</div>
+                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Hargomulyo</div>
+                                </div>
+                                <div class="batas-card">
+                                    <div style="color: #0284C7; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">SELATAN</div>
+                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Gading</div>
+                                </div>
+                                <div class="batas-card">
+                                    <div style="color: #9333EA; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">TIMUR</div>
+                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Pengkol</div>
+                                </div>
+                                <div class="batas-card">
+                                    <div style="color: #D97706; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">BARAT</div>
+                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Nglegi</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Ekosistem Super / Potensi -->
+        <section class="tkp-section tkp-features" style="background: white;">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 50px;" class="reveal">
+                    <h4 class="tkp-section-label">POTENSI UNGGULAN</h4>
+                    <h2 class="tkp-section-title">Kami membangun ekosistem desa yang produktif untuk masyarakat</h2>
+                </div>
+
+                <div class="tkp-feature-grid">
+                    <!-- Card 1 -->
+                    <div class="tkp-feature-card reveal">
+                        <div class="tkp-feature-icon">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                        <h3>Agraris & Akuakultur</h3>
+                        <p>Lahan kering kami menghasilkan padi Inpari 32, kakao, dan pisang. Tersedia pula potensi
+                            akuakultur (budidaya Nila/Mujair) inovasi Kelompok Tani "Sedyo Maju" untuk ketahanan gizi
+                            warga.</p>
+                    </div>
+                    <!-- Card 2 -->
+                    <div class="tkp-feature-card reveal" style="transition-delay: 0.1s;">
+                        <div class="tkp-feature-icon">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <h3>UMKM Kreatif (KWT)</h3>
+                        <p>Digerakkan oleh Kelompok Wanita Tani (KWT) dan kader PKK, UMKM Karanganyar fokus pada
+                            pengolahan kuliner tradisional dan pemanfaatan pangan lokal yang menjadi tulang punggung
+                            ekonomi.</p>
+                    </div>
+                    <!-- Card 3 -->
+                    <div class="tkp-feature-card reveal" style="transition-delay: 0.2s;">
+                        <div class="tkp-feature-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <h3>Geo-wisata Purba</h3>
+                        <p>Kawasan "Spot Karanganyar" di Kali Ngalang menyimpan fosil jejak bioturbasi laut purba
+                            berusia 16 juta tahun. Keindahan guratan batuannya bahkan menginspirasi karya suvenir "Batik
+                            Batuan".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Ekstra: Kehidupan Masyarakat & Budaya -->
+        <section class="tkp-section" style="background: white; padding-top: 0;">
+            <div class="container">
+                <div class="tkp-split-layout" style="align-items: flex-start;">
+                    <!-- Kehidupan -->
+                    <div class="tkp-mission-text reveal"
+                        style="flex: 1; padding: 40px; background: #f0fdf4; border-radius: 20px;">
+                        <h4 class="tkp-section-label">KEHIDUPAN MASYARAKAT</h4>
+                        <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
+                            Harmoni Keseharian</h2>
+                        <ul style="list-style: none; padding: 0;">
+                            <li
+                                style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-briefcase"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Profesi utama warga adalah petani, pekebun, dan buruh harian lepas.</div>
+                            </li>
+                            <li
+                                style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-users"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Organisasi sangat aktif: KWT, Posyandu (RDS), dan Karang Taruna "Krida Muda" yang
+                                    fokus konservasi air.</div>
+                            </li>
+                            <li
+                                style="margin-bottom: 0; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-calendar-check"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Kegiatan rutin meliputi Safari Tarawih, Apel Rutin, dan gotong royong infrastruktur
+                                    swakelola.</div>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Budaya -->
+                    <div class="tkp-mission-text reveal"
+                        style="flex: 1; padding: 40px; background: #f8f9fa; border-radius: 20px; transition-delay: 0.1s;">
+                        <h4 class="tkp-section-label">BUDAYA LOKAL</h4>
+                        <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
+                            Kesenian & Tradisi</h2>
+                        <ul style="list-style: none; padding: 0;">
+                            <li
+                                style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-hand-holding-heart"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Tradisi <strong>Nyadran Gunung Genthong</strong> rutin dilaksanakan pada Selasa
+                                    Kliwon.</div>
+                            </li>
+                            <li
+                                style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-drum"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Acara tahunan <strong>Rasulan Gubug Gedhe</strong> digelar hari Minggu Pahing
+                                    dengan Pawai Gunungan.</div>
+                            </li>
+                            <li
+                                style="margin-bottom: 0; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
+                                <i class="fas fa-music"
+                                    style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
+                                <div>Kesenian lokal sakral <strong>Ledhek (Tayuban)</strong>, Jathilan "Kuda Muda Bayu
+                                    Aji", dan Angklung anak terus dilestarikan.</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Video Profil -->
+        <section class="tkp-section" style="background: #f8f9fa; padding-bottom: 40px;">
+            <div class="container" style="text-align: center;">
+                <h4 class="tkp-section-label">PROFIL PADUKUHAN</h4>
+                <h2 class="tkp-section-title">Video Profil Karanganyar</h2>
+                <div class="reveal"
+                    style="max-width: 1000px; margin: 40px auto 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); background: #000;">
+                    <iframe width="100%" height="550" src="https://www.youtube.com/embed/LXb3EKWsInQ"
+                        title="Video Profil" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen style="display: block;"></iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Galeri Kegiatan -->
+        <section class="tkp-section" style="padding-top: 60px; padding-bottom: 100px;">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h4 class="tkp-section-label">GALERI KAMI</h4>
+                    <h2 class="tkp-section-title">Ruang Kerja & Kegiatan</h2>
+                </div>
+
+                <div class="tkp-gallery-grid">
+                    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80" class="reveal tkp-gal-1"
+                        style="transition-delay: 0.1s" alt="Galeri 1">
+                    <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-2"
+                        style="transition-delay: 0.2s" alt="Galeri 2">
+                    <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-3"
+                        style="transition-delay: 0.3s" alt="Galeri 3">
+                    <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80" class="reveal tkp-gal-4"
+                        style="transition-delay: 0.1s" alt="Galeri 4">
+                    <img src="https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-5"
+                        style="transition-delay: 0.2s" alt="Galeri 5">
+                    <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-6"
+                        style="transition-delay: 0.3s" alt="Galeri 6">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Halaman Keranjang Belanja -->
+    <main id="cartPage" class="hidden">
+        <div class="container" style="padding-top: 20px;">
+            <button onclick="switchPage(previousPageId)"
+                style="background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: var(--text-color);">Keranjang
+                Belanja</h2>
+            <div class="cart-layout">
+                <!-- Kiri: Daftar Barang -->
+                <div class="cart-left" id="cartPageItemsContainer">
+                    <!-- Dinamis dari script.js -->
+                </div>
+                <!-- Kanan: Ringkasan -->
+                <div class="cart-right">
+                    <div class="cart-summary-box">
+                        <h3
+                            style="font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                            Ringkasan Belanja</h3>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 10px; color: #555;">
+                            <span>Total Harga (<span id="cartSummaryItemCount">0</span> produk)</span>
+                            <span style="font-weight: 600;" id="cartSummaryTotal">Rp 0</span>
+                        </div>
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom: 15px; color: #555; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                            <span>Total Diskon</span>
+                            <span style="font-weight: 600;">Rp 0</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 20px;">
+                            <span style="font-weight: 700; font-size: 1.1rem;">Total Belanja</span>
+                            <span style="font-weight: 700; font-size: 1.1rem; color: var(--primary);"
+                                id="cartSummaryGrandTotal">Rp 0</span>
+                        </div>
+                        <!-- Warning: multi-UMKM selected -->
+                        <div id="cartMultiStoreWarning"
+                            style="display:none; align-items:flex-start; gap:10px; background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; color:#7b5800; line-height:1.4;">
+                            <i class="fas fa-exclamation-triangle"
+                                style="color:#f59e0b; margin-top:2px; flex-shrink:0;"></i>
+                            <span>Kamu memilih produk dari <b>lebih dari 1 UMKM</b>. Gunakan tombol <b>"Beli via
+                                    WhatsApp"</b> di masing-masing kelompok toko untuk memesan secara terpisah.</span>
+                        </div>
+                        <button class="btn-primary"
+                            style="width: 100%; font-size: 1rem; padding: 12px; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;"
+                            id="cartCheckoutBtn">Pilih produk dulu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman Pengaturan Profil -->
+    <main id="profilePage" class="hidden">
+        <div class="container" style="padding-top: 20px;">
+            <button id="btnBackProfile"
+                style="background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+            <div class="profile-layout">
+                <!-- Kiri: Navigasi Profil -->
+                <div class="profile-left">
+                    <div class="profile-card">
+                        <div style="display:flex; gap: 15px; align-items:center; margin-bottom: 20px;">
+                            <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="profilePageAvatar"
+                                alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+                            <div>
+                                <h3 style="font-size: 1.1rem; margin: 0; color: var(--text-color);"
+                                    id="profilePageName">...</h3>
+                                <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;"><i
+                                        class="fas fa-medal" style="color:#00AA5B;"></i> Member Regular</p>
+                            </div>
+                        </div>
+                        <ul class="profile-menu">
+                            <li class="active"><i class="fas fa-user"></i> Biodata Diri</li>
+                            <li onclick="switchPage('wishlistPage')"><i class="fas fa-heart"></i> Wishlist
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Kanan: Form Biodata -->
+                <div class="profile-right">
+                    <div class="profile-tabs-header">
+                        <div class="profile-tab active" data-tab="biodata">Biodata Diri</div>
+                        <div class="profile-tab" data-tab="tampilan">Mode Tampilan</div>
+                    </div>
+
+                    <div class="profile-content-box">
+                        <!-- Tab 1: Biodata Diri -->
+                        <div id="tab-biodata" class="profile-tab-content">
+                            <div class="biodata-container">
+                                <!-- Kiri: Foto Profil -->
+                                <div class="biodata-left">
+                                    <div class="biodata-avatar-box">
+                                        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                            id="profileEditAvatar" alt="Foto Profil">
+                                    </div>
+                                    <button class="btn-pilih-foto" id="btnPilihFoto">Pilih Foto</button>
+                                    <p
+                                        style="font-size: 0.8rem; color: var(--text-muted); text-align: left; margin-top: 15px; line-height: 1.4;">
+                                        Pilih avatar yang paling menggambarkan diri Anda untuk melengkapi profil.</p>
+                                </div>
+                                <!-- Kanan: Form Data -->
+                                <div class="biodata-right">
+                                    <h3 style="font-size: 1rem; color: var(--text-color); margin: 0 0 15px 0;">Ubah
+                                        Biodata Diri</h3>
+
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Nama</div>
+                                        <div class="biodata-value">
+                                            <span id="displayEditName">...</span>
+                                            <a href="#" class="biodata-action" id="btnEditName">Ubah</a>
+                                        </div>
+                                    </div>
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Tanggal Lahir</div>
+                                        <div class="biodata-value">
+                                            <span id="displayDob" style="margin-right: 10px; display: none;"></span>
+                                            <a href="#" class="biodata-action" id="btnDob">Tambah Tanggal Lahir</a>
+                                        </div>
+                                    </div>
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Jenis Kelamin</div>
+                                        <div class="biodata-value">
+                                            <span id="displayGender" style="margin-right: 10px; display: none;"></span>
+                                            <a href="#" class="biodata-action" id="btnGender">Tambah Jenis Kelamin</a>
+                                        </div>
+                                    </div>
+
+                                    <h3 style="font-size: 1rem; color: var(--text-color); margin: 25px 0 15px 0;">Ubah
+                                        Kontak</h3>
+
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Email</div>
+                                        <div class="biodata-value"
+                                            style="display: flex; gap: 10px; align-items: center;">
+                                            <span id="displayEditEmail">...</span>
+                                            <span class="tkp-badge">Terverifikasi</span>
+                                            <a href="#" class="biodata-action"
+                                                onclick="alert('Fitur ubah email segera hadir!')">Ubah</a>
+                                        </div>
+                                    </div>
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Nomor HP</div>
+                                        <div class="biodata-value">
+                                            <span id="displayEditPhone"
+                                                style="display: none; margin-right: 10px; color: var(--text-color);"></span>
+                                            <a href="#" class="biodata-action" id="btnEditPhone">Tambah Nomor HP</a>
+                                        </div>
+                                    </div>
+                                    <div class="biodata-row">
+                                        <div class="biodata-label">Kata Sandi</div>
+                                        <div class="biodata-value">
+                                            <span style="margin-right: 10px; color: var(--text-color);">********</span>
+                                            <a href="#" class="biodata-action" id="btnChangePassword">Ubah</a>
+                                        </div>
+                                    </div>
+
+
+                                    <!-- Hidden Inputs for logic compatibility -->
+                                    <input type="hidden" id="profileEditName" value="">
+                                    <input type="hidden" id="profileEditEmail" value="">
+                                    <input type="hidden" id="profileEditPhone" value="">
+                                    <button class="btn-primary hidden" id="profileSaveBtn">Simpan</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Mode Tampilan -->
+                        <div id="tab-tampilan" class="profile-tab-content hidden">
+                            <p style="font-size: 0.95rem; color: #6D7588; margin: 0 0 28px 0; line-height: 1.6;">
+                                Pilih tampilan yang paling nyaman untuk mata kamu. Perubahan akan langsung diterapkan
+                                secara real-time.
+                            </p>
+
+                            <!-- Section: Ikuti Device -->
+                            <div class="theme-section-label">
+                                <i class="fas fa-mobile-alt" style="color: var(--primary); margin-right: 8px;"></i>
+                                Otomatis
+                            </div>
+                            <div class="theme-card-grid single">
+                                <label class="theme-card" data-value="device">
+                                    <input type="radio" name="themeMode" value="device" hidden>
+                                    <div class="theme-card-preview device-preview">
+                                        <div class="preview-half preview-light"></div>
+                                        <div class="preview-half preview-dark"></div>
+                                        <div class="preview-divider"></div>
+                                    </div>
+                                    <div class="theme-card-body">
+                                        <div class="theme-card-title">Ikuti Pengaturan Device</div>
+                                        <div class="theme-card-desc">Menyesuaikan otomatis dengan Light/Dark mode
+                                            perangkatmu.</div>
+                                    </div>
+                                    <div class="theme-card-check"><i class="fas fa-check"></i></div>
+                                </label>
+                            </div>
+
+                            <!-- Section: Light -->
+                            <div class="theme-section-label">
+                                <i class="fas fa-sun" style="color: #f59e0b; margin-right: 8px;"></i>
+                                Light
+                            </div>
+                            <div class="theme-card-grid">
+                                <label class="theme-card" data-value="light">
+                                    <input type="radio" name="themeMode" value="light" hidden>
+                                    <div class="theme-card-preview light-preview">
+                                        <div class="preview-header"
+                                            style="background:#fff; height:22px; border-bottom:2px solid #03ac0e; display:flex; align-items:center; padding:0 8px; gap:4px;">
+                                            <div style="width:28px; height:8px; background:#03ac0e; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:7px; background:#f3f4f5; border-radius:10px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:8px; display:flex; gap:6px;">
+                                            <div style="flex:1; height:28px; background:#f3f4f5; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:28px; background:#f3f4f5; border-radius:4px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:0 8px; display:flex; flex-direction:column; gap:4px;">
+                                            <div style="height:6px; background:#e5e7e9; border-radius:3px;"></div>
+                                            <div style="height:6px; background:#e5e7e9; border-radius:3px; width:70%;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="theme-card-body">
+                                        <div class="theme-card-title">Standar</div>
+                                        <div class="theme-card-desc">Tampilan terang bawaan.</div>
+                                    </div>
+                                    <div class="theme-card-check"><i class="fas fa-check"></i></div>
+                                </label>
+
+                                <label class="theme-card" data-value="protanopia">
+                                    <input type="radio" name="themeMode" value="protanopia" hidden>
+                                    <div class="theme-card-preview protanopia-preview">
+                                        <div class="preview-header"
+                                            style="background:#fff; height:22px; border-bottom:2px solid #7aab5c; display:flex; align-items:center; padding:0 8px; gap:4px;">
+                                            <div style="width:28px; height:8px; background:#7aab5c; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:7px; background:#f3f4f5; border-radius:10px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:8px; display:flex; gap:6px;">
+                                            <div style="flex:1; height:28px; background:#c8c830; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:28px; background:#7aab5c; border-radius:4px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:0 8px; display:flex; flex-direction:column; gap:4px;">
+                                            <div style="height:6px; background:#e5e7e9; border-radius:3px;"></div>
+                                            <div style="height:6px; background:#c8c830; border-radius:3px; width:60%;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="theme-card-body">
+                                        <div class="theme-card-title">Filter Hijau/Merah <span
+                                                class="badge-beta">BETA</span></div>
+                                        <div class="theme-card-desc">Untuk kondisi sulit membedakan warna merah &amp;
+                                            hijau.</div>
+                                    </div>
+                                    <div class="theme-card-check"><i class="fas fa-check"></i></div>
+                                </label>
+
+                                <label class="theme-card" data-value="tritanopia">
+                                    <input type="radio" name="themeMode" value="tritanopia" hidden>
+                                    <div class="theme-card-preview tritanopia-preview">
+                                        <div class="preview-header"
+                                            style="background:#fff; height:22px; border-bottom:2px solid #e06b2a; display:flex; align-items:center; padding:0 8px; gap:4px;">
+                                            <div style="width:28px; height:8px; background:#e06b2a; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:7px; background:#f3f4f5; border-radius:10px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:8px; display:flex; gap:6px;">
+                                            <div style="flex:1; height:28px; background:#e06b2a; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:28px; background:#f8d6c0; border-radius:4px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:0 8px; display:flex; flex-direction:column; gap:4px;">
+                                            <div style="height:6px; background:#e5e7e9; border-radius:3px;"></div>
+                                            <div style="height:6px; background:#e06b2a; border-radius:3px; width:75%;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="theme-card-body">
+                                        <div class="theme-card-title">Filter Biru/Kuning <span
+                                                class="badge-beta">BETA</span></div>
+                                        <div class="theme-card-desc">Untuk kondisi sulit membedakan warna biru &amp;
+                                            kuning.</div>
+                                    </div>
+                                    <div class="theme-card-check"><i class="fas fa-check"></i></div>
+                                </label>
+                            </div>
+
+                            <!-- Section: Dark -->
+                            <div class="theme-section-label">
+                                <i class="fas fa-moon" style="color: #6366f1; margin-right: 8px;"></i>
+                                Dark <span class="badge-beta"
+                                    style="margin-left:6px; vertical-align:middle;">BETA</span>
+                            </div>
+                            <div class="theme-card-grid single">
+                                <label class="theme-card" data-value="dark">
+                                    <input type="radio" name="themeMode" value="dark" hidden>
+                                    <div class="theme-card-preview dark-preview">
+                                        <div class="preview-header"
+                                            style="background:#1f1f1f; height:22px; border-bottom:2px solid #4cca78; display:flex; align-items:center; padding:0 8px; gap:4px;">
+                                            <div style="width:28px; height:8px; background:#4cca78; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:7px; background:#2a2a2a; border-radius:10px;">
+                                            </div>
+                                        </div>
+                                        <div style="padding:8px; display:flex; gap:6px;">
+                                            <div style="flex:1; height:28px; background:#2a2a2a; border-radius:4px;">
+                                            </div>
+                                            <div style="flex:1; height:28px; background:#333; border-radius:4px;"></div>
+                                        </div>
+                                        <div style="padding:0 8px; display:flex; flex-direction:column; gap:4px;">
+                                            <div style="height:6px; background:#444; border-radius:3px;"></div>
+                                            <div style="height:6px; background:#4cca78; border-radius:3px; width:55%;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="theme-card-body">
+                                        <div class="theme-card-title">Tampilan Gelap</div>
+                                        <div class="theme-card-desc">Lebih nyaman di mata saat kondisi minim cahaya.
+                                        </div>
+                                    </div>
+                                    <div class="theme-card-check"><i class="fas fa-check"></i></div>
+                                </label>
+                            </div>
+
+                            <!-- Active Theme Toast -->
+                            <div id="themeAppliedNotif"
+                                style="display:none; align-items:center; gap:10px; background:#e6f6ec; border:1px solid #c3e6cb; border-radius:8px; padding:12px 16px; margin-top:20px; font-size:0.9rem; color:#1a7f37;">
+                                <i class="fas fa-check-circle" style="color:#03ac0e; font-size:1.1rem;"></i>
+                                <span id="themeAppliedText">Tema berhasil diterapkan!</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Login & Register (Prototype) -->
+    <!-- Modal Login & Register ala Tokopedia -->
+    <div class="modal-overlay hidden" id="loginModal">
+        <div class="modal-content" style="padding: 0; max-width: 400px; width: 100%; overflow-y: auto; max-height: 90vh; border-radius: 12px; position: relative;">
+
+
+            <!-- Layar 1: Utama Masuk -->
+            <div id="authScreen1" style="padding: 15px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="font-size: 1.5rem; font-weight: 800; color: #31353B; margin: 0;">Masuk</h2>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <a href="#" id="authGoToRegister"
+                            style="color: var(--primary); font-weight: 700; text-decoration: none; font-size: 0.95rem;">Daftar</a>
+                        <button class="close-modal" id="closeModal1"
+                            style="position: static !important; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
+                    </div>
+                </div>
+
+                <form id="formAuthScreen1">
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Email atau Username</label>
+                        <input type="text" id="authInputEmail1" placeholder="Contoh: email@gmail.com atau username123"
+                            required
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; outline: none;">
+                    </div>
+                    <div style="text-align: right; margin-bottom: 20px;">
+                        <a href="#" id="authGoToForgot"
+                            style="color: var(--primary); font-size: 0.85rem; font-weight: 600; text-decoration: none;">Lupa
+                            kata sandi?</a>
+                    </div>
+
+                    <button type="submit" id="authBtnNext"
+                        style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;">Selanjutnya</button>
+                </form>
+
+                <div
+                    style="display: flex; align-items: center; text-align: center; color: #B3B9C1; font-size: 0.85rem; margin: 15px 0;">
+                    <hr style="flex: 1; border: none; border-top: 1px solid #E5E7E9;">
+                    <span style="padding: 0 10px;">atau masuk dengan</span>
+                    <hr style="flex: 1; border: none; border-top: 1px solid #E5E7E9;">
+                </div>
+
+
+                <button type="button" id="authBtnOtherMethods"
+                    style="width: 100%; padding: 12px; background: white; color: #31353B; font-weight: 700; font-size: 1rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer;">Metode
+                    Lain</button>
+
+                <div style="text-align: center; margin-top: 24px; font-size: 0.95rem; color: #6D7588;">
+                    Butuh bantuan? <a
+                        href="https://wa.me/6281234567890?text=Halo%20Admin%20Pasar%20Karanganyar,%20saya%20butuh%20bantuan%20terkait%20akun%20saya."
+                        target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">Hubungi
+                        Care</a>
+                </div>
+            </div>
+
+            <!-- Layar 2: Masukkan Password -->
+            <div id="authScreen2" class="hidden" style="padding: 24px; padding-top: 60px;">
+                <div
+                    style="position: absolute; top: 0; left: 0; right: 0; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #E5E7E9;">
+                    <i class="fas fa-arrow-left" id="authBackTo1"
+                        style="font-size: 1.2rem; color: #6D7588; cursor: pointer; padding-right: 15px;"></i>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #31353B; margin: 0;">Masukkan Kata Sandi</h3>
+                    <button class="close-modal" id="closeModal2"
+                        style="position: absolute; right: 15px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer;">&times;</button>
+                </div>
+
+                <p style="font-size: 0.9rem; color: #6D7588; margin-bottom: 20px;">Lanjutkan masuk untuk <strong
+                        id="authDisplayEmail" style="color:#31353B;">email@anda.com</strong></p>
+
+                <form id="formAuthScreen2">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Kata Sandi</label>
+                        <input type="password" id="authInputPassword" placeholder="Masukkan kata sandi" required
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none;">
+                    </div>
+
+                    <button type="submit" id="authBtnLogin"
+                        style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Masuk</button>
+                </form>
+            </div>
+
+            <!-- Layar 3: Metode Lain -->
+            <div id="authScreen3" class="hidden" style="padding: 24px; padding-top: 60px;">
+                <div
+                    style="position: absolute; top: 0; left: 0; right: 0; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #E5E7E9;">
+                    <i class="fas fa-arrow-left" id="authBackTo1FromMethods"
+                        style="font-size: 1.2rem; color: #6D7588; cursor: pointer; padding-right: 15px;"></i>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #31353B; margin: 0;">Pilih Akun Untuk Masuk
+                    </h3>
+                    <button class="close-modal" id="closeModal3"
+                        style="position: absolute; right: 15px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer;">&times;</button>
+                </div>
+
+                <button type="button" id="googleLoginBtn"
+                    style="width: 100%; padding: 12px; background: white; color: #31353B; font-weight: 700; font-size: 1rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                        alt="Google" style="width: 20px; height: 20px;">
+                    Google
+                </button>
+            </div>
+
+            <!-- Layar 4: Lupa Kata Sandi -->
+            <div id="authScreen4" class="hidden" style="padding: 24px; padding-top: 60px;">
+                <div
+                    style="position: absolute; top: 0; left: 0; right: 0; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #E5E7E9;">
+                    <i class="fas fa-arrow-left" id="authBackTo1FromForgot"
+                        style="font-size: 1.2rem; color: #6D7588; cursor: pointer; padding-right: 15px;"></i>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #31353B; margin: 0;">Atur ulang kata sandi
+                    </h3>
+                    <button class="close-modal" id="closeModal4"
+                        style="position: absolute; right: 15px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer;">&times;</button>
+                </div>
+
+                <p style="font-size: 0.9rem; color: #6D7588; margin-bottom: 20px;">Masukkan e-mail yang terdaftar. Kami
+                    akan mengirimkan tautan untuk atur ulang kata sandi.</p>
+
+                <form id="formAuthScreen4">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Email</label>
+                        <input type="email" id="authForgotEmail" placeholder="Contoh: user@gmail.com" required
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none;">
+                    </div>
+
+                    <button type="submit" id="authBtnReset"
+                        style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Lanjut</button>
+                </form>
+            </div>
+
+            <!-- Layar 5: Daftar Baru -->
+            <div id="authScreen5" class="hidden" style="padding: 15px 24px;">
+                <button class="close-modal" id="closeModal5"
+                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
+
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h2 style="font-size: 1.5rem; font-weight: 800; color: #31353B; margin-bottom: 8px;">Daftar Sekarang
+                    </h2>
+                    <p style="font-size: 0.95rem; color: #31353B;">Sudah punya akun? <a href="#" id="authGoToLogin"
+                            style="color: var(--primary); font-weight: 700; text-decoration: none;">Masuk</a></p>
+                </div>
+
+                <button type="button" id="googleRegisterBtn"
+                    style="width: 100%; padding: 12px; background: white; color: #31353B; font-weight: 700; font-size: 1rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px;">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                        alt="Google" style="width: 20px; height: 20px;">
+                    Google
+                </button>
+
+                <div
+                    style="display: flex; align-items: center; text-align: center; color: #B3B9C1; font-size: 0.85rem; margin: 24px 0;">
+                    <hr style="flex: 1; border: none; border-top: 1px solid #E5E7E9;">
+                    <span style="padding: 0 10px;">atau</span>
+                    <hr style="flex: 1; border: none; border-top: 1px solid #E5E7E9;">
+                </div>
+
+                <form id="formAuthScreen5" autocomplete="off">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Email</label>
+                        <input type="email" id="authRegEmail" placeholder="Contoh: email@gmail.com" required
+                            autocomplete="off"
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;" id="authRegNameGroup">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Username</label>
+                        <input type="text" id="authRegName" placeholder="Contoh: sumanto123" minlength="3"
+                            autocomplete="off" required
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none;">
+                    </div>
+
+                    <div id="authRegDOBGroup" class=""
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Tanggal Lahir</label>
+                            <input type="date" id="authRegDOB" required
+                                style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; background: white; color: #31353B;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Jenis Kelamin</label>
+                            <div class="tkp-gender-container"
+                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
+                                <label class="tkp-gender-option"
+                                    style="padding: 5px; border-radius: 8px; border: 1px solid #E5E7E9; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.2s;">
+                                    <input type="radio" name="authRegGenderRadio" value="Laki-laki" required
+                                        class="tkp-gender-radio" style="display: none;">
+                                    <div class="tkp-gender-label"
+                                        style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; color: #31353B; font-weight: 600;">
+                                        <i class="fas fa-mars"
+                                            style="font-size: 18px; color: #4A90E2; width: 24px; text-align: center;"></i>
+                                        Laki-laki
+                                    </div>
+                                </label>
+                                <label class="tkp-gender-option"
+                                    style="padding: 5px; border-radius: 8px; border: 1px solid #E5E7E9; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.2s;">
+                                    <input type="radio" name="authRegGenderRadio" value="Perempuan" required
+                                        class="tkp-gender-radio" style="display: none;">
+                                    <div class="tkp-gender-label"
+                                        style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; color: #31353B; font-weight: 600;">
+                                        <i class="fas fa-venus"
+                                            style="font-size: 18px; color: #E91E63; width: 24px; text-align: center;"></i>
+                                        Wanita
+                                    </div>
+                                </label>
+                            </div>
+                            <style>
+                                input[name="authRegGenderRadio"]:checked+.tkp-gender-label {
+                                    color: var(--primary);
+                                }
+
+                                input[name="authRegGenderRadio"]:checked~* {
+                                    color: var(--primary);
+                                }
+
+                                label:has(input[name="authRegGenderRadio"]:checked) {
+                                    border-color: var(--primary) !important;
+                                    background-color: #E8F5E9 !important;
+                                }
+                            </style>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;" id="authRegPasswordGroup">
+                        <label style="font-size: 0.85rem; color: #6D7588; font-weight: 600;">Kata Sandi</label>
+                        <input type="password" id="authRegPassword" placeholder="Buat kata sandi baru" minlength="6"
+                            minlength="6" autocomplete="new-password" required
+                            style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none;">
+                    </div>
+
+                    <button type="submit" id="authBtnRegister"
+                        style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;">Daftar</button>
+                </form>
+
+                <p style="font-size: 0.75rem; text-align: center; color: #6D7588; margin-top: 15px; line-height: 1.5;">
+                    Dengan mendaftar, saya menyetujui<br>
+                    <a href="#terms"
+                        onclick="switchPage('termsPage'); document.getElementById('loginModal').classList.add('hidden');"
+                        style="color: var(--primary); font-weight: 700; text-decoration: none;">Syarat & Ketentuan</a>
+                    serta <a href="#privacy"
+                        onclick="switchPage('privacyPage'); document.getElementById('loginModal').classList.add('hidden');"
+                        style="color: var(--primary); font-weight: 700; text-decoration: none;">Kebijakan Privasi</a>.
+                </p>
+            </div>
+            <!-- Layar 6: Pilih Akun (Account Picker) -->
+            <div id="authScreen6" class="hidden" style="padding: 24px;">
+                <button class="close-modal" id="closeModal6"
+                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
+                <h3
+                    style="font-size: 1.25rem; font-weight: 800; color: #31353B; margin-bottom: 24px; margin-top: 10px;">
+                    Pilih Akun Untuk Masuk</h3>
+
+                <div id="savedAccountCard"
+                    style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #E5E7E9; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img id="savedAccountAvatar" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                            style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div>
+                            <div id="dropdownName" style="font-weight: 700; color: var(--text-color);">
+                                ...</div>
+                            <div id="savedAccountEmail" style="color: #6D7588; font-size: 0.85rem;">e***l@gmail.com
+                            </div>
+                        </div>
+                    </div>
+                    <i class="fas fa-trash-alt" id="deleteSavedAccountBtn"
+                        style="color: #B3B9C1; font-size: 1.2rem; padding: 10px; cursor: pointer;"></i>
+                </div>
+
+                <div style="text-align: center; display: flex; flex-direction: column; gap: 8px;">
+                    <a href="#" id="authGoToLoginFromPicker"
+                        style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.95rem;">Masuk
+                        ke Akun Lain</a>
+                    <span style="color: #6D7588; font-size: 0.95rem;">Belum punya akun? <a href="#"
+                            id="authGoToRegisterFromPicker"
+                            style="color: var(--primary); font-weight: 600; text-decoration: none;">Daftar</a></span>
+                </div>
+            </div>
+
+            <!-- Layar 7: Prompt Keamanan HP -->
+            <div id="authScreen7" class="hidden" style="padding: 24px; text-align: center;">
+                <button class="close-modal" id="closeModal7"
+                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
+                <img src="https://api.iconify.design/fluent-emoji-flat/mobile-phone.svg?width=120"
+                    style="width: 120px; margin: 20px auto 10px auto; display: block;" alt="Keamanan">
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #31353B; margin-bottom: 12px;">Tambah nomor HP
+                    untuk<br>keamanan akunmu</h3>
+                <p style="font-size: 0.85rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Demi keamanan
+                    akun, tambah nomor HP di akunmu untuk mengaktifkan Verifikasi 2 Langkah.</p>
+                <button id="authBtnGoToAddPhone"
+                    style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Tambah
+                    Nomor HP</button>
+            </div>
+
+            <!-- Layar 8: Input Nomor HP -->
+            <div id="authScreen8" class="hidden" style="padding: 24px; padding-top: 60px;">
+                <div
+                    style="position: absolute; top: 0; left: 0; right: 0; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #E5E7E9;">
+                    <i class="fas fa-arrow-left" id="authBackTo7"
+                        style="font-size: 1.2rem; color: #6D7588; cursor: pointer; padding-right: 15px;"></i>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #31353B; margin: 0;">Tambah Nomor HP</h3>
+                    <button class="close-modal" id="closeModal8"
+                        style="position: absolute; right: 15px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer;">&times;</button>
+                </div>
+
+                <p style="font-size: 0.85rem; color: #6D7588; margin-bottom: 20px;">Biar akunmu aman, pastikan nomor
+                    HP-mu aktif.</p>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <input type="tel" id="authInputPhone" placeholder="Nomor HP"
+                        style="width: 100%; padding: 12px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                </div>
+
+                <button id="authBtnSubmitPhone"
+                    style="width: 100%; padding: 12px; background: #E5E7E9; color: #B3B9C1; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: not-allowed; transition: all 0.3s;">Lanjut</button>
+            </div>
+
+            <!-- Layar 9: Konfirmasi Simpan Info Login -->
+            <div id="authScreen9" class="hidden" style="padding: 24px; text-align: center;">
+                <button class="close-modal" id="closeModal9"
+                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
+                <img src="https://api.iconify.design/fluent-emoji-flat/locked.svg?width=120"
+                    style="width: 120px; margin: 10px auto; display: block;" alt="Simpan Info">
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #31353B; margin-bottom: 12px;">Simpan info
+                    login?</h3>
+                <p style="font-size: 0.85rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Cukup satu klik
+                    setiap masuk ke aplikasi dengan perangkat ini.</p>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <button id="authBtnLogoutDontSave"
+                        style="flex: 1; padding: 12px; background: white; color: #6D7588; font-weight: 700; font-size: 0.95rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer;">Nanti
+                        Saja</button>
+                    <button id="authBtnLogoutSave"
+                        style="flex: 1; padding: 12px; background: white; color: var(--primary); font-weight: 700; font-size: 0.95rem; border: 1px solid var(--primary); border-radius: 8px; cursor: pointer;">Ya,
+                        Simpan</button>
+                </div>
+                <p style="font-size: 0.7rem; color: #B3B9C1; line-height: 1.5; text-align: left;">Pastikan kamu simpan
+                    info login di perangkat sendiri. Dengan klik "Simpan", saya setuju dengan <a href="#"
+                        style="color: #6D7588; text-decoration: none;">Syarat & Ketentuan</a>.</p>
+            </div>
+
+            <!-- Layar 10: Pemilihan Avatar -->
+            <div id="authScreen10" class="hidden" style="padding: 24px; text-align: center;">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #31353B; margin-bottom: 8px;">Pilih Avatar Anda
+                </h3>
+                <p style="font-size: 0.9rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Pilih salah satu
+                    avatar di bawah ini untuk melengkapi profil Anda.</p>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px;"
+                    id="avatarSelectionGrid">
+                    <!-- Male Avatars -->
+                    <div class="avatar-option selected"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Milo&mouth=smile,laughing&backgroundColor=b6e3f4"
+                        style="cursor: pointer; border: 3px solid #00AA5B; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Milo&mouth=smile,laughing&backgroundColor=b6e3f4"
+                            style="width: 100%; display: block;" alt="Pria 1">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Oliver&mouth=smile,laughing&backgroundColor=c0aede"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Oliver&mouth=smile,laughing&backgroundColor=c0aede"
+                            style="width: 100%; display: block;" alt="Pria 2">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Felix&mouth=smile,laughing&backgroundColor=ffdfbf"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Felix&mouth=smile,laughing&backgroundColor=ffdfbf"
+                            style="width: 100%; display: block;" alt="Pria 3">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Leo&mouth=smile,laughing&backgroundColor=d1d4f9"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Leo&mouth=smile,laughing&backgroundColor=d1d4f9"
+                            style="width: 100%; display: block;" alt="Pria 4">
+                    </div>
+                    <!-- Female Avatars -->
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Bella&mouth=smile,laughing&backgroundColor=ffdfbf"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Bella&mouth=smile,laughing&backgroundColor=ffdfbf"
+                            style="width: 100%; display: block;" alt="Wanita 1">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Aneka&mouth=smile,laughing&backgroundColor=b6e3f4"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Aneka&mouth=smile,laughing&backgroundColor=b6e3f4"
+                            style="width: 100%; display: block;" alt="Wanita 2">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Mia&mouth=smile,laughing&backgroundColor=c0aede"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Mia&mouth=smile,laughing&backgroundColor=c0aede"
+                            style="width: 100%; display: block;" alt="Wanita 3">
+                    </div>
+                    <div class="avatar-option"
+                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Lucy&mouth=smile,laughing&backgroundColor=d1d4f9"
+                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
+                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Lucy&mouth=smile,laughing&backgroundColor=d1d4f9"
+                            style="width: 100%; display: block;" alt="Wanita 4">
+                    </div>
+                </div>
+
+                <input type="hidden" id="selectedAvatarUrl"
+                    value="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4">
+
+                <button id="authBtnSaveAvatar"
+                    style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Simpan
+                    Profile</button>
+            </div>
+
+            <!-- Screen 11: Email Verification -->
+            <div id="authScreen11" class="hidden" style="padding: 24px; text-align: center;">
+                <div style="font-size: 3rem; color: #00AA5B; margin-bottom: 16px;"><i
+                        class="fas fa-envelope-open-text"></i></div>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #31353B; margin-bottom: 8px;">Verifikasi Email
+                    Anda</h3>
+                <p style="font-size: 0.9rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Tautan verifikasi
+                    telah dikirimkan ke email Anda. Silakan cek kotak masuk Anda <strong style="color:#e53935;">(atau
+                        folder Spam/Junk)</strong> dan klik tautan tersebut untuk mengaktifkan akun Anda.</p>
+                <button class="btn-primary" style="width: 100%; margin-bottom: 12px;"
+                    onclick="checkEmailVerification(this)">Saya Sudah Verifikasi</button>
+                <p style="font-size: 0.85rem; color: #6D7588;">Belum menerima email? <a href="#"
+                        style="color: #00AA5B; font-weight: bold; text-decoration: none;"
+                        id="btnResendVerification">Kirim Ulang</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Halaman Syarat dan Ketentuan -->
+    <main id="termsPage" class="hidden">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+            <aside class="policy-sidebar">
+                <ul class="policy-menu">
+                    <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
+                    <li><a href="#" onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a></li>
+                    <li><a href="#" class="active" onclick="switchPage('termsPage'); return false;">Syarat &
+                            Ketentuan</a></li>
+                    <li><a href="#" onclick="switchPage('faqPage'); return false;">FAQ</a></li>
+                </ul>
+            </aside>
+            <div class="policy-main-content">
+                <h2 style="margin-bottom: 20px;">Syarat & Ketentuan</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: Juli 2026</p>
+
+                <div class="terms-content" style="line-height: 1.8; color: var(--text-main); font-size: 0.95rem;">
+                    <p>Selamat datang di situs/aplikasi Pasar Karanganyar.</p>
+                    <p>Syarat dan ketentuan yang ditetapkan di bawah ini merupakan perjanjian antara Pengguna (“Anda”)
+                        dengan Pengelola Pasar Karanganyar (“Kami”) yang mengatur hak, kewajiban dan tanggung jawab
+                        Pengguna terhadap penggunaan layanan, fitur, dan/atau jasa yang diakses oleh Pengguna melalui
+                        situs web ini. Pengguna disarankan membaca dengan seksama karena dapat berdampak kepada hak dan
+                        kewajiban Pengguna di bawah hukum.</p>
+                    <p>Dengan mendaftar dan/atau menggunakan Situs ini, maka Pengguna dianggap telah membaca, mengerti,
+                        memahami dan menyetujui semua isi dalam Syarat dan Ketentuan. Jika Pengguna tidak menyetujui
+                        salah satu, sebagian, atau seluruh isi Syarat dan ketentuan, maka Pengguna tidak diperkenankan
+                        mengakses dan/atau menggunakan Situs ini.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">A. Definisi</h4>
+                    <ol style="">
+                        <li><strong>Pasar Karanganyar</strong> adalah platform etalase digital yang menjalankan kegiatan
+                            promosi produk UMKM warga Padukuhan Karanganyar.</li>
+                        <li><strong>Situs</strong> adalah website milik Pasar Karanganyar yang dapat diakses melalui
+                            perangkat desktop maupun seluler.</li>
+                        <li><strong>Pengguna</strong> adalah pihak yang menggunakan layanan Pasar Karanganyar, termasuk
+                            namun tidak terbatas pada Pembeli, Penjual maupun pihak lain yang sekedar berkunjung.</li>
+                        <li><strong>Pembeli</strong> adalah Pengguna yang melakukan permintaan atas Barang yang
+                            ditawarkan oleh Penjual di Situs.</li>
+                        <li><strong>Penjual</strong> adalah warga Padukuhan Karanganyar yang terdaftar untuk melakukan
+                            penawaran atas suatu Barang kepada para Pengguna.</li>
+                        <li><strong>Barang</strong> adalah benda yang berwujud / memiliki fisik yang dapat diantar /
+                            memenuhi kriteria pengiriman oleh kurir.</li>
+                    </ol>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">B. Akun, Password dan Keamanan</h4>
+                    <ol style="">
+                        <li>Pengguna dengan ini menyatakan bahwa pengguna adalah orang yang cakap dan mampu untuk
+                            mengikatkan dirinya dalam sebuah perjanjian yang sah menurut hukum.</li>
+                        <li>Kami tidak memungut biaya pendaftaran kepada Pengguna.</li>
+                        <li>Pengguna bertanggung jawab secara pribadi untuk menjaga kerahasiaan akun dan password untuk
+                            semua aktivitas yang terjadi dalam akun Pengguna.</li>
+                        <li>Kami tidak akan meminta password maupun kode verifikasi untuk alasan apapun. Oleh karena itu
+                            Kami menghimbau Pengguna agar tidak memberikan data tersebut kepada pihak manapun.</li>
+                    </ol>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">C. Transaksi Pembelian</h4>
+                    <ol style="">
+                        <li>Pembeli wajib bertransaksi sesuai prosedur yang telah ditetapkan, yaitu dengan menghubungi
+                            penjual secara langsung melalui saluran WhatsApp yang disediakan.</li>
+                        <li>Saat melakukan pembelian Barang, Pembeli menyetujui bahwa Pembeli bertanggung jawab untuk
+                            membaca, memahami, dan menyetujui informasi/deskripsi keseluruhan Barang sebelum membuat
+                            tawaran atau komitmen untuk membeli.</li>
+                        <li>Segala transaksi yang dilakukan antara Pembeli dan Penjual (pembayaran uang, transfer, dll)
+                            merupakan tanggung jawab pribadi dari Pembeli dan Penjual. Pihak platform tidak menahan atau
+                            mengelola dana sedikitpun.</li>
+                    </ol>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">D. Transaksi Penjualan</h4>
+                    <ol style="">
+                        <li>Penjual dilarang melakukan penawaran atau menjual barang terlarang sesuai ketentuan hukum
+                            Republik Indonesia.</li>
+                        <li>Penjual wajib memberikan foto dan informasi Barang dengan lengkap dan jelas sesuai dengan
+                            kondisi dan kualitas Barang yang dijualnya.</li>
+                        <li>Penyelesaian masalah terkait keterlambatan pengiriman, kualitas barang, dan pengembalian
+                            dana diselesaikan secara kekeluargaan langsung antara Penjual dan Pembeli.</li>
+                    </ol>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">E. Penataan Etalase dan Konten</h4>
+                    <ol style="">
+                        <li>Penjual dilarang memberikan keterangan (informasi toko dan/atau Barang) selain atau diluar
+                            daripada keterangan Barang yang bersangkutan.</li>
+                        <li>Pengguna dilarang untuk mengunggah konten apapun yang mengandung unsur SARA, diskriminasi,
+                            merendahkan atau menyudutkan orang lain, vulgar, dan ancaman.</li>
+                    </ol>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">F. Harga & Tarif Pengiriman</h4>
+                    <ol style="">
+                        <li>Harga Barang yang terdapat dalam Situs adalah harga yang ditetapkan oleh Penjual secara
+                            mandiri.</li>
+                        <li>Pembeli memahami dan menyetujui bahwa setiap masalah perselisihan tentang harga dan ongkos
+                            kirim bukanlah tanggung jawab platform Pasar Karanganyar.</li>
+                        <li>Kesepakatan pengiriman (menggunakan kurir lokal, diambil sendiri, atau ojek online)
+                            ditentukan pada saat komunikasi antara Pembeli dan Penjual via WhatsApp.</li>
+                    </ol>
+
+                    <div style="margin-top: 40px; text-align: center;">
+                        <p style="font-style: italic;">Dengan menggunakan layanan ini, Anda membebaskan tim KKN dan
+                            pengelola website dari segala tuntutan kerugian transaksi.</p>
+                    </div>
+                </div>
+            </div>
+    </main>
+
+    <!-- Halaman Kebijakan Privasi -->
+    <main id="privacyPage" class="hidden">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+            <aside class="policy-sidebar">
+                <ul class="policy-menu">
+                    <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
+                    <li><a href="#" class="active" onclick="switchPage('privacyPage'); return false;">Pemberitahuan
+                            Privasi</a></li>
+                    <li><a href="#" onclick="switchPage('termsPage'); return false;">Syarat & Ketentuan</a></li>
+                    <li><a href="#" onclick="switchPage('faqPage'); return false;">FAQ</a></li>
+                </ul>
+            </aside>
+            <div class="policy-main-content">
+                <h2 style="margin-bottom: 20px;">Pemberitahuan Privasi</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: Juli 2026</p>
+
+                <div class="privacy-accordion-container">
+                    <details class="privacy-accordion">
+                        <summary>PENGANTAR</summary>
+                        <div class="accordion-content">
+                            Kebijakan Privasi ini menjelaskan bagaimana Kami mengumpulkan, menggunakan, dan melindungi
+                            informasi Anda saat Anda menggunakan layanan Pasar Karanganyar. Kami sangat menghargai
+                            privasi Anda dan berkomitmen untuk melindunginya.
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>RINGKASAN</summary>
+                        <div class="accordion-content">
+                            Secara singkat, kami hanya mengumpulkan informasi dasar untuk pembuatan akun dan tidak
+                            membagikan data Anda ke pihak ketiga manapun untuk tujuan pemasaran. Transaksi yang Anda
+                            lakukan aman karena disepakati secara pribadi.
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>DATA PRIBADI YANG KAMI KUMPULKAN</summary>
+                        <div class="accordion-content">
+                            Data yang kami kumpulkan meliputi:
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li>Nama lengkap.</li>
+                                <li>Alamat Email dan/atau Nomor Telepon (WhatsApp).</li>
+                                <li>Informasi perangkat log dasar untuk keperluan teknis.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>PENGGUNAAN DATA PRIBADI</summary>
+                        <div class="accordion-content">
+                            Data yang dikumpulkan hanya akan digunakan untuk:
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li>Tujuan pelayanan dan pendaftaran akun.</li>
+                                <li>Peningkatan kualitas platform dan kemudahan pengguna.</li>
+                                <li>Penghubung langsung antara sistem kami dengan kontak WhatsApp penjual.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>MELINDUNGI DATA PRIBADI ANDA</summary>
+                        <div class="accordion-content">
+                            Kami berkomitmen untuk menjaga keamanan data pribadi Anda dengan menerapkan standar keamanan
+                            industri guna mencegah akses, perubahan, atau pengungkapan yang tidak sah. Kami menggunakan
+                            metode enkripsi pada kata sandi yang Anda simpan.
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>HAK ANDA SEBAGAI PENGGUNA</summary>
+                        <div class="accordion-content">
+                            Anda berhak untuk:
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li>Meminta penghapusan akun beserta seluruh data pribadi.</li>
+                                <li>Mengubah dan memodifikasi profil data pribadi yang tersimpan di sistem kami kapan
+                                    saja.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>CATATAN TAMBAHAN</summary>
+                        <div class="accordion-content">
+                            Karena sifat transaksi dilakukan secara <em>Peer-to-Peer</em> via WhatsApp, mohon
+                            berhati-hati dalam membagikan informasi rahasia perbankan Anda saat berkomunikasi langsung
+                            dengan Penjual.
+                        </div>
+                    </details>
+
+                    <details class="privacy-accordion">
+                        <summary>HUBUNGI KAMI</summary>
+                        <div class="accordion-content">
+                            Jika Anda memiliki pertanyaan mengenai Kebijakan Privasi ini, Anda dapat menghubungi tim
+                            pusat bantuan Pasar Karanganyar melalui halaman Pusat Bantuan yang tersedia di situs ini.
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman FAQ -->
+    <main id="faqPage" class="hidden">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+            <aside class="policy-sidebar">
+                <ul class="policy-menu">
+                    <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
+                    <li><a href="#" onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a></li>
+                    <li><a href="#" onclick="switchPage('termsPage'); return false;">Syarat & Ketentuan</a></li>
+                    <li><a href="#" class="active" onclick="switchPage('faqPage'); return false;">FAQ</a></li>
+                </ul>
+            </aside>
+            <div class="policy-main-content">
+                <h2 style="margin-bottom: 20px;">Pertanyaan Seputar Data Pribadi di Pasar Karanganyar</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: 08/12/2023</p>
+
+                <div class="terms-content" style="line-height: 1.8; color: var(--text-main); font-size: 0.95rem;">
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">1. Dimana saya bisa membaca dan memahami
+                        ketentuan perlindungan data pribadi saya di Pasar Karanganyar?</h4>
+                    <p>Ketentuan perlindungan data pribadi anda di Pasar Karanganyar dapat diakses melalui laman <a
+                            href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;"
+                            onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a>.</p>
+                    <p>Melalui Pemberitahuan Privasi, Pasar Karanganyar telah mencantumkan informasi mengenai
+                        perlindungan data pribadi, termasuk informasi cara Pasar Karanganyar memperoleh data pribadi
+                        anda, tujuan penggunaan data pribadi anda, tujuan pengungkapan data pribadi anda kepada pihak
+                        ketiga, hak anda sebagai pemilik data pribadi dan informasi lainnya yang anda butuhkan untuk
+                        memahami pemrosesan data pribadi anda di Pasar Karanganyar.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">2. Bagaimana Pasar Karanganyar melindungi data
+                        pribadi saya untuk memastikan privasi saya tetap terjaga?</h4>
+                    <p>Pasar Karanganyar berkomitmen penuh dan akan melakukan upaya terbaiknya untuk melindungi data
+                        pribadi anda, seperti:</p>
+                    <ul style="">
+                        <li>Memberikan transparansi terhadap pemrosesan data pribadi anda;</li>
+                        <li>Melakukan pengumpulan data pribadi anda yang hanya sesuai untuk pemenuhan layanan yang kami
+                            sediakan;</li>
+                        <li>Melakukan pemrosesan data pribadi anda hanya untuk tujuan yang telah kami sampaikan melalui
+                            Pemberitahuan Privasi.</li>
+                    </ul>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">3. Apakah data pribadi saya akan diproses oleh
+                        Pihak Ketiga selain Pasar Karanganyar?</h4>
+                    <p>Kami selalu berupaya untuk menyediakan layanan terbaik kami kepada anda dan tidak akan melibatkan
+                        Pihak Ketiga untuk tujuan komersial maupun periklanan. Data Anda hanya diproses di sistem lokal
+                        kami demi kelancaran proses transaksi Anda langsung dengan Penjual UMKM.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">4. Apa saja hak-hak saya terkait perlindungan
+                        data pribadi sebagai pengguna Pasar Karanganyar?</h4>
+                    <p>Sebagai pemilik data pribadi, anda berhak untuk:</p>
+                    <ul style="">
+                        <li>Melakukan pengkinian data pribadi anda yang berada pada Pasar Karanganyar.</li>
+                        <li>Memohonkan penghapusan data pribadi anda.</li>
+                        <li>Mengajukan penghapusan akun anda di Pasar Karanganyar.</li>
+                    </ul>
+                    <p>Anda dapat mengajukan hak-hak anda diatas dengan cara menghubungi kami melalui Tim Pusat Bantuan
+                        kami.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">5. Apa saja perubahan yang terdapat pada
+                        Pemberitahuan Privasi ini dan Kapan perubahan ini mulai berlaku?</h4>
+                    <p>Pada Pemberitahuan Privasi ini, Kami melakukan beberapa perubahan, yaitu perubahan tata letak dan
+                        penambahan sistem Ringkasan yang mempermudah anda untuk memahami Pemberitahuan Privasi ini
+                        dengan lebih mudah.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- Halaman Wishlist -->
+    <main id="wishlistPage" class="hidden" style="background-color: #f3f4f5; min-height: 80vh; padding: 30px 0;">
+        <div class="container">
+            <!-- Header -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+                <div>
+                    <h2 style="font-size:1.6rem; font-weight:800; color:#31353b; margin:0 0 4px 0;"><i
+                            class="fas fa-heart" style="color:#f44336; margin-right:10px;"></i>Wishlist Saya</h2>
+                    <p style="font-size:0.9rem; color:#9fa6b0; margin:0;" id="wishlistCountLabel">0 produk tersimpan</p>
+                </div>
+                <button onclick="switchPage(previousPageId)"
+                    style="background:none; border:none; color:var(--text-muted); font-size:0.95rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+
+            <!-- Empty State -->
+            <div id="wishlistEmpty"
+                style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:white; border-radius:12px; padding:70px 20px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:5rem; margin-bottom:16px; line-height:1; filter:grayscale(0.2);">🤍</div>
+                <h3 style="font-size:1.2rem; font-weight:700; color:#31353b; margin:0 0 8px 0;">Wishlist-mu masih kosong
+                </h3>
+                <p style="color:#9fa6b0; font-size:0.9rem; margin:0 0 24px 0; max-width:360px; line-height:1.5;">Simpan
+                    produk yang kamu suka dengan menekan tombol <i class="far fa-heart" style="color:#f44336;"></i> saat
+                    melihat detail produk.</p>
+                <button class="btn-primary" onclick="switchPage('homePage')"
+                    style="padding:11px 28px; border-radius:8px; font-size:0.95rem;"><i class="fas fa-store"></i> Mulai
+                    Belanja</button>
+            </div>
+
+            <!-- Filled State: Product Grid -->
+            <div id="wishlistFilled" class="hidden">
+                <div id="wishlistGrid"
+                    style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px;">
+                    <!-- Diisi oleh renderWishlist() -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Halaman Toko Favorit & Terakhir Dilihat -->
+    <main id="favoritesPage" class="hidden" style="background-color: #f3f4f5; min-height: 80vh; padding: 40px 0;">
+        <div class="container"
+            style="background: white; border-radius: 8px; box-shadow: 0 1px 6px 0 rgba(0,0,0,0.1); min-height: 500px;">
+            <!-- Tabs -->
+            <div style="display: flex; border-bottom: 1px solid #E5E7E9; margin-bottom: 30px;">
+                <button id="tabTerakhirDilihat" onclick="switchFavTab('terakhir')"
+                    style="padding: 15px 25px; border: none; background: none; font-size: 1.1rem; font-weight: 700; color: #6D7588; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i
+                        class="fas fa-eye"></i> Terakhir Dilihat</button>
+                <button id="tabTokoFavorit" onclick="switchFavTab('toko')"
+                    style="padding: 15px 25px; border: none; background: none; font-size: 1.1rem; font-weight: 700; color: var(--primary); border-bottom: 3px solid var(--primary); cursor: pointer; display: flex; align-items: center; gap: 8px;"><i
+                        class="fas fa-store"></i> Toko Favorit</button>
+            </div>
+
+            <!-- Konten Toko Favorit -->
+            <div id="contentTokoFavorit">
+                <!-- Toko Favorit Kosong -->
+                <div id="tokoFavoritEmpty"
+                    style="display: flex; align-items: center; justify-content: center; padding: 50px 0; gap: 40px;">
+                    <div
+                        style="position: relative; width: 250px; height: 180px; display: flex; justify-content: center; align-items: center;">
+                        <div
+                            style="background: #eafaf1; border-radius: 50%; width: 160px; height: 160px; position: absolute; z-index: 1;">
+                        </div>
+                        <i class="fas fa-store"
+                            style="font-size: 6rem; color: #00AA5B; z-index: 2; text-shadow: 0 10px 20px rgba(0,170,91,0.2);"></i>
+                        <i class="fas fa-heart"
+                            style="font-size: 2.5rem; color: #f44336; position: absolute; top: 10px; right: 20px; z-index: 3; transform: rotate(15deg);"></i>
+                        <div
+                            style="background: white; border-radius: 8px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: absolute; bottom: 10px; left: -10px; z-index: 3;">
+                            <div
+                                style="width: 40px; height: 6px; background: #e5e7e9; border-radius: 3px; margin-bottom: 4px;">
+                            </div>
+                            <div style="width: 25px; height: 6px; background: #e5e7e9; border-radius: 3px;"></div>
+                        </div>
+                    </div>
+                    <div style="max-width: 400px;">
+                        <h3 style="font-size: 1.4rem; color: #31353B; margin-bottom: 15px; font-weight: 800;">Anda dapat
+                            melihat toko favorit Anda di sini</h3>
+                        <button class="btn-primary" onclick="switchPage('homePage')"
+                            style="padding: 12px 25px; font-weight: 700; width: auto; font-size: 1rem;">Mulai Mencari
+                            toko</button>
+                    </div>
+                </div>
+
+                <!-- Toko Favorit Isi -->
+                <div id="tokoFavoritFilled" class="hidden" style="padding: 20px 0;">
+                    <!-- Diisi via JS (Grid Toko Favorit) -->
+                    <div id="tokoFavoritGrid" style="display: flex; flex-direction: column; gap: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Konten Terakhir Dilihat -->
+            <div id="contentTerakhirDilihat" class="hidden">
+                <!-- Terakhir Dilihat Kosong -->
+                <div id="terakhirDilihatEmpty"
+                    style="display: flex; align-items: center; justify-content: center; padding: 50px 0; gap: 40px;">
+                    <div
+                        style="position: relative; width: 250px; height: 180px; display: flex; justify-content: center; align-items: center;">
+                        <div
+                            style="background: #e3f2fd; border-radius: 50%; width: 160px; height: 160px; position: absolute; z-index: 1;">
+                        </div>
+                        <i class="fas fa-history"
+                            style="font-size: 6rem; color: #2196f3; z-index: 2; text-shadow: 0 10px 20px rgba(33,150,243,0.2);"></i>
+                        <i class="fas fa-search"
+                            style="font-size: 2.5rem; color: #ff9800; position: absolute; top: 20px; left: 20px; z-index: 3; transform: rotate(-15deg);"></i>
+                    </div>
+                    <div style="max-width: 400px;">
+                        <h3 style="font-size: 1.4rem; color: #31353B; margin-bottom: 15px; font-weight: 800;">Anda dapat
+                            melihat produk yang terakhir dilihat di sini.</h3>
+                        <button class="btn-primary" onclick="switchPage('homePage')"
+                            style="padding: 12px 25px; font-weight: 700; width: auto; font-size: 1rem;">Mulai Mencari
+                            Produk</button>
+                    </div>
+                </div>
+
+                <div id="terakhirDilihatFilled" class="hidden">
+                    <div class="umkm-grid" id="terakhirGrid">
+                        <!-- Diisi via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer ala e-commerce -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4><svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100"
+                            xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;">
+                            <rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32" />
+                            <rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32" />
+                            <rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32" />
+                            <path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50" />
+                            <path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50" />
+                        </svg> Pasar Karanganyar</h4>
+                    <a href="#" class="linkTentang">Tentang Kami</a>
+                    <a href="#" class="linkTentang">Potensi Padukuhan</a>
+                    <a href="#" class="linkTentang">Sejarah Desa</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Beli</h4>
+                    <a href="#" class="linkHelpCenter">Cara Belanja</a>
+                    <a href="#" class="linkHelpCenter">Pembayaran</a>
+                    <a href="#" class="linkHelpCenter">Pengiriman Lokal</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Bantuan dan Panduan</h4>
+                    <a href="#" class="linkTerms">Syarat dan Ketentuan</a>
+                    <a href="#" class="linkPrivacy">Kebijakan Privasi</a>
+                    <a href="#" class="linkHelpCenter">Pusat Bantuan</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Keamanan & Pengiriman</h4>
+                    <div class="security-icons">
+                        <i class="fas fa-shield-alt"></i>
+                        <i class="fas fa-truck"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Proker KKN Padukuhan Karanganyar. Dibuat dengan <i class="fas fa-heart text-danger"></i>
+                    untuk UMKM.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Side Menu (Hamburger Drawer) -->
+    <div class="mobile-side-menu" id="mobileSideMenu">
+        <div class="side-menu-header">
+            <h3>Menu Navigasi</h3>
+            <button class="close-side-menu" id="closeSideMenu"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="side-menu-links">
+            <a href="#" onclick="switchPage('tentangPage'); return false;" class="linkTentang"><i class="fas fa-map-marked-alt"></i> Tentang Karanganyar</a>
+            <a href="#" onclick="switchPage('homePage'); if(typeof window.scrollToPromoSection==='function') window.scrollToPromoSection(); return false;" class="linkPromoDesa"><i class="fas fa-store"></i> Promo Desa</a>
+            <a href="#" onclick="switchPage('helpPage'); return false;" class="linkHelpCenter"><i class="fas fa-question-circle"></i> Pusat Bantuan</a>
+        </div>
+    </div>
+    <div class="side-menu-overlay" id="sideMenuOverlay"></div>
+
+    <!-- DOB Modal -->
+    <div class="tkp-modal-overlay" id="dobModal">
+        <div class="tkp-modal">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Tambah Tanggal Lahir</h3>
+                <button class="tkp-modal-close" id="closeDobModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-desc">
+                Kamu hanya dapat mengatur tanggal lahir satu kali. Pastikan tanggal lahir sudah benar.
+            </div>
+            <div class="tkp-modal-body">
+                <div class="tkp-dob-container">
+                    <select class="tkp-select" id="dobDay">
+                        <option value="" disabled selected>Tanggal</option>
+                    </select>
+                    <select class="tkp-select" id="dobMonth">
+                        <option value="" disabled selected>Bulan</option>
+                    </select>
+                    <select class="tkp-select" id="dobYear">
+                        <option value="" disabled selected>Tahun</option>
+                    </select>
+                </div>
+            </div>
+            <button class="tkp-btn-save" id="saveDobBtn">Simpan</button>
+        </div>
+    </div>
+
+    <!-- Gender Modal -->
+    <div class="tkp-modal-overlay" id="genderModal">
+        <div class="tkp-modal">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Tambah Jenis Kelamin</h3>
+                <button class="tkp-modal-close" id="closeGenderModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-desc">
+                Kamu hanya dapat mengubah data jenis kelamin 1 kali lagi. Pastikan data sudah benar
+            </div>
+            <div class="tkp-modal-body">
+                <div class="tkp-gender-container">
+                    <label class="tkp-gender-option">
+                        <input type="radio" name="genderRadio" value="Pria" class="tkp-gender-radio">
+                        <div class="tkp-gender-label">
+                            <img src="https://api.dicebear.com/9.x/micah/svg?seed=Felix&mouth=smile,laughing&backgroundColor=b6e3f4"
+                                class="tkp-gender-icon" alt="Pria">
+                            Pria
+                        </div>
+                    </label>
+                    <label class="tkp-gender-option">
+                        <input type="radio" name="genderRadio" value="Wanita" class="tkp-gender-radio">
+                        <div class="tkp-gender-label">
+                            <img src="https://api.dicebear.com/9.x/micah/svg?seed=Aneka&mouth=smile,laughing&backgroundColor=ffdfdf"
+                                class="tkp-gender-icon" alt="Wanita">
+                            Wanita
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <button class="tkp-btn-save" id="saveGenderBtn">Simpan</button>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div class="tkp-modal-overlay" id="photoModal">
+        <div class="tkp-modal" style="width: 450px;">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Pilih Foto Profil</h3>
+                <button class="tkp-modal-close" id="closePhotoModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-body">
+                <p style="font-size: 0.95rem; color: #31353B; margin-bottom: 15px; font-weight: 600;">Pilih Avatar
+                    Bawaan</p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; justify-content: center;"
+                    id="defaultAvatarsContainer">
+                    <!-- JS populated -->
+                </div>
+
+                <p style="font-size: 0.95rem; color: #31353B; margin-bottom: 15px; font-weight: 600;">Atau Unggah Foto
+                    Sendiri</p>
+                <div style="border: 2px dashed #C1C7D0; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='#03AC0E'" onmouseout="this.style.borderColor='#C1C7D0'"
+                    onclick="document.getElementById('uploadPhotoInput').click()">
+                    <i class="fas fa-cloud-upload-alt"
+                        style="font-size: 2rem; color: #03AC0E; margin-bottom: 10px;"></i>
+                    <p style="margin: 0; color: #6D7588; font-size: 0.9rem;">Klik untuk memilih foto dari perangkat Anda
+                    </p>
+                    <input type="file" id="uploadPhotoInput" accept="image/*" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Name Modal -->
+    <div class="tkp-modal-overlay" id="nameModal">
+        <div class="tkp-modal">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Ubah Nama</h3>
+                <button class="tkp-modal-close" id="closeNameModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-body">
+
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="font-size: 0.85rem; color: #6D7588; font-weight: 600; display: block; margin-bottom: 8px;">Nama</label>
+                    <input type="text" id="nameInputModal"
+                        style="width: 100%; padding: 12px 16px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                    <p style="font-size: 0.8rem; color: #9FA6B0; margin-top: 8px;">Nama dapat dilihat oleh pengguna
+                        lainnya</p>
+                </div>
+                <button class="tkp-btn-save tkp-btn-disabled" id="saveNameBtn">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Ubah Kata Sandi Modal -->
+    <div class="tkp-modal-overlay" id="passwordModal">
+        <div class="tkp-modal" style="width: 400px;">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Ubah Kata Sandi</h3>
+                <button class="tkp-modal-close" id="closePasswordModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-body">
+                <p style="font-size: 0.95rem; color: #6D7588; margin-bottom: 20px;">Masukkan kata sandi baru untuk akun
+                    Anda.</p>
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="font-size: 0.85rem; color: #6D7588; font-weight: 600; display: block; margin-bottom: 8px;">Kata
+                        Sandi Baru</label>
+                    <input type="password" id="newPasswordInput" placeholder="Minimal 6 karakter"
+                        style="width: 100%; padding: 12px 16px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                </div>
+                <button id="btnSaveNewPassword"
+                    style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Simpan
+                    Kata Sandi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phone Modal -->
+    <div class="tkp-modal-overlay" id="phoneModal">
+        <div class="tkp-modal">
+            <div class="tkp-modal-header">
+                <h3 class="tkp-modal-title">Tambah Nomor HP</h3>
+                <button class="tkp-modal-close" id="closePhoneModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-body">
+                <p style="font-size: 0.95rem; color: #6D7588; margin-bottom: 20px;">Pastikan nomor HP Anda aktif untuk
+                    keamanan dan kemudahan transaksi</p>
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="font-size: 0.85rem; color: #6D7588; font-weight: 600; display: block; margin-bottom: 8px;">Nomor
+                        HP</label>
+                    <input type="tel" id="phoneInputModal"
+                        style="width: 100%; padding: 12px 16px; border: 1px solid #E5E7E9; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                    <p style="font-size: 0.8rem; color: #9FA6B0; margin-top: 8px;">Kami akan mengirimkan kode verifikasi
+                        melalui SMS</p>
+                </div>
+                <div id="recaptcha-container"></div>
+                <button class="tkp-btn-save tkp-btn-disabled" id="savePhoneBtn">Selanjutnya</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- OTP Verification Modal -->
+    <div class="tkp-modal-overlay" id="otpModal">
+        <div class="tkp-modal" style="width: 450px; text-align: center; padding-bottom: 40px;">
+            <div class="tkp-modal-header" style="border-bottom: none;">
+                <h3 class="tkp-modal-title"></h3>
+                <button class="tkp-modal-close" id="closeOtpModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tkp-modal-body" style="padding: 0 40px;">
+                <i class="fas fa-comment-sms" style="font-size: 3rem; color: #00AA5B; margin-bottom: 20px;"></i>
+                <h2 style="font-size: 1.2rem; color: #31353B; margin-bottom: 12px; font-weight: 800;">Masukkan Kode
+                    Verifikasi</h2>
+                <p style="font-size: 0.95rem; color: #6D7588; margin-bottom: 30px;">Kode verifikasi telah dikirim
+                    melalui SMS ke <span id="otpTargetPhone" style="font-weight: 700; color: #31353B;"></span>.</p>
+
+                <div style="margin-bottom: 30px;">
+                    <input type="text" id="otpInput" maxlength="6" placeholder="••••••"
+                        style="width: 200px; text-align: center; letter-spacing: 12px; font-size: 1.5rem; padding: 10px; border: none; border-bottom: 2px solid #00AA5B; outline: none; background: transparent; font-weight: 700; color: #31353B;">
+
+                </div>
+
+                <p style="font-size: 0.9rem; color: #6D7588;">Mohon tunggu dalam <span id="otpCountdown"
+                        style="font-weight: 700; color: #31353B;">30 detik</span> untuk kirim ulang</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"
+        style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+    </div>
+
+
+
+    <!-- Modal Wishlist PDP (Tokopedia Style) -->
+    <div class="tkp-modal-overlay" id="pdpWishlistModal">
+        <div class="tkp-modal" style="width: 450px; padding: 24px;">
+            <div class="tkp-modal-header" style="align-items: center; border-bottom: none; padding-bottom: 0;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #31353B;">Tersimpan di Wishlist!</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <a href="#" onclick="closePdpWishlistModal(); switchPage('wishlistPage'); return false;"
+                        style="color: var(--primary); font-weight: 700; font-size: 0.9rem; text-decoration: none;">Cek
+                        Wishlist</a>
+                    <button onclick="closePdpWishlistModal()"
+                        style="background: none; border: none; font-size: 1.2rem; color: #6D7588; cursor: pointer;"><i
+                            class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="tkp-modal-body" style="padding: 20px 0 0 0;">
+                <p style="font-size: 0.95rem; color: #6D7588; line-height: 1.5; margin: 0 0 20px 0;">Wishlist punya
+                    fitur "Koleksi", untuk mengelompokkan barang dengan rapi. Coba buat Koleksi?
+                    <strong>(opsional)</strong>
+                </p>
+                <div onclick="closePdpWishlistModal(); openModalBuatKoleksi();"
+                    style="border: 1px dashed #E5E7E9; border-radius: 8px; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; color: var(--primary); font-weight: 700; font-size: 0.95rem; transition: background 0.2s;"
+                    onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'">
+                    <div
+                        style="width: 32px; height: 32px; border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E7E9;">
+                        <i class="fas fa-plus" style="color: #BFC9D9;"></i>
+                    </div>
+                    + Koleksi Baru
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pageTransitionOverlay"></div>
+
+    <!-- SCRIPT LOADING ORDER (PENTING: URUTAN INI HARUS TEPAT) -->
+    <!-- 1. Core UI, Navigation, Global Vars, UMKM Data Fetch -->
+    <script src="script.js"></script>
+    <!-- 2. UMKM Grid Renderer & Store Detail -->
+    <script src="promo.js"></script>
+    <!-- 3. Firebase Auth Observer & Auth UI (menggunakan vars dari script.js) -->
+    <script src="auth.js"></script>
+    <!-- 4. Auth Engine (Login/Register Modal UI, Google OAuth) -->
+    <script src="auth_engine.js"></script>
+    <!-- 5. Admin CMS (hanya untuk fitur admin) -->
+    <script src="admin_cms.js"></script>
+</body>
+
+</html>

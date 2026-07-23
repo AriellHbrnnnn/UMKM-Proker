@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body>
+    <h1>Testing script.js</h1>
+    <div id="error-log" style="color:red; white-space:pre-wrap;"></div>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('error-log').innerText += message + ' at ' + lineno + ':' + colno + '\n' + (error ? error.stack : '') + '\n\n';
+        };
+    </script>
+    
+    <!-- MOCK HTML ELEMENTS REQUIRED BY SCRIPT -->
+    <div id="homePage" class="content"></div>
+    <div id="wishlistPage" class="content"></div>
+    
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('error-log').innerText += 'DOMContentLoaded fired!\n';
+        });
+    </script>
+</body>
+</html>
