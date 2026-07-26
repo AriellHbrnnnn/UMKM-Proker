@@ -46,13 +46,14 @@
                 <h2>Admin Desa</h2>
             </div>
             <ul class="sidebar-menu">
-                <li class="active" id="navDashboard"><a href="#" onclick="switchAdminTab('dashboard'); return false;"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                <li id="navUmkm"><a href="#" onclick="switchAdminTab('umkm'); return false;"><i class="fas fa-store"></i> Kelola UMKM</a></li>
-                <li id="navTentang"><a href="#" onclick="switchAdminTab('tentang'); return false;"><i class="fas fa-info-circle"></i> Kelola Profil Desa</a></li>
-                <li id="navPengguna"><a href="#" onclick="switchAdminTab('pengguna'); return false;"><i class="fas fa-users-cog"></i> Kelola Pengguna</a></li>
-                <li id="navPengaturan"><a href="#" onclick="switchAdminTab('pengaturan'); return false;"><i class="fas fa-cog"></i> Pengaturan</a></li>
+                <li class="active" id="navDashboard"><a href="#" onclick="switchAdminTab('dashboard'); return false;"><i class="fas fa-chart-line"></i> <span>Dashboard</span></a></li>
+                <li id="navUmkm"><a href="#" onclick="switchAdminTab('umkm'); return false;"><i class="fas fa-store"></i> <span>UMKM</span></a></li>
+                <li id="navBerita"><a href="#" onclick="switchAdminTab('berita'); return false;"><i class="fas fa-newspaper"></i> <span>Berita</span></a></li>
+                <li id="navTentang"><a href="#" onclick="switchAdminTab('tentang'); return false;"><i class="fas fa-info-circle"></i> <span>Profil Desa</span></a></li>
+                <li id="navPengguna"><a href="#" onclick="switchAdminTab('pengguna'); return false;"><i class="fas fa-users-cog"></i> <span>Pengguna</span></a></li>
+                <li id="navPengaturan"><a href="#" onclick="switchAdminTab('pengaturan'); return false;"><i class="fas fa-cog"></i> <span>Pengaturan</span></a></li>
             </ul>
-            <div style="padding: 20px; margin-top: auto;">
+            <div class="sidebar-logout-container" style="padding: 20px; margin-top: auto;">
                 <button id="sidebarLogoutBtn" class="btn-primary" style="width:100%; background:#dc3545; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
                     <i class="fas fa-sign-out-alt"></i> Keluar Admin
                 </button>
@@ -62,7 +63,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-header">
-                <h1>Data UMKM Karanganyar</h1>
+                <h1 id="adminHeaderTitle">Dasbor Karanganyar</h1>
                 <div class="user-profile" style="display:flex; align-items:center; gap:15px;">
                     <div>
                         <span id="adminDisplayName" style="font-weight:700;">Admin Desa</span>
@@ -76,12 +77,45 @@
             <div class="content-wrapper">
                 <!-- --- DASHBOARD TAB --- -->
                 <div id="dashboardTab" class="admin-tab-pane">
+                    <div style="margin-bottom: 25px; padding: 25px; background: linear-gradient(135deg, var(--primary) 0%, #1b5e20 100%); color: white; border-radius: 16px; box-shadow: 0 10px 20px rgba(46,125,50,0.15);">
+                        <h2 style="margin: 0; font-size: 1.6rem; font-family: 'Poppins', sans-serif;">Selamat Datang di Dasbor Admin! 👋</h2>
+                        <p style="margin: 5px 0 0 0; font-size: 0.95rem; opacity: 0.9;">Pantau aktivitas dan statistik terkini dari UMKM, Pengguna, dan Berita Desa Karanganyar.</p>
+                    </div>
+
                     <div class="dashboard-stats-grid" id="dashboardStatsContainer">
-                        <p style="text-align:center; grid-column: 1/-1;">Memuat statistik...</p>
+                        <!-- Stat Card 1 -->
+                        <div class="stat-card" style="display: flex; align-items: center; gap: 15px;">
+                            <div class="stat-icon" style="background: #e0f2fe; color: #0284c7; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;"><i class="fas fa-store"></i></div>
+                            <div>
+                                <p style="margin:0; font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total UMKM</p>
+                                <h3 id="dashTotalUmkm" style="margin:0; font-size: 1.8rem; font-weight: 800; color: #1e293b;">...</h3>
+                            </div>
+                        </div>
+                        <!-- Stat Card 2 -->
+                        <div class="stat-card" style="display: flex; align-items: center; gap: 15px;">
+                            <div class="stat-icon" style="background: #fef3c7; color: #d97706; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;"><i class="fas fa-newspaper"></i></div>
+                            <div>
+                                <p style="margin:0; font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Berita Publikasi</p>
+                                <h3 id="dashTotalBerita" style="margin:0; font-size: 1.8rem; font-weight: 800; color: #1e293b;">...</h3>
+                            </div>
+                        </div>
+                        <!-- Stat Card 3 -->
+                        <div class="stat-card" style="display: flex; align-items: center; gap: 15px;">
+                            <div class="stat-icon" style="background: #dcfce7; color: #16a34a; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;"><i class="fas fa-users"></i></div>
+                            <div>
+                                <p style="margin:0; font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Pengguna App</p>
+                                <h3 id="dashTotalUsers" style="margin:0; font-size: 1.8rem; font-weight: 800; color: #1e293b;">...</h3>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="dashboard-category-chart" id="dashboardCategoryContainer">
-                        <!-- Chart Kategori -->
+                    <div class="dashboard-category-chart" id="dashboardCategoryContainer" style="margin-top: 25px;">
+                        <h3 style="margin-bottom: 20px; color: #334155; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-chart-pie" style="color: var(--primary);"></i> Sebaran Kategori UMKM
+                        </h3>
+                        <div id="dashboardCategoryList">
+                            <p style="text-align:center; padding: 20px;">Memuat statistik kategori...</p>
+                        </div>
                     </div>
                 </div>
 
@@ -122,6 +156,31 @@
                     <!-- Tombol pagination akan di-render di sini oleh JS -->
                 </div>
                 </div> <!-- End umkmTab -->
+
+                <!-- --- KELOLA BERITA TAB --- -->
+                <div id="beritaTab" class="admin-tab-pane hidden">
+                    <div class="action-bar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;">Kelola Berita & Publikasi Desa</h3>
+                        <button class="btn-primary" id="addBeritaBtn" style="padding: 10px 18px; border-radius: 8px; font-weight: 700;"><i class="fas fa-plus"></i> Tambah Berita Baru</button>
+                    </div>
+
+                    <div class="table-container" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                        <table class="data-table" style="width: 100%; min-width: 580px; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8fafc; text-align: left; border-bottom: 1px solid #e2e8f0;">
+                                    <th style="padding: 14px 16px;">No</th>
+                                    <th style="padding: 14px 16px;">Judul Berita</th>
+                                    <th style="padding: 14px 16px;">Tanggal Dibuat</th>
+                                    <th style="padding: 14px 16px; text-align: center;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="beritaTableBody">
+                                <tr><td colspan="4" class="text-center" style="padding: 20px;">Memuat berita...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- --- TENTANG KARANGANYAR TAB --- -->
                 <div id="tentangTab" class="admin-tab-pane hidden" style="height: calc(100vh - 100px); padding: 0;">
                     <iframe src="../index.html?mode=admin" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
@@ -377,10 +436,9 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </main>
-    </div>
-
+            </div> <!-- Closes modal-body -->
+        </div> <!-- Closes modal-content -->
+    </div> <!-- Closes productModal -->
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden">Data berhasil disimpan!</div>
 
@@ -395,12 +453,6 @@
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button id="cancelDeleteBtn" class="btn-secondary" style="flex: 1;">Batal</button>
                 <button id="confirmDeleteBtn" class="btn-primary" style="background: #dc3545; flex: 1;">Ya, Hapus</button>
-            </div>
-        </div>
-    </div>
-
-    
-    
             </div>
         </div>
     </div>
@@ -472,21 +524,58 @@
                         <div style="font-weight: 800; color: #16a34a; font-size: 0.9rem; margin-top: 3px;">Aktif (Member)</div>
                     </div>
                 </div>
+                </div> <!-- Closes Grid Info -->
+            </div> <!-- Closes Body Content -->
+        </div> <!-- Closes modal-content -->
+    </div> <!-- Closes userDetailModal -->
 
-                <!-- Footer Close Button -->
-                <div style="margin-top: 20px; text-align: right;">
-                    <button id="closeUserDetailBtn2" onclick="window.closeUserDetailModal()" class="btn-primary" style="padding: 10px 28px; border-radius: 12px; font-weight: 700; background: #0f172a; border-color: #0f172a; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Tutup</button>
-                </div>
+    <!-- Modal Kelola Berita -->
+    <div class="modal-overlay hidden" id="beritaModal" style="z-index: 99999;">
+        <div class="modal-container" style="max-width: 650px; padding: 24px; border-radius: 20px; background: white; margin: 20px auto; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 id="beritaModalTitle" style="margin: 0; font-weight: 800; color: #0f172a;">Tambah Berita</h3>
+                <button class="close-btn" id="closeBeritaModalBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="beritaForm">
+                    <input type="hidden" id="beritaId">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Foto Utama</label>
+                        <input type="file" id="beritaFotoUtamaFile" accept="image/*" class="file-input" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                        <input type="hidden" id="beritaFotoUtama">
+                        <img id="beritaFotoUtamaPreview" alt="Preview foto utama" style="display:none; max-width:200px; margin-top:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Judul Berita</label>
+                        <input type="text" id="beritaJudul" required placeholder="Masukkan judul berita" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Tanggal Pembuatan</label>
+                        <input type="text" id="beritaTanggal" readonly style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Deskripsi Pembuka</label>
+                        <textarea id="beritaDeskripsiAwal" rows="4" required placeholder="Tulis deskripsi pembuka..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Foto Isi Berita (Opsional)</label>
+                        <input type="file" id="beritaFotoIsiFile" accept="image/*" class="file-input" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                        <input type="hidden" id="beritaFotoIsi">
+                        <img id="beritaFotoIsiPreview" alt="Preview foto isi" style="display:none; max-width:200px; margin-top:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; display: block; margin-bottom: 6px;">Deskripsi Lanjutan</label>
+                        <textarea id="beritaDeskripsiLanjutan" rows="4" required placeholder="Tulis deskripsi lanjutan..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;"></textarea>
+                    </div>
+                    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn-secondary" id="cancelBeritaBtn" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; cursor: pointer;">Batal</button>
+                        <button type="submit" class="btn-primary" id="beritaSubmitBtn" style="padding: 10px 24px; border-radius: 8px; background: #00AA5B; color: white; border: none; font-weight: 700; cursor: pointer;">Simpan Berita</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <script src="admin.js"></script>
-
-    
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>

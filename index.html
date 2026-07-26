@@ -35,6 +35,7 @@
             <div class="container topbar-content">
                 <div class="topbar-links">
                     <a href="#" class="linkTentang">Tentang Karanganyar</a>
+                    <a href="#" onclick="switchPage('beritaPage'); return false;">Berita Desa</a>
                     <a href="#" class="linkPromoDesa">Promo Desa</a>
                     <a href="#" class="linkHelpCenter">Pusat Bantuan</a>
                 </div>
@@ -117,7 +118,7 @@
                 </div>
 
                 <!-- Tombol Auth (Jika belum login) -->
-                <div class="auth-buttons" id="authButtonsContainer" style="display: flex;">
+                <div class="auth-buttons" id="authButtonsContainer" style="display: flex; visibility: visible;">
                     <button class="btn-masuk">Masuk</button>
                     <button class="btn-daftar">Daftar</button>
                 </div>
@@ -179,6 +180,43 @@
                 </div>
             </div>
     </header>
+
+    <!-- Halaman Berita Desa -->
+    <main id="beritaPage" class="hidden" style="padding-top: 0; padding-bottom: 0;">
+        <section id="beritaHero" class="berita-hero-banner" style="margin-bottom: 30px; width: 100%;">
+            <div class="berita-slider-container"
+                style="position: relative; height: 420px; width: 100%; border-radius: 0; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background: #0f172a;">
+                <div class="berita-slide-single"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding-top: 100px; display: flex; align-items: center; padding-left: 40px; padding-right: 40px; box-sizing: border-box; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('images/hero_desa_karanganyar.png') center/cover no-repeat !important;">
+                    <div class="banner-content" style="position: relative; z-index: 2; color: white;">
+                        <h2
+                            style="color: white; font-size: 2.5rem; font-weight: 800; text-shadow: 2px 2px 6px rgba(0,0,0,0.7); margin-bottom: 10px;">
+                            Berita Terbaru Karanganyar</h2>
+                        <p
+                            style="font-size: 1.1rem; color: #f8fafc; text-shadow: 1px 1px 4px rgba(0,0,0,0.7); margin-bottom: 20px; max-width: 550px;">
+                            Ikuti kabar, kegiatan, dan potensi terbaru dari warga Padukuhan Karanganyar.</p>
+                        <button class="btn-primary"
+                            onclick="document.getElementById('beritaListSection').scrollIntoView({behavior: 'smooth'});"
+                            style="padding: 12px 28px; border-radius: 24px; font-weight: 700;">Baca Berita</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="container">
+            <div id="beritaListSection">
+                <header class="berita-page-header">
+                    <h1>Semua Berita</h1>
+                    <p>Kumpulan berita dan kegiatan Padukuhan Karanganyar dari admin desa.</p>
+                </header>
+                <p id="beritaSearchEmpty" class="hidden" aria-live="polite">Berita dengan judul tersebut tidak
+                    ditemukan.</p>
+                <p id="beritaEmpty" class="berita-empty hidden" aria-live="polite">Belum ada berita yang dipublikasikan.
+                </p>
+                <section id="beritaList" class="berita-list" aria-live="polite"></section>
+            </div>
+            <section id="beritaDetail" class="berita-detail hidden" aria-live="polite"></section>
+        </div>
+    </main>
 
     <!-- Halaman Utama UMKM -->
     <main id="homePage">
@@ -303,15 +341,21 @@
     <!-- Halaman Detail Toko -->
     <main id="storePage" class="hidden">
         <div class="container">
-            <!-- Breadcrumb -->
-            <div class="breadcrumb">
-                <a href="#" class="breadcrumbHome">Home</a> > <span>Detail UMKM</span> > <span id="bcStoreName">Nama
-                    Toko</span>
+            <!-- Desktop Kembali Bar (hanya tampil di desktop/tablet) -->
+            <div class="store-desktop-back-bar">
+                <button id="desktopBackStoreBtn" class="btn-back-store-desktop"
+                    onclick="switchPage('homePage'); if(typeof window.scrollToPromoSection === 'function') window.scrollToPromoSection();">
+                    <i class="fas fa-arrow-left"></i> Kembali ke Promo Desa
+                </button>
+                <div class="breadcrumb" style="margin-bottom:0; flex:1;">
+                    <a href="#" class="breadcrumbHome">Home</a> &gt; <span>Detail UMKM</span> &gt; <span
+                        id="bcStoreName">Nama Toko</span>
+                </div>
             </div>
 
-            <!-- Sticky Mobile Store Header -->
+            <!-- Sticky Mobile Store Header (hanya tampil di mobile) -->
             <div class="store-mobile-header">
-                <button id="mobileBackStoreBtn" class="mobile-back-store-btn-icon">
+                <button id="mobileBackStoreBtn" class="mobile-back-store-btn-icon" type="button">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <div class="store-search-container">
@@ -362,7 +406,8 @@
         <div class="container">
             <!-- Mobile Sticky Top Header -->
             <div class="pdp-mobile-header">
-                <button id="mobileBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="mobile-back-store-btn-icon" title="Kembali ke Toko">
+                <button id="mobileBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="mobile-back-store-btn-icon"
+                    title="Kembali ke Toko">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <span class="pdp-mobile-title" id="pdpMobileTitle">Detail Produk</span>
@@ -372,8 +417,10 @@
             </div>
 
             <!-- Desktop Nav Bar with Back Button & Breadcrumbs -->
-            <div class="pdp-top-nav-bar" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                <button id="desktopBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="btn-back-pdp" style="display:inline-flex; align-items:center; gap:8px; background:white; border:1px solid #cbd5e1; padding:8px 18px; border-radius:24px; font-weight:700; font-size:0.9rem; color:#1e293b; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.04); transition:all 0.2s;">
+            <div class="pdp-top-nav-bar"
+                style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                <button id="desktopBackPdpBtn" onclick="goBackToStoreFromPDP(event)" class="btn-back-pdp"
+                    style="display:inline-flex; align-items:center; gap:8px; background:white; border:1px solid #cbd5e1; padding:8px 18px; border-radius:24px; font-weight:700; font-size:0.9rem; color:#1e293b; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.04); transition:all 0.2s;">
                     <i class="fas fa-arrow-left" style="color:var(--primary);"></i> Kembali ke Toko UMKM
                 </button>
                 <div class="breadcrumb" style="margin-bottom:0; font-size:0.88rem;">
@@ -397,20 +444,25 @@
                 <div class="pdp-info">
                     <h1 id="pdpProductName" class="pdp-title">Nama Produk</h1>
 
-                    
 
-                    <div class="pdp-price-section" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px;">
-                        <div id="pdpPrice" class="pdp-price" style="font-size:1.8rem; font-weight:800; color:var(--primary);">Rp 0</div>
-                        <div style="font-size:0.75rem; color:#e53935; margin-top:4px; font-style:italic;">*Harga dapat berubah sewaktu-waktu</div>
+
+                    <div class="pdp-price-section"
+                        style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px;">
+                        <div id="pdpPrice" class="pdp-price"
+                            style="font-size:1.8rem; font-weight:800; color:var(--primary);">Rp 0</div>
+                        <div style="font-size:0.75rem; color:#e53935; margin-top:4px; font-style:italic;">*Harga dapat
+                            berubah sewaktu-waktu</div>
                     </div>
 
                     <!-- BOKS AKSI (Atur Jumlah Dan Catatan + Beli) -->
                     <div class="pdp-action-box" id="pdpActionBox">
-                        <h3 style="font-size:1rem; margin-bottom:15px; display:flex; align-items:center; gap:6px;"><i class="fas fa-sliders-h" style="color:var(--primary);"></i> Atur jumlah dan catatan</h3>
+                        <h3 style="font-size:1rem; margin-bottom:15px; display:flex; align-items:center; gap:6px;"><i
+                                class="fas fa-sliders-h" style="color:var(--primary);"></i> Atur jumlah</h3>
 
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                            <img id="pdpActionThumb" src="images/default.jpg" style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #e2e8f0;">
-                            <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);">Default</span>
+                            <img id="pdpActionThumb" src="images/default.jpg"
+                                style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #e2e8f0;">
+                            <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);"></span>
                         </div>
 
                         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
@@ -421,20 +473,30 @@
                             </div>
                         </div>
 
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                             <span style="color:var(--text-muted); font-size:0.9rem;">Subtotal</span>
-                            <span id="pdpSubtotal" style="font-weight:800; font-size:1.3rem; color:var(--primary);">Rp 0</span>
+                            <span id="pdpSubtotal" style="font-weight:800; font-size:1.3rem; color:var(--primary);">Rp
+                                0</span>
                         </div>
 
-                        <button class="btn-primary" id="pdpAddToCartBtn" style="width:100%; margin-bottom:10px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;"><i class="fas fa-cart-plus"></i> + Keranjang</button>
-                        <button class="btn-outline-primary" id="pdpBuyBtn" style="width:100%; margin-bottom:20px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;">Beli Langsung</button>
+                        <button class="btn-primary" id="pdpAddToCartBtn"
+                            style="width:100%; margin-bottom:10px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;"><i
+                                class="fas fa-cart-plus"></i> + Keranjang</button>
+                        <button class="btn-outline-primary" id="pdpBuyBtn"
+                            style="width:100%; margin-bottom:20px; padding:12px; font-size:1rem; border-radius:10px; font-weight:700;">Beli
+                            Langsung</button>
 
-                        <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:15px;">
-                            <button class="pdp-icon-action" id="pdpChatBtn"><i class="far fa-comment-dots"></i> Chat</button>
+                        <div
+                            style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:15px;">
+                            <button class="pdp-icon-action" id="pdpChatBtn"><i class="far fa-comment-dots"></i>
+                                Chat</button>
                             <span class="pdp-separator">|</span>
-                            <button class="pdp-icon-action" id="pdpWishlistBtn"><i class="far fa-heart"></i> Wishlist</button>
+                            <button class="pdp-icon-action" id="pdpWishlistBtn"><i class="far fa-heart"></i>
+                                Wishlist</button>
                             <span class="pdp-separator">|</span>
-                            <button class="pdp-icon-action" id="pdpShareBtn"><i class="fas fa-share-alt"></i> Share</button>
+                            <button class="pdp-icon-action" id="pdpShareBtn"><i class="fas fa-share-alt"></i>
+                                Share</button>
                         </div>
                     </div>
 
@@ -443,13 +505,18 @@
                         <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px;">
                             <img id="pdpStoreImage" src="images/default.jpg" class="pdp-store-img">
                             <div>
-                                <h3 id="pdpStoreName" style="font-size:1.1rem; display:flex; align-items:center; gap:5px;"><i class="fas fa-check-circle" style="color: #6a1b9a;"></i> Nama Toko</h3>
-                                <p style="font-size:0.85rem; color:var(--text-muted);">Online 5 Menit Lalu</p>
+                                <h3 id="pdpStoreName"
+                                    style="font-size:1.1rem; display:flex; align-items:center; gap:5px;"><i
+                                        class="fas fa-check-circle" style="color: #6a1b9a;"></i> Nama Toko</h3>
+                                <p style="font-size:0.85rem; color:var(--text-muted);"></p>
                             </div>
-                            <button id="pdpFollowBtn" class="btn-follow" style="margin-left:auto; width:auto; padding: 6px 16px; border-radius:20px;">Follow</button>
+                            <button id="pdpFollowBtn" class="btn-follow"
+                                style="margin-left:auto; width:auto; padding: 6px 16px; border-radius:20px;">Follow</button>
                         </div>
                         <div style="font-size:0.9rem; color:var(--text-main);">
-                            <p><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> Dikirim dari <strong>Padukuhan Karanganyar</strong></p>
+                            <p><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> Dikirim dari
+                                <strong>Padukuhan Karanganyar</strong>
+                            </p>
                         </div>
                     </div>
 
@@ -545,8 +612,8 @@
         <!-- 1. Hero Section (Tokopedia Style) -->
         <div class="tkp-hero">
             <div class="tkp-hero-overlay"></div>
-            <div class="tkp-hero-content container">
-                <h1>Kenali lebih dekat<br>Karanganyar</h1>
+            <div class="tkp-hero-content container reveal-scale">
+                <h1 id="typewriterHeroTitle" class="typewriter-title">Kenali lebih dekat<br>Karanganyar</h1>
             </div>
             <div class="tkp-scroll-indicator">
                 <div class="mouse"></div>
@@ -555,19 +622,63 @@
 
         <!-- 2. Tantangan Kami / Peta -->
         <section class="tkp-section tkp-challenge">
-            <div class="container" style="text-align: center;">
+            <div class="container reveal" style="text-align: center;">
                 <h4 class="tkp-section-label">TANTANGAN KAMI</h4>
                 <h2 class="tkp-section-title">Membangun Kemandirian Desa di Era Digital</h2>
                 <p class="tkp-section-desc mx-auto">Kami berupaya untuk memberdayakan seluruh elemen masyarakat
                     Karanganyar agar mampu bersaing, menciptakan peluang baru, dan memajukan perekonomian desa secara
                     gotong royong.</p>
 
-                <div class="tkp-map-container reveal">
-                    <!-- Google Maps Iframe for Karanganyar -->
-                    <iframe
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15814.735071195617!2d110.3341381!3d-7.9271617!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7b003a27fecf31%3A0xc39f28688435165c!2sKaranganyar%2C%20Kec.%20Panggang%2C%20Kabupaten%20Gunung%20Kidul%2C%20Daerah%20Istimewa%20Yogyakarta!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
-                        width="100%" height="450" style="border:0; border-radius: 20px; box-shadow: var(--shadow-md);"
-                        allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <!-- Slider Peta Wilayah (Peta JPG/PNG vs Google Maps) -->
+                <div class="tkp-map-slider-wrapper reveal"
+                    style="position: relative; max-width: 1000px; margin: 30px auto 0;">
+                    <!-- Controls Header / Switcher Tabs -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btnShowImgMap" onclick="switchMapSlide('imgmap')"
+                                style="padding: 8px 18px; border-radius: 20px; border: 1px solid #00AA5B; background: #00AA5B; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-image"></i> Peta Wilayah
+                            </button>
+                            <button id="btnShowGmaps" onclick="switchMapSlide('gmaps')"
+                                style="padding: 8px 18px; border-radius: 20px; border: 1px solid #E5E7E9; background: white; color: #6D7588; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-map-marked-alt"></i> Google Maps
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="prevMapSlide()" title="Peta Sebelumnya"
+                                style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #E5E7E9; background: white; color: #31353B; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><i
+                                    class="fas fa-chevron-left"></i></button>
+                            <button onclick="nextMapSlide()" title="Peta Selanjutnya"
+                                style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #E5E7E9; background: white; color: #31353B; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><i
+                                    class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 1: Peta Gambar JPG/PNG (Tampil Pertama Secara Default) -->
+                    <div id="mapSlideImgmap" class="tkp-map-img-container reveal-scale"
+                        style="display: block; position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #E5E7E9; box-shadow: var(--shadow-md); background: #f8fafc;">
+                        <img id="mapCustomImage"
+                            src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&auto=format&fit=crop&q=80"
+                            alt="Peta Gambar Wilayah Karanganyar"
+                            onclick="openImageLightbox(this.src, 'Peta Wilayah Padukuhan Karanganyar')"
+                            title="Klik untuk melihat detail gambar Peta Wilayah"
+                            style="width: 100%; height: 450px; object-fit: cover; display: block; cursor: pointer; transition: transform 0.4s ease;">
+                        <div
+                            style="position: absolute; bottom: 15px; left: 15px; background: rgba(15, 23, 42, 0.85); color: white; padding: 8px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; backdrop-filter: blur(4px); pointer-events: none;">
+                            <i class="fas fa-map-marked-alt" style="color: #00AA5B; margin-right: 6px;"></i> Peta
+                            Wilayah Padukuhan Karanganyar
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: Google Maps (Tampil Kedua) -->
+                    <div id="mapSlideGmaps" class="tkp-map-container" style="display: none;">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15814.735071195617!2d110.3341381!3d-7.9271617!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7b003a27fecf31%3A0xc39f28688435165c!2sKaranganyar%2C%20Kec.%20Panggang%2C%20Kabupaten%20Gunung%20Kidul%2C%20Daerah%20Istimewa%20Yogyakarta!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
+                            width="100%" height="450"
+                            style="border:0; border-radius: 20px; box-shadow: var(--shadow-md);" allowfullscreen=""
+                            loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
                 </div>
             </div>
         </section>
@@ -577,13 +688,16 @@
             <div class="container">
                 <div class="tkp-split-layout">
                     <!-- Left: Collage -->
-                    <div class="tkp-collage reveal">
-                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img1" alt="Sejarah 1">
-                        <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img2" alt="Sejarah 2">
-                        <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80" class="tkp-collage-img3" alt="Sejarah 3">
+                    <div class="tkp-collage reveal-left">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80"
+                            class="tkp-collage-img1" alt="Sejarah 1">
+                        <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80"
+                            class="tkp-collage-img2" alt="Sejarah 2">
+                        <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80"
+                            class="tkp-collage-img3" alt="Sejarah 3">
                     </div>
                     <!-- Right: Text -->
-                    <div class="tkp-mission-text reveal">
+                    <div class="tkp-mission-text reveal-right">
                         <h4 class="tkp-section-label">SEJARAH KAMI</h4>
                         <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 25px;">Menilik Sejarah
                             Nama Karanganyar</h2>
@@ -610,61 +724,143 @@
         <!-- 4. Bisnis Kami / Data Wilayah -->
         <section class="tkp-section tkp-stats" style="background: #f8f9fa;">
             <div class="container">
-                <div class="tkp-stats-box reveal">
-                    <div class="tkp-stats-left">
-                        <h4 class="tkp-section-label"><i class="fas fa-map-marked-alt" style="margin-right: 8px; color: #03ac0e;"></i>DATA WILAYAH</h4>
-                        <h2 class="tkp-section-title" style="text-align: left;">Membangun desa dengan infrastruktur dan sumber daya terbaik</h2>
+                <div class="tkp-stats-box reveal-left">
+                    <div class="tkp-stats-left reveal-left">
+                        <h4 class="tkp-section-label"> <i class="fas fa-map-marked-alt"
+                                style="margin-right: 8px; color: #03ac0e;"></i>DATA WILAYAH</h4>
+                        <h2 class="tkp-section-title" style="text-align: left;">Membangun desa dengan infrastruktur dan
+                            sumber daya terbaik</h2>
                         <p style="color: #64748B; line-height: 1.6; margin-top: 12px; font-size: 0.95rem;">
-                            Padukuhan Karanganyar dikelola dengan tata kelola wilayah yang rapi, transparan, dan berpusat pada kesejahteraan warga.
+                            Padukuhan Karanganyar dikelola dengan tata kelola wilayah yang rapi, transparan, dan
+                            berpusat pada kesejahteraan warga.
                         </p>
                     </div>
-                    <div class="tkp-stats-right" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div class="tkp-stat-card">
+                    <div class="tkp-stats-right reveal-right"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="tkp-stat-card reveal" style="transition-delay: 0s;">
                             <div class="tkp-stat-icon"><i class="fas fa-home"></i></div>
                             <div>
-                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span class="count-up" data-target="5">0</span> / <span class="count-up" data-target="1">0</span></h3>
-                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">RT / RW</p>
+                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span
+                                        class="count-up" data-target="5">0</span> / <span class="count-up"
+                                        data-target="1">0</span></h3>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">RT /
+                                    RW</p>
                             </div>
                         </div>
-                        <div class="tkp-stat-card">
-                            <div class="tkp-stat-icon" style="background: #E0F2FE; color: #0284C7;"><i class="fas fa-users"></i></div>
+                        <div class="tkp-stat-card reveal" style="transition-delay: 0.1s;">
+                            <div class="tkp-stat-icon" style="background: #E0F2FE; color: #0284C7;"><i
+                                    class="fas fa-users"></i></div>
                             <div>
-                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span class="count-up" data-target="218">0</span></h3>
-                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">Kepala Keluarga (KK)</p>
+                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B;"><span
+                                        class="count-up" data-target="218">0</span></h3>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">
+                                    Kepala Keluarga (KK)</p>
                             </div>
                         </div>
-                        <div class="tkp-stat-card" style="grid-column: 1 / -1;">
-                            <div class="tkp-stat-icon" style="background: #F3E8FF; color: #9333EA;"><i class="fas fa-user-friends"></i></div>
+                        <div class="tkp-stat-card reveal" style="transition-delay: 0.2s; grid-column: 1 / -1;">
+                            <div class="tkp-stat-icon" style="background: #F3E8FF; color: #9333EA;"><i
+                                    class="fas fa-user-friends"></i></div>
                             <div style="flex: 1;">
-                                <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
-                                    <span><span class="count-up" data-target="331">0</span> <span style="font-size: 1rem; color: #0284C7; font-weight: 700;">Laki-laki</span></span>
-                                    <span><span class="count-up" data-target="347">0</span> <span style="font-size: 1rem; color: #EC4899; font-weight: 700;">Perempuan</span></span>
+                                <h3
+                                    style="margin: 0; font-size: 1.8rem; font-weight: 800; color: #1E293B; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+                                    <span><span class="count-up" data-target="331">0</span> <span
+                                            style="font-size: 1rem; color: #0284C7; font-weight: 700;">Laki-laki</span></span>
+                                    <span><span class="count-up" data-target="347">0</span> <span
+                                            style="font-size: 1rem; color: #EC4899; font-weight: 700;">Perempuan</span></span>
                                 </h3>
-                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">Total Penduduk (<span class="count-up" data-target="678">0</span> Jiwa)</p>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748B; font-weight: 600;">
+                                    Total Penduduk (<span class="count-up" data-target="678">0</span> Jiwa)</p>
                             </div>
                         </div>
-                        <div class="tkp-stat-card" style="grid-column: 1 / -1; flex-direction: column; align-items: flex-start; padding: 22px;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%;">
-                                <div class="tkp-stat-icon" style="width: 36px; height: 36px; font-size: 1rem; background: #FEF3C7; color: #D97706;"><i class="fas fa-compass"></i></div>
-                                <h4 style="margin: 0; font-weight: 700; font-size: 1rem; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">Batas Wilayah</h4>
+                        <div class="tkp-stat-card reveal"
+                            style="transition-delay: 0.3s; grid-column: 1 / -1; flex-direction: column; align-items: flex-start; padding: 22px;">
+                            <div
+                                style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%;">
+                                <div class="tkp-stat-icon"
+                                    style="width: 36px; height: 36px; font-size: 1rem; background: #FEF3C7; color: #D97706;">
+                                    <i class="fas fa-compass"></i>
+                                </div>
+                                <h4
+                                    style="margin: 0; font-weight: 700; font-size: 1rem; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Batas Wilayah</h4>
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
                                 <div class="batas-card">
-                                    <div style="color: #03ac0e; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">UTARA</div>
-                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Hargomulyo</div>
+                                    <div
+                                        style="color: #03ac0e; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">
+                                        UTARA</div>
+                                    <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Hargomulyo
+                                    </div>
                                 </div>
                                 <div class="batas-card">
-                                    <div style="color: #0284C7; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">SELATAN</div>
+                                    <div
+                                        style="color: #0284C7; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">
+                                        SELATAN</div>
                                     <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Gading</div>
                                 </div>
                                 <div class="batas-card">
-                                    <div style="color: #9333EA; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">TIMUR</div>
+                                    <div
+                                        style="color: #9333EA; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">
+                                        TIMUR</div>
                                     <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Pengkol</div>
                                 </div>
                                 <div class="batas-card">
-                                    <div style="color: #D97706; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">BARAT</div>
+                                    <div
+                                        style="color: #D97706; font-weight: 800; font-size: 0.78rem; letter-spacing: 1px; margin-bottom: 4px;">
+                                        BARAT</div>
                                     <div style="font-size: 0.95rem; color: #1E293B; font-weight: 700;">Ds. Nglegi</div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Peta Sebaran & Sumber Daya Air -->
+        <section class="tkp-section" style="background: white; padding: 60px 0;">
+            <div class="container reveal">
+                <div class="water-map-card reveal-scale">
+                    <div class="water-map-header">
+                        <div class="water-map-badge">
+                            <i class="fas fa-tint"></i> KETAHANAN AIR DESA
+                        </div>
+                        <h2 class="water-map-title">Peta Sebaran & Sumber Daya Air Karanganyar</h2>
+                        <p class="water-map-sub">Pemetaan lokasi mata air, sumur dalam, dan distribusi irigasi pertanian
+                            Padukuhan Karanganyar.</p>
+                    </div>
+
+                    <div class="water-map-container">
+                        <div class="water-map-img-wrapper">
+                            <img id="petaSumberAirImg"
+                                src="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80"
+                                alt="Peta Sebaran Air Karanganyar"
+                                onclick="openImageLightbox(this.src, 'Peta Sebaran & Potensi Sumber Air Desa')"
+                                title="Klik untuk melihat detail Peta Sebaran Air"
+                                style="cursor: pointer; transition: transform 0.4s ease;">
+                            <div class="water-map-overlay-tag" style="pointer-events: none;">
+                                <i class="fas fa-water" style="color: #38bdf8;"></i> Peta Tematik Potensi Air Desa
+                            </div>
+                        </div>
+
+                        <div class="water-map-legend">
+                            <div class="legend-item"
+                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
+                                <span
+                                    style="width: 12px; height: 12px; border-radius: 50%; background: #0284c7; display: inline-block;"></span>
+                                Mata Air Utama
+                            </div>
+                            <div class="legend-item"
+                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
+                                <span
+                                    style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                Sumur Bor / Pompa Warga
+                            </div>
+                            <div class="legend-item"
+                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
+                                <span
+                                    style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                                Saluran Irigasi Sawah
                             </div>
                         </div>
                     </div>
@@ -680,7 +876,7 @@
                     <h2 class="tkp-section-title">Kami membangun ekosistem desa yang produktif untuk masyarakat</h2>
                 </div>
 
-                <div class="tkp-feature-grid">
+                <div class="tkp-feature-grid reveal">
                     <!-- Card 1 -->
                     <div class="tkp-feature-card reveal">
                         <div class="tkp-feature-icon">
@@ -721,60 +917,68 @@
             <div class="container">
                 <div class="tkp-split-layout" style="align-items: flex-start;">
                     <!-- Kehidupan -->
-                    <div class="tkp-mission-text reveal"
+                    <div class="tkp-mission-text reveal-left"
                         style="flex: 1; padding: 40px; background: #f0fdf4; border-radius: 20px;">
                         <h4 class="tkp-section-label">KEHIDUPAN MASYARAKAT</h4>
-                        <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
+                        <h2 class="tkp-section-title" id="cmsKehidupanTitle"
+                            style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
                             Harmoni Keseharian</h2>
                         <ul style="list-style: none; padding: 0;">
                             <li
                                 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-briefcase"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Profesi utama warga adalah petani, pekebun, dan buruh harian lepas.</div>
+                                <div id="cmsKehidupan1">Profesi utama warga adalah petani, pekebun, dan buruh harian
+                                    lepas.</div>
                             </li>
                             <li
                                 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-users"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Organisasi sangat aktif: KWT, Posyandu (RDS), dan Karang Taruna "Krida Muda" yang
+                                <div id="cmsKehidupan2">Organisasi sangat aktif: KWT, Posyandu (RDS), dan Karang Taruna
+                                    "Krida Muda" yang
                                     fokus konservasi air.</div>
                             </li>
                             <li
                                 style="margin-bottom: 0; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-calendar-check"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Kegiatan rutin meliputi Safari Tarawih, Apel Rutin, dan gotong royong infrastruktur
+                                <div id="cmsKehidupan3">Kegiatan rutin meliputi Safari Tarawih, Apel Rutin, dan gotong
+                                    royong infrastruktur
                                     swakelola.</div>
                             </li>
                         </ul>
                     </div>
                     <!-- Budaya -->
-                    <div class="tkp-mission-text reveal"
+                    <div class="tkp-mission-text reveal-right"
                         style="flex: 1; padding: 40px; background: #f8f9fa; border-radius: 20px; transition-delay: 0.1s;">
                         <h4 class="tkp-section-label">BUDAYA LOKAL</h4>
-                        <h2 class="tkp-section-title" style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
+                        <h2 class="tkp-section-title" id="cmsBudayaTitle"
+                            style="text-align: left; margin-bottom: 20px; font-size: 2rem;">
                             Kesenian & Tradisi</h2>
                         <ul style="list-style: none; padding: 0;">
                             <li
                                 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-hand-holding-heart"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Tradisi <strong>Nyadran Gunung Genthong</strong> rutin dilaksanakan pada Selasa
+                                <div id="cmsBudaya1">Tradisi <strong>Nyadran Gunung Genthong</strong> rutin dilaksanakan
+                                    pada Selasa
                                     Kliwon.</div>
                             </li>
                             <li
                                 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-drum"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Acara tahunan <strong>Rasulan Gubug Gedhe</strong> digelar hari Minggu Pahing
+                                <div id="cmsBudaya2">Acara tahunan <strong>Rasulan Gubug Gedhe</strong> digelar hari
+                                    Minggu Pahing
                                     dengan Pawai Gunungan.</div>
                             </li>
                             <li
                                 style="margin-bottom: 0; font-size: 1.1rem; color: var(--text-dark); display: flex; gap: 15px;">
                                 <i class="fas fa-music"
                                     style="color: var(--primary); font-size: 1.3rem; margin-top: 3px;"></i>
-                                <div>Kesenian lokal sakral <strong>Ledhek (Tayuban)</strong>, Jathilan "Kuda Muda Bayu
+                                <div id="cmsBudaya3">Kesenian lokal sakral <strong>Ledhek (Tayuban)</strong>, Jathilan
+                                    "Kuda Muda Bayu
                                     Aji", dan Angklung anak terus dilestarikan.</div>
                             </li>
                         </ul>
@@ -785,15 +989,18 @@
 
         <!-- 6. Video Profil -->
         <section class="tkp-section" style="background: #f8f9fa; padding-bottom: 40px;">
-            <div class="container" style="text-align: center;">
-                <h4 class="tkp-section-label">PROFIL PADUKUHAN</h4>
-                <h2 class="tkp-section-title">Video Profil Karanganyar</h2>
-                <div class="reveal"
-                    style="max-width: 1000px; margin: 40px auto 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); background: #000;">
-                    <iframe width="100%" height="550" src="https://www.youtube.com/embed/LXb3EKWsInQ"
+            <div class="container reveal" style="text-align: center;">
+                <h4 class="tkp-section-label reveal">PROFIL PADUKUHAN</h4>
+                <h2 class="tkp-section-title reveal">Video Profil Karanganyar</h2>
+                <div class="tkp-video-wrapper reveal" id="cmsVideoWrapper"
+                    style="max-width: 1000px; margin: 40px auto 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); background: #000; position: relative;">
+                    <iframe id="cmsYoutubeIframe" width="100%" height="550"
+                        src="https://www.youtube.com/embed/LXb3EKWsInQ?rel=0&modestbranding=1&playsinline=1"
                         title="Video Profil" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen style="display: block;"></iframe>
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                        allowfullscreen webkitallowfullscreen mozallowfullscreen loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        style="display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; min-height: 280px; border: none; position: relative; z-index: 10;"></iframe>
                 </div>
             </div>
         </section>
@@ -801,24 +1008,36 @@
         <!-- 7. Galeri Kegiatan -->
         <section class="tkp-section" style="padding-top: 60px; padding-bottom: 100px;">
             <div class="container">
-                <div style="text-align: center; margin-bottom: 40px;">
+                <div style="text-align: center; margin-bottom: 40px;" class="reveal">
                     <h4 class="tkp-section-label">GALERI KAMI</h4>
                     <h2 class="tkp-section-title">Ruang Kerja & Kegiatan</h2>
                 </div>
 
-                <div class="tkp-gallery-grid">
-                    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80" class="reveal tkp-gal-1"
-                        style="transition-delay: 0.1s" alt="Galeri 1">
-                    <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-2"
-                        style="transition-delay: 0.2s" alt="Galeri 2">
-                    <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-3"
-                        style="transition-delay: 0.3s" alt="Galeri 3">
-                    <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80" class="reveal tkp-gal-4"
-                        style="transition-delay: 0.1s" alt="Galeri 4">
-                    <img src="https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-5"
-                        style="transition-delay: 0.2s" alt="Galeri 5">
-                    <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80" class="reveal tkp-gal-6"
-                        style="transition-delay: 0.3s" alt="Galeri 6">
+                <div class="tkp-gallery-masonry">
+                    <div class="tkp-gal-item reveal tkp-gal-1" style="transition-delay: 0.1s">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 1">
+                    </div>
+                    <div class="tkp-gal-item reveal tkp-gal-2" style="transition-delay: 0.2s">
+                        <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 2">
+                    </div>
+                    <div class="tkp-gal-item reveal tkp-gal-3" style="transition-delay: 0.3s">
+                        <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 3">
+                    </div>
+                    <div class="tkp-gal-item reveal tkp-gal-4" style="transition-delay: 0.4s">
+                        <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 4">
+                    </div>
+                    <div class="tkp-gal-item reveal tkp-gal-5" style="transition-delay: 0.5s">
+                        <img src="https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=600&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 5">
+                    </div>
+                    <div class="tkp-gal-item reveal tkp-gal-6" style="transition-delay: 0.6s">
+                        <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80"
+                            alt="Galeri Karanganyar 6">
+                    </div>
                 </div>
             </div>
         </section>
@@ -1171,7 +1390,8 @@
     <!-- Modal Login & Register (Prototype) -->
     <!-- Modal Login & Register ala Tokopedia -->
     <div class="modal-overlay hidden" id="loginModal">
-        <div class="modal-content" style="padding: 0; max-width: 400px; width: 100%; overflow-y: auto; max-height: 90vh; border-radius: 12px; position: relative;">
+        <div class="modal-content"
+            style="padding: 0; max-width: 400px; width: 100%; overflow-y: auto; max-height: 90vh; border-radius: 12px; position: relative;">
 
 
             <!-- Layar 1: Utama Masuk -->
@@ -1593,8 +1813,13 @@
 
     <!-- Halaman Syarat dan Ketentuan -->
     <main id="termsPage" class="hidden">
-        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 15px 20px 40px 20px;">
             <aside class="policy-sidebar">
+                <button onclick="switchPage('tentangPage'); return false;"
+                    style="background: none; border: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; transition: color 0.2s; padding: 4px 0;"
+                    onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
                 <ul class="policy-menu">
                     <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
                     <li><a href="#" onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a></li>
@@ -1604,100 +1829,67 @@
                 </ul>
             </aside>
             <div class="policy-main-content">
-                <h2 style="margin-bottom: 20px;">Syarat & Ketentuan</h2>
-                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: Juli 2026</p>
+                <h2 style="margin-bottom: 10px;">Syarat & Ketentuan</h2>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Terakhir diperbarui: Juli 2026</p>
 
                 <div class="terms-content" style="line-height: 1.8; color: var(--text-main); font-size: 0.95rem;">
-                    <p>Selamat datang di situs/aplikasi Pasar Karanganyar.</p>
-                    <p>Syarat dan ketentuan yang ditetapkan di bawah ini merupakan perjanjian antara Pengguna (“Anda”)
-                        dengan Pengelola Pasar Karanganyar (“Kami”) yang mengatur hak, kewajiban dan tanggung jawab
-                        Pengguna terhadap penggunaan layanan, fitur, dan/atau jasa yang diakses oleh Pengguna melalui
-                        situs web ini. Pengguna disarankan membaca dengan seksama karena dapat berdampak kepada hak dan
-                        kewajiban Pengguna di bawah hukum.</p>
-                    <p>Dengan mendaftar dan/atau menggunakan Situs ini, maka Pengguna dianggap telah membaca, mengerti,
-                        memahami dan menyetujui semua isi dalam Syarat dan Ketentuan. Jika Pengguna tidak menyetujui
-                        salah satu, sebagian, atau seluruh isi Syarat dan ketentuan, maka Pengguna tidak diperkenankan
-                        mengakses dan/atau menggunakan Situs ini.</p>
+                    <p>Selamat datang di platform digital resmi <strong>Padukuhan Karanganyar</strong> (Pasar & Berita Desa Karanganyar).</p>
+                    <p>Syarat dan ketentuan yang ditetapkan di bawah ini mengatur hak, kewajiban, serta aturan penggunaan seluruh layanan dan fitur yang tersedia pada situs web ini, meliputi katalog produk UMKM, publikasi berita desa, autentikasi akun pengguna, hingga fitur interaktif lainnya. Dengan mendaftar atau menggunakan platform ini, Anda dianggap telah membaca, memahami, dan menyetujui seluruh ketentuan di bawah ini.</p>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">A. Definisi</h4>
-                    <ol style="">
-                        <li><strong>Pasar Karanganyar</strong> adalah platform etalase digital yang menjalankan kegiatan
-                            promosi produk UMKM warga Padukuhan Karanganyar.</li>
-                        <li><strong>Situs</strong> adalah website milik Pasar Karanganyar yang dapat diakses melalui
-                            perangkat desktop maupun seluler.</li>
-                        <li><strong>Pengguna</strong> adalah pihak yang menggunakan layanan Pasar Karanganyar, termasuk
-                            namun tidak terbatas pada Pembeli, Penjual maupun pihak lain yang sekedar berkunjung.</li>
-                        <li><strong>Pembeli</strong> adalah Pengguna yang melakukan permintaan atas Barang yang
-                            ditawarkan oleh Penjual di Situs.</li>
-                        <li><strong>Penjual</strong> adalah warga Padukuhan Karanganyar yang terdaftar untuk melakukan
-                            penawaran atas suatu Barang kepada para Pengguna.</li>
-                        <li><strong>Barang</strong> adalah benda yang berwujud / memiliki fisik yang dapat diantar /
-                            memenuhi kriteria pengiriman oleh kurir.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">A. Definisi & Ruang Lingkup Platform</h4>
+                    <ol>
+                        <li><strong>Pasar & Berita Desa Karanganyar</strong> adalah platform digital terpadu milik warga Padukuhan Karanganyar yang berfungsi sebagai etalase promosi UMKM lokal sekaligus portal publikasi kabar dan kegiatan desa.</li>
+                        <li><strong>Pengguna</strong> adalah setiap orang yang mengakses situs ini, meliputi Pembeli, Penjual (Pelaku UMKM Karanganyar), Pembaca Berita, maupun Pengunjung umum.</li>
+                        <li><strong>Penjual / Pelaku UMKM</strong> adalah warga Padukuhan Karanganyar terdaftar yang memamerkan produk barang atau jasa pada etalase toko.</li>
+                        <li><strong>Pembeli</strong> adalah Pengguna yang menjelajahi katalog produk dan bermaksud memesan barang dari Penjual.</li>
                     </ol>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">B. Akun, Password dan Keamanan</h4>
-                    <ol style="">
-                        <li>Pengguna dengan ini menyatakan bahwa pengguna adalah orang yang cakap dan mampu untuk
-                            mengikatkan dirinya dalam sebuah perjanjian yang sah menurut hukum.</li>
-                        <li>Kami tidak memungut biaya pendaftaran kepada Pengguna.</li>
-                        <li>Pengguna bertanggung jawab secara pribadi untuk menjaga kerahasiaan akun dan password untuk
-                            semua aktivitas yang terjadi dalam akun Pengguna.</li>
-                        <li>Kami tidak akan meminta password maupun kode verifikasi untuk alasan apapun. Oleh karena itu
-                            Kami menghimbau Pengguna agar tidak memberikan data tersebut kepada pihak manapun.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">B. Akun Pengguna, Autentikasi & Keamanan</h4>
+                    <ol>
+                        <li>Pengguna dapat mendaftar akun secara gratis melalui pendaftaran manual (Email & Kata Sandi) atau menggunakan fitur <strong>Google Sign-In</strong>.</li>
+                        <li>Untuk pendaftaran manual, Pengguna wajib melakukan verifikasi email melalui tautan yang dikirimkan ke kotak masuk email.</li>
+                        <li>Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi serta seluruh aktivitas transaksi yang terjadi pada akun milik Pengguna.</li>
+                        <li>Pengelola situs tidak pernah meminta kata sandi akun Pengguna melalui saluran manapun.</li>
                     </ol>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">C. Transaksi Pembelian</h4>
-                    <ol style="">
-                        <li>Pembeli wajib bertransaksi sesuai prosedur yang telah ditetapkan, yaitu dengan menghubungi
-                            penjual secara langsung melalui saluran WhatsApp yang disediakan.</li>
-                        <li>Saat melakukan pembelian Barang, Pembeli menyetujui bahwa Pembeli bertanggung jawab untuk
-                            membaca, memahami, dan menyetujui informasi/deskripsi keseluruhan Barang sebelum membuat
-                            tawaran atau komitmen untuk membeli.</li>
-                        <li>Segala transaksi yang dilakukan antara Pembeli dan Penjual (pembayaran uang, transfer, dll)
-                            merupakan tanggung jawab pribadi dari Pembeli dan Penjual. Pihak platform tidak menahan atau
-                            mengelola dana sedikitpun.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">C. Fitur Katalog, Wishlist & Toko Favorit</h4>
+                    <ol>
+                        <li>Pengguna dapat menandai produk yang disukai ke dalam daftar <strong>Wishlist</strong> serta menyimpan toko langganan pada menu <strong>Toko Favorit</strong>.</li>
+                        <li>Informasi harga, deskripsi, dan ketersediaan stok barang ditentukan secara mandiri oleh masing-masing Penjual UMKM.</li>
                     </ol>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">D. Transaksi Penjualan</h4>
-                    <ol style="">
-                        <li>Penjual dilarang melakukan penawaran atau menjual barang terlarang sesuai ketentuan hukum
-                            Republik Indonesia.</li>
-                        <li>Penjual wajib memberikan foto dan informasi Barang dengan lengkap dan jelas sesuai dengan
-                            kondisi dan kualitas Barang yang dijualnya.</li>
-                        <li>Penyelesaian masalah terkait keterlambatan pengiriman, kualitas barang, dan pengembalian
-                            dana diselesaikan secara kekeluargaan langsung antara Penjual dan Pembeli.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">D. Ketentuan Transaksi & Pemesanan via WhatsApp</h4>
+                    <ol>
+                        <li>Situs ini berfungsi sebagai <strong>etalase digital promosi</strong> (bukan payment gateway langsung). Proses pemesanan dan pembayaran dilakukan secara <em>Peer-to-Peer</em> (P2P) langsung antara Pembeli dan Penjual melalui aplikasi <strong>WhatsApp</strong>.</li>
+                        <li>Kesepakatan mengenai harga akhir, ongkos kirim, metode pembayaran (COD/Transfer), serta kurir pengiriman disepakati bersama secara langsung oleh Pembeli dan Penjual di saluran WhatsApp.</li>
+                        <li>Pengelola platform tidak menahan atau mengelola dana pembayaran transaksi warga. Segala bentuk transaksi keuangan merupakan kesepakatan pribadi antara Pembeli dan Penjual.</li>
                     </ol>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">E. Penataan Etalase dan Konten</h4>
-                    <ol style="">
-                        <li>Penjual dilarang memberikan keterangan (informasi toko dan/atau Barang) selain atau diluar
-                            daripada keterangan Barang yang bersangkutan.</li>
-                        <li>Pengguna dilarang untuk mengunggah konten apapun yang mengandung unsur SARA, diskriminasi,
-                            merendahkan atau menyudutkan orang lain, vulgar, dan ancaman.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">E. Ketentuan Berita Desa & Informasi Publikasi</h4>
+                    <ol>
+                        <li>Seluruh artikel berita, kabar warga, dan pengumuman kegiatan desa dipublikasikan serta dikelola secara resmi oleh Admin Desa Padukuhan Karanganyar.</li>
+                        <li>Dilarang mengutip atau mendistribusikan konten berita desa untuk tujuan yang menyesatkan atau melanggar hukum.</li>
                     </ol>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">F. Harga & Tarif Pengiriman</h4>
-                    <ol style="">
-                        <li>Harga Barang yang terdapat dalam Situs adalah harga yang ditetapkan oleh Penjual secara
-                            mandiri.</li>
-                        <li>Pembeli memahami dan menyetujui bahwa setiap masalah perselisihan tentang harga dan ongkos
-                            kirim bukanlah tanggung jawab platform Pasar Karanganyar.</li>
-                        <li>Kesepakatan pengiriman (menggunakan kurir lokal, diambil sendiri, atau ojek online)
-                            ditentukan pada saat komunikasi antara Pembeli dan Penjual via WhatsApp.</li>
+                    <h4 style="margin-top: 25px; margin-bottom: 10px;">F. Etika Konten & Pembatasan Tanggung Jawab</h4>
+                    <ol>
+                        <li>Pelaku UMKM dilarang menjual barang terlarang, produk ilegal, atau memberikan informasi palsu yang menyesatkan.</li>
+                        <li>Dilarang menyebarkan konten yang mengandung unsur SARA, ujaran kebencian, atau tindakan peretasan pada situs web ini.</li>
+                        <li>Dengan menggunakan situs ini, Anda membebaskan tim pengelola website dan tim KKN dari segala bentuk kerugian atas perselisihan transaksi jual-beli antara Pembeli dan Penjual.</li>
                     </ol>
-
-                    <div style="margin-top: 40px; text-align: center;">
-                        <p style="font-style: italic;">Dengan menggunakan layanan ini, Anda membebaskan tim KKN dan
-                            pengelola website dari segala tuntutan kerugian transaksi.</p>
-                    </div>
                 </div>
             </div>
     </main>
 
     <!-- Halaman Kebijakan Privasi -->
     <main id="privacyPage" class="hidden">
-        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 15px 20px 40px 20px;">
             <aside class="policy-sidebar">
+                <button onclick="switchPage('tentangPage'); return false;"
+                    style="background: none; border: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; transition: color 0.2s; padding: 4px 0;"
+                    onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
                 <ul class="policy-menu">
                     <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
                     <li><a href="#" class="active" onclick="switchPage('privacyPage'); return false;">Pemberitahuan
@@ -1707,87 +1899,72 @@
                 </ul>
             </aside>
             <div class="policy-main-content">
-                <h2 style="margin-bottom: 20px;">Pemberitahuan Privasi</h2>
-                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: Juli 2026</p>
+                <h2 style="margin-bottom: 10px;">Pemberitahuan Privasi</h2>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Terakhir diperbarui: Juli 2026</p>
 
                 <div class="privacy-accordion-container">
-                    <details class="privacy-accordion">
-                        <summary>PENGANTAR</summary>
+                    <details class="privacy-accordion" open>
+                        <summary>PENGANTAR & PRINSIP KERAHASIAAN</summary>
                         <div class="accordion-content">
-                            Kebijakan Privasi ini menjelaskan bagaimana Kami mengumpulkan, menggunakan, dan melindungi
-                            informasi Anda saat Anda menggunakan layanan Pasar Karanganyar. Kami sangat menghargai
-                            privasi Anda dan berkomitmen untuk melindunginya.
-                        </div>
-                    </details>
-
-                    <details class="privacy-accordion">
-                        <summary>RINGKASAN</summary>
-                        <div class="accordion-content">
-                            Secara singkat, kami hanya mengumpulkan informasi dasar untuk pembuatan akun dan tidak
-                            membagikan data Anda ke pihak ketiga manapun untuk tujuan pemasaran. Transaksi yang Anda
-                            lakukan aman karena disepakati secara pribadi.
+                            Pemberitahuan Privasi ini menjelaskan bagaimana platform digital Padukuhan Karanganyar (Pasar & Berita Desa Karanganyar) mengumpulkan, menyimpan, serta melindungi data pribadi Anda. Kami menjamin privasi Anda dan tidak akan menjual atau menyebarkan data pribadi Anda kepada pihak ketiga untuk tujuan komersial maupun periklanan.
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
                         <summary>DATA PRIBADI YANG KAMI KUMPULKAN</summary>
                         <div class="accordion-content">
-                            Data yang kami kumpulkan meliputi:
-                            <ul style="margin-left: 20px; margin-top: 10px;">
-                                <li>Nama lengkap.</li>
-                                <li>Alamat Email dan/atau Nomor Telepon (WhatsApp).</li>
-                                <li>Informasi perangkat log dasar untuk keperluan teknis.</li>
+                            Data pribadi yang kami proses meliputi:
+                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.6;">
+                                <li><strong>Informasi Pendaftaran Akun:</strong> Nama Lengkap / Username, Alamat Email, Tanggal Lahir, Jenis Kelamin, dan Foto Profil (jika menggunakan Google Sign-In).</li>
+                                <li><strong>Data Aktivitas Pengguna:</strong> Daftar produk tersimpan di Wishlist, daftar Toko Favorit, dan riwayat penjelajahan barang.</li>
+                                <li><strong>Data Kontak Penjual UMKM:</strong> Nama Toko, Nama Pemilik, Alamat RT/RW, dan Nomor WhatsApp Resmi Toko.</li>
                             </ul>
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
-                        <summary>PENGGUNAAN DATA PRIBADI</summary>
+                        <summary>PENGGUNAAN & PENGOLAHAN DATA PRIBADI</summary>
                         <div class="accordion-content">
-                            Data yang dikumpulkan hanya akan digunakan untuk:
-                            <ul style="margin-left: 20px; margin-top: 10px;">
-                                <li>Tujuan pelayanan dan pendaftaran akun.</li>
-                                <li>Peningkatan kualitas platform dan kemudahan pengguna.</li>
-                                <li>Penghubung langsung antara sistem kami dengan kontak WhatsApp penjual.</li>
+                            Data pribadi Anda digunakan semata-mata untuk keperluan operasional platform:
+                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.6;">
+                                <li>Keperluan autentikasi login akun dan verifikasi identitas email.</li>
+                                <li>Menghubungkan Pembeli secara langsung ke saluran aplikasi WhatsApp milik Penjual UMKM.</li>
+                                <li>Menyajikan rekomendasi produk, toko favorit, dan daftar wishlist pribadi Anda.</li>
+                                <li>Pembuatan statistik anonim pada Dasbor Admin untuk pemantauan perkembangan UMKM dan publikasi Berita Desa.</li>
                             </ul>
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
-                        <summary>MELINDUNGI DATA PRIBADI ANDA</summary>
+                        <summary>KEAMANAN DATABASE & INTEGRASI LAYANAN</summary>
                         <div class="accordion-content">
-                            Kami berkomitmen untuk menjaga keamanan data pribadi Anda dengan menerapkan standar keamanan
-                            industri guna mencegah akses, perubahan, atau pengungkapan yang tidak sah. Kami menggunakan
-                            metode enkripsi pada kata sandi yang Anda simpan.
+                            Seluruh data akun dan konten informasi disimpan secara aman menggunakan enkripsi pada layanan <strong>Firebase Realtime Database (Google Cloud)</strong>. Kata sandi akun Anda dienkripsi secara ketat sehingga tidak dapat dibaca oleh siapapun.
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
                         <summary>HAK ANDA SEBAGAI PENGGUNA</summary>
                         <div class="accordion-content">
-                            Anda berhak untuk:
-                            <ul style="margin-left: 20px; margin-top: 10px;">
-                                <li>Meminta penghapusan akun beserta seluruh data pribadi.</li>
-                                <li>Mengubah dan memodifikasi profil data pribadi yang tersimpan di sistem kami kapan
-                                    saja.</li>
+                            Sebagai pemilik data pribadi, Anda memiliki hak penuh untuk:
+                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.6;">
+                                <li>Memperbarui atau mengubah data profil akun Anda kapan saja.</li>
+                                <li>Menghapus barang dari Wishlist atau menghapus toko dari daftar Toko Favorit.</li>
+                                <li>Mengajukan permohonan penutupan akun atau penghapusan data pribadi dengan menghubungi tim Care Admin.</li>
                             </ul>
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
-                        <summary>CATATAN TAMBAHAN</summary>
+                        <summary>HIMBAUAN KEAMANAN TRANSAKSI P2P (WHATSAPP)</summary>
                         <div class="accordion-content">
-                            Karena sifat transaksi dilakukan secara <em>Peer-to-Peer</em> via WhatsApp, mohon
-                            berhati-hati dalam membagikan informasi rahasia perbankan Anda saat berkomunikasi langsung
-                            dengan Penjual.
+                            Karena proses pembayaran dan pengiriman barang disepakati secara langsung via WhatsApp antara Pembeli dan Penjual, mohon selalu berhati-hati dan pastikan Anda mengecek reputasi barang sebelum melakukan transfer uang.
                         </div>
                     </details>
 
                     <details class="privacy-accordion">
-                        <summary>HUBUNGI KAMI</summary>
+                        <summary>HUBUNGI KAMI & BANTUAN</summary>
                         <div class="accordion-content">
-                            Jika Anda memiliki pertanyaan mengenai Kebijakan Privasi ini, Anda dapat menghubungi tim
-                            pusat bantuan Pasar Karanganyar melalui halaman Pusat Bantuan yang tersedia di situs ini.
+                            Jika Anda memiliki pertanyaan seputar perlindungan privasi atau bantuan teknis akun, silakan hubungi tim Pusat Bantuan Karanganyar melalui tombol kontak WhatsApp Care yang tersedia di situs ini.
                         </div>
                     </details>
                 </div>
@@ -1797,8 +1974,13 @@
 
     <!-- Halaman FAQ -->
     <main id="faqPage" class="hidden">
-        <div class="container policy-layout-container" style="max-width: 1000px; padding: 40px 20px;">
+        <div class="container policy-layout-container" style="max-width: 1000px; padding: 15px 20px 40px 20px;">
             <aside class="policy-sidebar">
+                <button onclick="switchPage('tentangPage'); return false;"
+                    style="background: none; border: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; transition: color 0.2s; padding: 4px 0;"
+                    onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
                 <ul class="policy-menu">
                     <li><a href="#" onclick="switchPage('tentangPage'); return false;">Tentang Kami</a></li>
                     <li><a href="#" onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a></li>
@@ -1807,55 +1989,33 @@
                 </ul>
             </aside>
             <div class="policy-main-content">
-                <h2 style="margin-bottom: 20px;">Pertanyaan Seputar Data Pribadi di Pasar Karanganyar</h2>
-                <p style="color: var(--text-muted); margin-bottom: 30px;">Terakhir diperbarui: 08/12/2023</p>
+                <h2 style="margin-bottom: 10px;">Pertanyaan Umum (FAQ)</h2>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Terakhir diperbarui: Juli 2026</p>
 
                 <div class="terms-content" style="line-height: 1.8; color: var(--text-main); font-size: 0.95rem;">
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">1. Dimana saya bisa membaca dan memahami
-                        ketentuan perlindungan data pribadi saya di Pasar Karanganyar?</h4>
-                    <p>Ketentuan perlindungan data pribadi anda di Pasar Karanganyar dapat diakses melalui laman <a
-                            href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;"
-                            onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a>.</p>
-                    <p>Melalui Pemberitahuan Privasi, Pasar Karanganyar telah mencantumkan informasi mengenai
-                        perlindungan data pribadi, termasuk informasi cara Pasar Karanganyar memperoleh data pribadi
-                        anda, tujuan penggunaan data pribadi anda, tujuan pengungkapan data pribadi anda kepada pihak
-                        ketiga, hak anda sebagai pemilik data pribadi dan informasi lainnya yang anda butuhkan untuk
-                        memahami pemrosesan data pribadi anda di Pasar Karanganyar.</p>
+                    <h4 style="margin-top: 20px; margin-bottom: 8px;">1. Apa itu Platform Pasar & Berita Desa Karanganyar?</h4>
+                    <p>Platform Pasar & Berita Desa Karanganyar adalah portal digital terpadu milik warga Padukuhan Karanganyar yang menyajikan promosi etalase produk UMKM lokal sekaligus wadah publikasi berita dan kabar kegiatan terkini dari desa.</p>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">2. Bagaimana Pasar Karanganyar melindungi data
-                        pribadi saya untuk memastikan privasi saya tetap terjaga?</h4>
-                    <p>Pasar Karanganyar berkomitmen penuh dan akan melakukan upaya terbaiknya untuk melindungi data
-                        pribadi anda, seperti:</p>
-                    <ul style="">
-                        <li>Memberikan transparansi terhadap pemrosesan data pribadi anda;</li>
-                        <li>Melakukan pengumpulan data pribadi anda yang hanya sesuai untuk pemenuhan layanan yang kami
-                            sediakan;</li>
-                        <li>Melakukan pemrosesan data pribadi anda hanya untuk tujuan yang telah kami sampaikan melalui
-                            Pemberitahuan Privasi.</li>
-                    </ul>
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">2. Bagaimana cara mendaftar dan masuk ke akun saya?</h4>
+                    <p>Anda dapat mendaftar dengan menekan tombol <strong>Masuk / Daftar</strong> di pojok kanan atas. Pilih pendaftaran manual menggunakan email dan buat kata sandi (lalu lakukan verifikasi email), atau gunakan login instan dengan menekan tombol <strong>Google Sign-In</strong>.</p>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">3. Apakah data pribadi saya akan diproses oleh
-                        Pihak Ketiga selain Pasar Karanganyar?</h4>
-                    <p>Kami selalu berupaya untuk menyediakan layanan terbaik kami kepada anda dan tidak akan melibatkan
-                        Pihak Ketiga untuk tujuan komersial maupun periklanan. Data Anda hanya diproses di sistem lokal
-                        kami demi kelancaran proses transaksi Anda langsung dengan Penjual UMKM.</p>
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">3. Bagaimana cara memesan produk UMKM Karanganyar?</h4>
+                    <p>Pilih produk yang Anda sukai dari etalase toko, lalu tekan tombol <strong>Chat Penjual / Beli via WhatsApp</strong>. Anda akan langsung terhubung ke kontak WhatsApp resmi pemilik UMKM untuk menyepakati jumlah pesanan, alamat, dan metode pembayaran.</p>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">4. Apa saja hak-hak saya terkait perlindungan
-                        data pribadi sebagai pengguna Pasar Karanganyar?</h4>
-                    <p>Sebagai pemilik data pribadi, anda berhak untuk:</p>
-                    <ul style="">
-                        <li>Melakukan pengkinian data pribadi anda yang berada pada Pasar Karanganyar.</li>
-                        <li>Memohonkan penghapusan data pribadi anda.</li>
-                        <li>Mengajukan penghapusan akun anda di Pasar Karanganyar.</li>
-                    </ul>
-                    <p>Anda dapat mengajukan hak-hak anda diatas dengan cara menghubungi kami melalui Tim Pusat Bantuan
-                        kami.</p>
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">4. Apakah pembayaran dilakukan langsung di situs web ini?</h4>
+                    <p>Tidak. Platform ini berfungsi sebagai etalase digital. Pembayaran (transfer bank / COD / tunai) disepakati secara langsung antara Anda dan Penjual saat berkirim pesan di WhatsApp demi keamanan dan fleksibilitas warga.</p>
 
-                    <h4 style="margin-top: 25px; margin-bottom: 10px;">5. Apa saja perubahan yang terdapat pada
-                        Pemberitahuan Privasi ini dan Kapan perubahan ini mulai berlaku?</h4>
-                    <p>Pada Pemberitahuan Privasi ini, Kami melakukan beberapa perubahan, yaitu perubahan tata letak dan
-                        penambahan sistem Ringkasan yang mempermudah anda untuk memahami Pemberitahuan Privasi ini
-                        dengan lebih mudah.</p>
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">5. Bagaimana cara menggunakan fitur Wishlist dan Toko Favorit?</h4>
+                    <p>Tekan ikon Hati ❤️ pada produk untuk memasukannya ke daftar <strong>Wishlist Saya</strong>, atau tekan tombol <strong>Simpan Toko</strong> untuk menyimpan toko ke menu Toko Favorit agar Anda mudah berlangganan di kemudian hari.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">6. Di mana saya bisa membaca berita dan kegiatan terbaru desa?</h4>
+                    <p>Anda dapat mengakses menu <strong>Berita Desa</strong> pada bilah navigasi utama untuk membaca artikel, foto kegiatan, serta kabar terbaru Padukuhan Karanganyar yang dikelola langsung oleh Admin Desa.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">7. Apa yang harus dilakukan jika saya lupa kata sandi akun?</h4>
+                    <p>Tekan tombol <strong>Masuk</strong>, pilih <em>Lupa kata sandi?</em>, lalu masukkan alamat email Anda. Tautan untuk mereset kata sandi baru akan dikirimkan langsung ke email Anda.</p>
+
+                    <h4 style="margin-top: 25px; margin-bottom: 8px;">8. Bagaimana ketentuan keamanan data pribadi saya?</h4>
+                    <p>Seluruh data akun Anda dilindungi enkripsi standar industri pada database Google Firebase. Data hanya digunakan untuk keperluan layanan akun Anda di situs ini. Anda dapat membaca informasi selengkapnya di laman <a href="#" style="color: var(--primary); font-weight: 700; text-decoration: none;" onclick="switchPage('privacyPage'); return false;">Pemberitahuan Privasi</a>.</p>
                 </div>
             </div>
         </div>
@@ -1999,10 +2159,10 @@
                             <rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32" />
                             <path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50" />
                             <path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50" />
-                        </svg> Pasar Karanganyar</h4>
-                    <a href="#" class="linkTentang">Tentang Kami</a>
-                    <a href="#" class="linkTentang">Potensi Padukuhan</a>
-                    <a href="#" class="linkTentang">Sejarah Desa</a>
+                        </svg> Karanganyar</h4>
+                    <a href="#" class="linkTentang">Tentang Karanganyar</a>
+                    <a href="#" onclick="switchPage('beritaPage'); return false;">Berita Desa</a>
+                    <a href="#" class="linkPromoDesa">Promo Desa</a>
                 </div>
                 <div class="footer-col">
                     <h4>Beli</h4>
@@ -2034,13 +2194,19 @@
     <!-- Mobile Side Menu (Hamburger Drawer) -->
     <div class="mobile-side-menu" id="mobileSideMenu">
         <div class="side-menu-header">
-            <h3>Menu Navigasi</h3>
+            <h3>Eksplor Karanganyar</h3>
             <button class="close-side-menu" id="closeSideMenu"><i class="fas fa-times"></i></button>
         </div>
         <div class="side-menu-links">
-            <a href="#" onclick="switchPage('tentangPage'); return false;" class="linkTentang"><i class="fas fa-map-marked-alt"></i> Tentang Karanganyar</a>
-            <a href="#" onclick="switchPage('homePage'); if(typeof window.scrollToPromoSection==='function') window.scrollToPromoSection(); return false;" class="linkPromoDesa"><i class="fas fa-store"></i> Promo Desa</a>
-            <a href="#" onclick="switchPage('helpPage'); return false;" class="linkHelpCenter"><i class="fas fa-question-circle"></i> Pusat Bantuan</a>
+            <a href="#" onclick="switchPage('tentangPage'); return false;" class="linkTentang"><i
+                    class="fas fa-map-marked-alt"></i> Tentang Karanganyar</a>
+            <a href="#" onclick="switchPage('beritaPage'); return false;" class="linkBerita"><i 
+                    class="fas fa-newspaper"></i> Berita Desa</a>
+            <a href="#"
+                onclick="switchPage('homePage'); if(typeof window.scrollToPromoSection==='function') window.scrollToPromoSection(); return false;"
+                class="linkPromoDesa"><i class="fas fa-store"></i> Promo Desa</a>
+            <a href="#" onclick="switchPage('helpPage'); return false;" class="linkHelpCenter"><i
+                    class="fas fa-question-circle"></i> Pusat Bantuan</a>
         </div>
     </div>
     <div class="side-menu-overlay" id="sideMenuOverlay"></div>
@@ -2274,21 +2440,145 @@
                 </div>
             </div>
         </div>
-    </div>
+        <!-- Modal Share Produk PDP (Tokopedia Style) -->
+        <div class="tkp-modal-overlay" id="pdpShareModal"
+            style="z-index: 999999; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.6); backdrop-filter: blur(6px);">
+            <div class="tkp-modal"
+                style="width: 440px; padding: 24px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); background: white;">
+                <div class="tkp-modal-header"
+                    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h3
+                        style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-share-alt" style="color: #00AA5B;"></i> Bagikan Produk Ini
+                    </h3>
+                    <button onclick="closePdpShareModal()"
+                        style="background: none; border: none; font-size: 1.2rem; color: #64748b; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="tkp-modal-body" style="padding: 0;">
+                    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 20px;">Bagikan produk ini ke teman atau
+                        media sosial Anda:</p>
 
-    <div id="pageTransitionOverlay"></div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+                        <!-- WhatsApp -->
+                        <button type="button" onclick="shareProductTo('wa')"
+                            style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; cursor: pointer; transition: transform 0.2s;"
+                            onmouseover="this.style.transform='scale(1.05)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                            <i class="fab fa-whatsapp" style="font-size: 1.8rem; color: #25D366;"></i>
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #166534;">WhatsApp</span>
+                        </button>
 
-    <!-- SCRIPT LOADING ORDER (PENTING: URUTAN INI HARUS TEPAT) -->
-    <!-- 1. Core UI, Navigation, Global Vars, UMKM Data Fetch -->
-    <script src="script.js"></script>
-    <!-- 2. UMKM Grid Renderer & Store Detail -->
-    <script src="promo.js"></script>
-    <!-- 3. Firebase Auth Observer & Auth UI (menggunakan vars dari script.js) -->
-    <script src="auth.js"></script>
-    <!-- 4. Auth Engine (Login/Register Modal UI, Google OAuth) -->
-    <script src="auth_engine.js"></script>
-    <!-- 5. Admin CMS (hanya untuk fitur admin) -->
-    <script src="admin_cms.js"></script>
+                        <!-- Facebook -->
+                        <button type="button" onclick="shareProductTo('fb')"
+                            style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 14px; cursor: pointer; transition: transform 0.2s;"
+                            onmouseover="this.style.transform='scale(1.05)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                            <i class="fab fa-facebook" style="font-size: 1.8rem; color: #1877F2;"></i>
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #1e40af;">Facebook</span>
+                        </button>
+
+                        <!-- Twitter / X -->
+                        <button type="button" onclick="shareProductTo('twitter')"
+                            style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; cursor: pointer; transition: transform 0.2s;"
+                            onmouseover="this.style.transform='scale(1.05)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                            <i class="fab fa-x-twitter" style="font-size: 1.8rem; color: #0f172a;"></i>
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #0f172a;">X (Twitter)</span>
+                        </button>
+                    </div>
+
+                    <!-- Input Salin Link -->
+                    <div style="margin-bottom: 10px;">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 6px;">Atau
+                            Salin Tautan Produk</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="shareProductUrlInput" readonly
+                                style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.85rem; background: #f8fafc; color: #334155; outline: none;">
+                            <button type="button" onclick="copyProductLink()"
+                                style="background: #00AA5B; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-copy"></i> Salin
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Account Not Found / Email Belum Terdaftar (Tokopedia Style) -->
+            <div class="tkp-modal-overlay" id="accountNotFoundModal"
+                style="z-index: 9999999; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.65); backdrop-filter: blur(8px);">
+                <div class="tkp-modal"
+                    style="width: 440px; padding: 28px; border-radius: 20px; text-align: center; background: white; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+                    <div
+                        style="width: 64px; height: 64px; border-radius: 50%; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 20px auto; border: 1px solid #fee2e2;">
+                        <i class="fas fa-user-slash"></i>
+                    </div>
+                    <h3
+                        style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 10px; font-family: 'Poppins', sans-serif;">
+                        Email Belum Terdaftar</h3>
+                    <p style="font-size: 0.92rem; color: #64748b; line-height: 1.5; margin-bottom: 24px;">
+                        Email/Username <strong id="unregisteredEmailText" style="color: #0f172a;"></strong> belum
+                        terdaftar di Pasar Karanganyar. Silakan daftar akun baru terlebih dahulu untuk melanjutkan.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button type="button" id="btnGoToRegisterFromNotFound"
+                            style="width: 100%; padding: 12px; background: #00AA5B; color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: background 0.2s;"
+                            onmouseover="this.style.background='#008f4c'" onmouseout="this.style.background='#00AA5B'">
+                            <i class="fas fa-user-plus" style="margin-right: 6px;"></i> Daftar Sekarang
+                        </button>
+                        <button type="button" onclick="closeAccountNotFoundModal()"
+                            style="width: 100%; padding: 12px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer;">
+                            Coba Email Lain
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Lightbox Modal Preview -->
+            <div id="imageLightboxModal" onclick="closeImageLightbox()"
+                style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 99999999 !important; background: rgba(15, 23, 42, 0.9) !important; backdrop-filter: blur(12px) !important; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; cursor: pointer; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;">
+
+                <div style="position: relative; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; align-items: center; cursor: default;"
+                    onclick="event.stopPropagation()">
+                    <!-- Wrapper Gambar dengan tombol X di dalam -->
+                    <div
+                        style="position: relative; display: inline-block; max-width: 100%; max-height: 75vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.6); border: 3px solid #ffffff;">
+                        <!-- Close Button Inside Wrapper -->
+                        <button onclick="closeImageLightbox()" title="Tutup Preview"
+                            style="position: absolute; top: 12px; right: 12px; z-index: 10; background: rgba(15, 23, 42, 0.8); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); width: 38px; height: 38px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s;"
+                            onmouseover="this.style.transform='scale(1.1)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                        <!-- Lightbox Image -->
+                        <img id="lightboxImageSrc" src="" alt="Detail Gambar Peta"
+                            style="max-width: 100%; max-height: 75vh; object-fit: contain; background: #0f172a; display: block;">
+                    </div>
+
+                    <!-- Badge Caption -->
+                    <div id="lightboxCaptionTitle"
+                        style="margin-top: 16px; color: #ffffff; font-weight: 700; font-size: 1rem; font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.2); padding: 8px 24px; border-radius: 24px; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.3);">
+                        <i class="fas fa-search-plus" style="color: #00AA5B;"></i>
+                        <span id="lightboxTitleText">Detail Gambar</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pageTransitionOverlay"></div>
+
+            <!-- SCRIPT LOADING ORDER (PENTING: URUTAN INI HARUS TEPAT) -->
+            <!-- 1. Core UI, Navigation, Global Vars, UMKM Data Fetch -->
+            <script src="script.js"></script>
+            <!-- 2. UMKM Grid Renderer & Store Detail -->
+            <script src="promo.js"></script>
+            <!-- 3. Firebase Auth Observer & Auth UI (menggunakan vars dari script.js) -->
+            <script src="auth.js"></script>
+            <!-- 4. Auth Engine (Login/Register Modal UI, Google OAuth) -->
+            <script src="auth_engine.js"></script>
+            <!-- 5. Admin CMS (hanya untuk fitur admin) -->
+            <script src="admin_cms.js"></script>
 </body>
 
 </html>

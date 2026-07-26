@@ -1,4 +1,4 @@
-﻿// Menyimpan state kategori aktif
+// Menyimpan state kategori aktif
 function renderUMKM(category = currentCategory, searchQuery = '') {
     currentCategory = category;
     umkmGrid.innerHTML = '';
@@ -79,7 +79,6 @@ function openStore(id) {
     storeInfoCard.innerHTML = `
         <img src="${umkm.image}" alt="${umkm.name}" class="store-avatar">
         <h2>${officialBadge} ${umkm.name}</h2>
-        <p class="online-status">Online 5 Menit Lalu</p>
         <p class="store-location"><i class="fas fa-map-marker-alt"></i> ${umkm.location}</p>
         
         <div class="store-action-buttons">
@@ -193,7 +192,7 @@ function openStore(id) {
 
 // ======================= CART LOGIC =======================
 function saveCart() {
-    localStorage.setItem('umkm_cart', JSON.stringify(cart));
+    localStorage.setItem(getUserKey('umkm_cart'), JSON.stringify(cart));
     updateCartBadge();
 }
 
@@ -257,10 +256,16 @@ function updateCartSummary() {
         if (totalCheckedItems === 0) {
             cartCheckoutBtn.disabled = true;
             cartCheckoutBtn.style.opacity = '0.5';
+            cartCheckoutBtn.textContent = 'Pilih produk dulu';
             cartCheckoutBtn.onclick = null;
         } else {
             cartCheckoutBtn.disabled = false;
             cartCheckoutBtn.style.opacity = '1';
+            if (activeStores > 1) {
+                cartCheckoutBtn.textContent = 'Beli via WhatsApp (Pilih 1 UMKM)';
+            } else {
+                cartCheckoutBtn.textContent = `Beli via WhatsApp (${totalCheckedItems})`;
+            }
             cartCheckoutBtn.onclick = () => {
                 if (activeStores > 1) {
                     alert("Maaf, checkout via WhatsApp hanya bisa dilakukan untuk 1 UMKM dalam satu waktu. Silakan centang produk dari 1 toko saja.");

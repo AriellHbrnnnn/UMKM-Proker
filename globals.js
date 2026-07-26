@@ -7,6 +7,17 @@ let recentlyViewed = [];
 let followedShops = [];
 let userCollections = [];
 
+window.openLoginModal = function(toRegister = false) {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.classList.remove('hidden');
+        loginModal.style.display = 'flex';
+    }
+    if (typeof window.showAuthScreen === 'function') {
+        window.showAuthScreen(toRegister ? 'authScreen5' : 'authScreen1');
+    }
+};
+
 let umkmData = [];
 const DATABASE_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/umkmData.json";
 
@@ -92,7 +103,7 @@ let slideInterval;
 let currentUser = null;
 let cart = {};
 try {
-    cart = JSON.parse(localStorage.getItem('umkm_cart')) || {};
+    cart = JSON.parse(localStorage.getItem(getUserKey('umkm_cart'))) || {};
 } catch (e) {
     console.warn('Iframe localStorage blocked');
 }

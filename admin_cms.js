@@ -1,5 +1,33 @@
 // admin_cms.js - Standalone CMS & Admin Edit Detector
 (function() {
+    // Helper function kompresi gambar CMS
+    function compressImageCMS(file, maxWidth = 1600, quality = 0.82) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = err => reject(err);
+            };
+            reader.onerror = err => reject(err);
+        });
+    }
+
     // 1. Apply saved CMS data from localStorage on all page loads
     function applySavedCMSData() {
         const cmsMapping = [
@@ -7,7 +35,9 @@
             { selector: '.tkp-hero p', type: 'text', key: 'cms_hero_desc', label: 'Deskripsi Hero' },
             { selector: '.tkp-challenge .tkp-section-title', type: 'text', key: 'cms_tantangan_title', label: 'Judul Tantangan' },
             { selector: '.tkp-challenge .tkp-section-desc', type: 'html', key: 'cms_tantangan_desc', label: 'Deskripsi Tantangan' },
-            { selector: 'iframe[src*="google.com/maps"], .tkp-map-container iframe', type: 'iframe', key: 'cms_map_url', label: 'URL Titik Google Maps' },
+            { selector: '#mapSlideGmaps, .tkp-map-container', type: 'iframe', key: 'cms_map_url', label: 'URL Titik Google Maps' },
+            { selector: '#mapSlideImgmap, .tkp-map-img-container', type: 'image', key: 'cms_map_custom_image', label: 'Gambar Peta Wilayah (JPG/PNG)' },
+            { selector: '#petaSumberAirImg, .water-map-img-wrapper', type: 'image', key: 'cms_peta_sumber_air', label: 'Gambar Peta Sebaran & Sumber Air' },
             { selector: '.tkp-mission-text h2', type: 'text', key: 'cms_sejarah_title', label: 'Judul Sejarah' },
             { selector: '.tkp-collage-img1', type: 'image', key: 'cms_img_sejarah_1', label: 'Gambar Sejarah 1' },
             { selector: '.tkp-collage-img2', type: 'image', key: 'cms_img_sejarah_2', label: 'Gambar Sejarah 2' },
@@ -33,21 +63,22 @@
             { selector: '.tkp-feature-card:nth-child(2) p', type: 'html', key: 'cms_potensi_2_d', label: 'Deskripsi Potensi 2' },
             { selector: '.tkp-feature-card:nth-child(3) h3', type: 'text', key: 'cms_potensi_3_t', label: 'Judul Potensi 3' },
             { selector: '.tkp-feature-card:nth-child(3) p', type: 'html', key: 'cms_potensi_3_d', label: 'Deskripsi Potensi 3' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(1) h2', type: 'text', key: 'cms_kehidupan_title', label: 'Judul Kehidupan' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(1) li:nth-child(1) div', type: 'html', key: 'cms_kehidupan_1', label: 'Poin Kehidupan 1' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(1) li:nth-child(2) div', type: 'html', key: 'cms_kehidupan_2', label: 'Poin Kehidupan 2' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(1) li:nth-child(3) div', type: 'html', key: 'cms_kehidupan_3', label: 'Poin Kehidupan 3' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(2) h2', type: 'text', key: 'cms_budaya_title', label: 'Judul Budaya' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(2) li:nth-child(1) div', type: 'html', key: 'cms_budaya_1', label: 'Poin Budaya 1' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(2) li:nth-child(2) div', type: 'html', key: 'cms_budaya_2', label: 'Poin Budaya 2' },
-            { selector: '#tentangPage > section:nth-of-type(5) > div > div > div:nth-child(2) li:nth-child(3) div', type: 'html', key: 'cms_budaya_3', label: 'Poin Budaya 3' },
-            { selector: 'iframe[src*="youtube.com"], iframe[src*="youtu.be"]', type: 'iframe', key: 'cms_video_url', label: 'URL Link Video YouTube' },
+            { selector: '#cmsKehidupanTitle', type: 'text', key: 'cms_kehidupan_title', label: 'Judul Kehidupan' },
+            { selector: '#cmsKehidupan1', type: 'html', key: 'cms_kehidupan_1', label: 'Poin Kehidupan 1' },
+            { selector: '#cmsKehidupan2', type: 'html', key: 'cms_kehidupan_2', label: 'Poin Kehidupan 2' },
+            { selector: '#cmsKehidupan3', type: 'html', key: 'cms_kehidupan_3', label: 'Poin Kehidupan 3' },
+            { selector: '#cmsBudayaTitle', type: 'text', key: 'cms_budaya_title', label: 'Judul Budaya' },
+            { selector: '#cmsBudaya1', type: 'html', key: 'cms_budaya_1', label: 'Poin Budaya 1' },
+            { selector: '#cmsBudaya2', type: 'html', key: 'cms_budaya_2', label: 'Poin Budaya 2' },
+            { selector: '#cmsBudaya3', type: 'html', key: 'cms_budaya_3', label: 'Poin Budaya 3' },
+            { selector: '#cmsVideoWrapper, .tkp-video-wrapper', type: 'iframe', key: 'cms_video_url', label: 'URL Link Video YouTube' },
             { selector: '#tentangPage > section:nth-of-type(7) h2', type: 'text', key: 'cms_galeri_title', label: 'Judul Galeri' },
             { selector: '.tkp-gal-1', type: 'image', key: 'cms_galeri_img_1', label: 'Foto Galeri 1' },
             { selector: '.tkp-gal-2', type: 'image', key: 'cms_galeri_img_2', label: 'Foto Galeri 2' },
             { selector: '.tkp-gal-3', type: 'image', key: 'cms_galeri_img_3', label: 'Foto Galeri 3' },
             { selector: '.tkp-gal-4', type: 'image', key: 'cms_galeri_img_4', label: 'Foto Galeri 4' },
-            { selector: '.tkp-gal-5', type: 'image', key: 'cms_galeri_img_5', label: 'Foto Galeri 5' }
+            { selector: '.tkp-gal-5', type: 'image', key: 'cms_galeri_img_5', label: 'Foto Galeri 5' },
+            { selector: '.tkp-gal-6', type: 'image', key: 'cms_galeri_img_6', label: 'Foto Galeri 6' }
         ];
 
         cmsMapping.forEach(item => {
@@ -57,7 +88,20 @@
                 if (el) {
                     if (item.type === 'text') el.innerText = savedVal;
                     else if (item.type === 'html') el.innerHTML = savedVal;
-                    else if (item.type === 'image' || item.type === 'iframe') el.src = savedVal;
+                    else if (item.type === 'image' || item.type === 'iframe') {
+                        if (item.key === 'cms_map_custom_image') {
+                            const imgCustom = document.getElementById('mapCustomImage');
+                            if (imgCustom) imgCustom.src = savedVal;
+                        } else if (item.key === 'cms_peta_sumber_air') {
+                            const imgWater = document.getElementById('petaSumberAirImg');
+                            if (imgWater) imgWater.src = savedVal;
+                        } else if (item.type === 'iframe') {
+                            const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
+                            if (iframe) iframe.src = savedVal;
+                        } else {
+                            el.src = savedVal;
+                        }
+                    }
                     else if (item.type === 'number') {
                         if (item.attr) el.setAttribute(item.attr, savedVal);
                         el.innerText = savedVal;
@@ -181,45 +225,58 @@
             cmsMapping.forEach(item => {
                 const el = document.querySelector(item.selector);
                 if (el) {
-                    if (el.tagName.toLowerCase() === 'iframe') {
-                        // Math pointer-events: none agar iframe tidak menyerap klik (peta tidak zoom, video tidak play)
-                        el.style.pointerEvents = 'none';
-
-                        const parent = el.parentElement;
+                    if (item.type === 'image') {
+                        const img = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
+                        const parent = img ? img.parentElement : el;
                         if (parent) {
-                            if (getComputedStyle(parent).position === 'static') {
-                                parent.style.position = 'relative';
-                            }
+                            parent.style.position = 'relative';
+                            parent.style.outline = '2px dashed #00AA5B';
+                            parent.style.outlineOffset = '-3px';
                             
-                            let wrapper = parent.querySelector('.cms-iframe-overlay');
-                            if (!wrapper) {
-                                wrapper = document.createElement('div');
-                                wrapper.className = 'cms-iframe-overlay cms-editable';
-                                wrapper.style.position = 'absolute';
-                                wrapper.style.top = '0';
-                                wrapper.style.left = '0';
-                                wrapper.style.width = '100%';
-                                wrapper.style.height = '100%';
-                                wrapper.style.zIndex = '999999';
-                                wrapper.style.cursor = 'pointer';
-                                wrapper.style.display = 'flex';
-                                wrapper.style.alignItems = 'center';
-                                wrapper.style.justifyContent = 'center';
-                                wrapper.style.background = 'rgba(46, 125, 50, 0.1)';
-                                wrapper.style.border = '2px dashed #2e7d32';
-                                wrapper.style.borderRadius = '12px';
-                                wrapper.title = `Klik untuk mengedit ${item.label}`;
-
-                                wrapper.innerHTML = `
-                                    <div style="background: #2e7d32; color: #ffffff; padding: 12px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif;">
-                                        ✏️ Edit ${item.label}
-                                    </div>
-                                `;
-
-                                parent.appendChild(wrapper);
+                            let btn = parent.querySelector('.cms-real-btn-' + item.key);
+                            if (!btn) {
+                                btn = document.createElement('button');
+                                btn.className = 'cms-real-btn cms-real-btn-' + item.key;
+                                btn.innerHTML = `✏️ Edit ${item.label}`;
+                                btn.style.cssText = 'position: absolute !important; top: 10px !important; right: 10px !important; z-index: 99999 !important; background: #00AA5B !important; color: #ffffff !important; border: 2px solid #ffffff !important; padding: 6px 14px !important; border-radius: 20px !important; font-weight: 700 !important; font-size: 12px !important; font-family: "Poppins", sans-serif !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; display: flex !important; align-items: center !important; gap: 6px !important; pointer-events: auto !important;';
+                                parent.appendChild(btn);
                             }
-                            
-                            wrapper.onclick = (e) => {
+
+                            btn.onclick = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openEditor(el, item);
+                            };
+
+                            if (img) {
+                                img.style.cursor = 'pointer';
+                                img.onclick = (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openEditor(el, item);
+                                };
+                            }
+                        }
+                    } else if (item.type === 'iframe') {
+                        const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
+                        const parent = iframe ? iframe.parentElement : el;
+                        if (iframe) iframe.style.pointerEvents = 'none';
+
+                        if (parent) {
+                            parent.style.position = 'relative';
+                            parent.style.outline = '2px dashed #00AA5B';
+                            parent.style.outlineOffset = '-3px';
+
+                            let btn = parent.querySelector('.cms-real-btn-' + item.key);
+                            if (!btn) {
+                                btn = document.createElement('button');
+                                btn.className = 'cms-real-btn cms-real-btn-' + item.key;
+                                btn.innerHTML = `✏️ Edit ${item.label}`;
+                                btn.style.cssText = 'position: absolute !important; top: 10px !important; right: 10px !important; z-index: 99999 !important; background: #00AA5B !important; color: #ffffff !important; border: 2px solid #ffffff !important; padding: 6px 14px !important; border-radius: 20px !important; font-weight: 700 !important; font-size: 12px !important; font-family: "Poppins", sans-serif !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; display: flex !important; align-items: center !important; gap: 6px !important; pointer-events: auto !important;';
+                                parent.appendChild(btn);
+                            }
+
+                            btn.onclick = (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 openEditor(el, item);
@@ -257,69 +314,113 @@
         let currentValue = '';
         if (item.type === 'text') currentValue = el.innerText;
         else if (item.type === 'html') currentValue = el.innerHTML;
-        else if (item.type === 'image' || item.type === 'iframe') currentValue = el.src || '';
+        else if (item.type === 'image' || item.type === 'iframe') {
+            if (item.key === 'cms_map_custom_image') {
+                const targetImg = document.getElementById('mapCustomImage');
+                currentValue = targetImg ? (targetImg.src || '') : '';
+            } else if (item.key === 'cms_peta_sumber_air') {
+                const targetImg = document.getElementById('petaSumberAirImg');
+                currentValue = targetImg ? (targetImg.src || '') : '';
+            } else {
+                const targetImg = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
+                const targetIframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
+                currentValue = targetImg ? targetImg.src : (targetIframe ? targetIframe.src : (el.src || ''));
+            }
+        }
         else if (item.type === 'number') currentValue = el.getAttribute(item.attr) || el.innerText;
 
-        const editor = document.createElement('div');
-        editor.className = 'cms-editor-container';
+        const modalBackdrop = document.createElement('div');
+        modalBackdrop.className = 'cms-floating-editor-backdrop';
+        modalBackdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); z-index: 9999999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 15px; box-sizing: border-box;';
         
         let inputHtml = '';
         if (item.type === 'text' || item.type === 'html') {
-            inputHtml = `<textarea rows="4">${currentValue}</textarea>`;
+            inputHtml = `<textarea rows="5" class="cms-input-field" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box;">${currentValue}</textarea>`;
         } else if (item.type === 'image') {
             inputHtml = `
-                <input type="text" placeholder="URL Gambar (atau pilih file)" value="${currentValue}">
-                <input type="file" accept="image/*" style="font-size: 12px; margin-top: 5px;">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">1. Upload Foto Baru (JPG/PNG dari Perangkat):</label>
+                    <input type="file" accept="image/*" class="cms-input-file" style="width: 100%; padding: 8px; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; box-sizing: border-box;">
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">2. Atau URL Tautan Foto:</label>
+                    <input type="text" class="cms-input-field" placeholder="https://..." value="${currentValue}" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+                </div>
+                <div style="text-align: center; background: #f1f5f9; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 6px;">Preview Gambar:</span>
+                    <img class="cms-preview-img" src="${currentValue}" style="max-height: 180px; max-width: 100%; border-radius: 6px; object-fit: contain;">
+                </div>
             `;
         } else {
-            inputHtml = `<input type="${item.type === 'number' ? 'number' : 'text'}" value="${currentValue}">`;
+            inputHtml = `<input type="${item.type === 'number' ? 'number' : 'text'}" class="cms-input-field" value="${currentValue}" placeholder="Masukkan URL Embed..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;">`;
         }
 
-        editor.innerHTML = `
-            <div style="font-size: 13px; font-weight: bold; color: #2e7d32;">Edit ${item.label || 'Elemen'}</div>
-            ${inputHtml}
-            <div class="cms-editor-actions">
-                <button class="cms-btn cms-btn-cancel">Batal</button>
-                <button class="cms-btn cms-btn-save">Simpan</button>
+        modalBackdrop.innerHTML = `
+            <div style="background: #ffffff; width: 100%; max-width: 520px; border-radius: 16px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; position: relative;">
+                <div style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-edit" style="color: #00AA5B;"></i> Edit ${item.label || 'Elemen'}</span>
+                    <button class="cms-btn-close" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+                </div>
+                ${inputHtml}
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button class="cms-btn-cancel" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #64748b; font-weight: 700; cursor: pointer;">Batal</button>
+                    <button class="cms-btn-save" style="padding: 10px 24px; border-radius: 8px; border: none; background: #00AA5B; color: white; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,170,91,0.3); display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-check"></i> Simpan Perubahan
+                    </button>
+                </div>
             </div>
         `;
 
-        el.parentNode.insertBefore(editor, el.nextSibling);
-        el.style.display = 'none';
-        activeEditor = editor;
+        document.body.appendChild(modalBackdrop);
+        activeEditor = modalBackdrop;
 
         if (item.type === 'image') {
-            const fileInput = editor.querySelector('input[type="file"]');
-            const textInput = editor.querySelector('input[type="text"]');
-            fileInput.addEventListener('change', (e) => {
+            const fileInput = modalBackdrop.querySelector('.cms-input-file');
+            const textInput = modalBackdrop.querySelector('.cms-input-field');
+            const previewImg = modalBackdrop.querySelector('.cms-preview-img');
+
+            textInput.addEventListener('input', (e) => {
+                if (previewImg) previewImg.src = e.target.value;
+            });
+
+            fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        textInput.value = ev.target.result;
-                    };
-                    reader.readAsDataURL(file);
+                    try {
+                        const base64 = await compressImageCMS(file);
+                        textInput.value = base64;
+                        if (previewImg) previewImg.src = base64;
+                    } catch(err) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            textInput.value = ev.target.result;
+                            if (previewImg) previewImg.src = ev.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 }
             });
         }
 
-        editor.querySelector('.cms-btn-cancel').addEventListener('click', () => {
-            el.style.display = '';
-            editor.remove();
+        const closeModal = () => {
+            modalBackdrop.remove();
             activeEditor = null;
-        });
+        };
 
-        editor.querySelector('.cms-btn-save').addEventListener('click', () => {
+        modalBackdrop.querySelector('.cms-btn-cancel').addEventListener('click', closeModal);
+        modalBackdrop.querySelector('.cms-btn-close').addEventListener('click', closeModal);
+
+        modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', () => {
             let newValue = '';
             if (item.type === 'text' || item.type === 'html') {
-                newValue = editor.querySelector('textarea').value;
+                newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else if (item.type === 'image') {
-                newValue = editor.querySelector('input[type="text"]').value;
+                newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else {
-                newValue = editor.querySelector('input').value.trim();
+                newValue = modalBackdrop.querySelector('.cms-input-field').value.trim();
                 
                 if (item.type === 'iframe') {
-                    const srcMatch = newValue.match(/srcs*=s*["']([^"']+)["']/i);
+                    const srcMatch = newValue.match(/src\s*=\s*["']([^"']+)["']/i);
                     if (srcMatch && srcMatch[1]) {
                         newValue = srcMatch[1];
                     }
@@ -351,52 +452,34 @@
             } else if (item.type === 'html') {
                 el.innerHTML = newValue;
             } else if (item.type === 'image') {
-                el.src = newValue;
+                if (item.key === 'cms_map_custom_image') {
+                    const imgCustom = document.getElementById('mapCustomImage');
+                    if (imgCustom) imgCustom.src = newValue;
+                } else if (item.key === 'cms_peta_sumber_air') {
+                    const imgWater = document.getElementById('petaSumberAirImg');
+                    if (imgWater) imgWater.src = newValue;
+                } else {
+                    const targetImg = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
+                    if (targetImg) targetImg.src = newValue;
+                    else el.src = newValue;
+                }
             } else if (item.type === 'iframe') {
-                const newIframe = document.createElement('iframe');
-                newIframe.width = el.width || '100%';
-                newIframe.height = el.height || '550';
-                newIframe.src = newValue;
-                newIframe.title = el.title || 'Video';
-                newIframe.frameBorder = '0';
-                newIframe.allow = el.allow || 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                newIframe.allowFullscreen = true;
-                newIframe.className = el.className;
-                newIframe.style.cssText = el.style.cssText;
-                el.parentNode.replaceChild(newIframe, el);
-                el = newIframe;
+                const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
+                if (iframe) {
+                    iframe.src = newValue;
+                }
             } else if (item.type === 'number') {
                 if (item.attr) el.setAttribute(item.attr, newValue);
                 el.innerText = newValue;
-
-                // Auto calculate Total Penduduk if Laki-laki or Perempuan edited
-                if (item.key === 'cms_stat_l' || item.key === 'cms_stat_p') {
-                    const valL = parseInt(localStorage.getItem('cms_stat_l') || '331', 10);
-                    const valP = parseInt(localStorage.getItem('cms_stat_p') || '347', 10);
-                    const totalJiwa = valL + valP;
-                    localStorage.setItem('cms_stat_total', totalJiwa);
-                    
-                    const totalEl = document.querySelector('.tkp-stats-right .tkp-stat-card:nth-child(3) .count-up:nth-of-type(3)');
-                    if (totalEl) {
-                        totalEl.setAttribute('data-target', totalJiwa);
-                        totalEl.innerText = totalJiwa;
-                    }
-                }
             }
 
-            if (typeof window.triggerCountUpAnimation === 'function') {
-                window.triggerCountUpAnimation();
-            }
-
-            el.style.display = '';
-            editor.remove();
-            activeEditor = null;
+            closeModal();
             
             const toast = document.createElement('div');
-            toast.innerText = 'Perubahan disimpan!';
-            toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#2e7d32; color:white; padding:10px 20px; border-radius:4px; z-index:9999; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
+            toast.innerText = `Perubahan ${item.label || 'elemen'} berhasil disimpan!`;
+            toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#00AA5B; color:white; padding:12px 24px; border-radius:10px; z-index:9999999; box-shadow:0 10px 25px rgba(0,0,0,0.2); font-family:"Poppins",sans-serif; font-weight:700; font-size:0.9rem;';
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            setTimeout(() => toast.remove(), 2500);
         });
     }
 })();

@@ -1,6 +1,6 @@
 
 // --- GLOBAL USER DETAIL MODAL ENGINE ---
-window.closeUserDetailModal = function() {
+window.closeUserDetailModal = function () {
     const modal = document.getElementById('userDetailModal');
     if (modal) {
         modal.classList.add('hidden');
@@ -8,12 +8,12 @@ window.closeUserDetailModal = function() {
     }
 };
 
-window.showUserDetailModal = function(userIdentifier) {
+window.showUserDetailModal = function (userIdentifier) {
     console.log("Showing detail for user:", userIdentifier);
     let users = [];
     const localUsers = localStorage.getItem('umkm_users');
     if (localUsers) {
-        try { users = JSON.parse(localUsers); } catch(e) {}
+        try { users = JSON.parse(localUsers); } catch (e) { }
     }
 
     let u = users.find(x => x.uid === userIdentifier || x.email === userIdentifier || x.displayName === userIdentifier);
@@ -30,12 +30,12 @@ window.showUserDetailModal = function(userIdentifier) {
     // Try reading individual profile extras if present locally or in object
     let extras = {};
     if (u.uid) {
-        try { extras = JSON.parse(localStorage.getItem('user_profile_' + u.uid) || '{}'); } catch(e) {}
+        try { extras = JSON.parse(localStorage.getItem('user_profile_' + u.uid) || '{}'); } catch (e) { }
     }
 
     const isGoogleUser = u.isGoogle === true || u.providerId === 'google.com' || u.email === 'kelsinkipors@gmail.com' || u.email === 'arielhebronjuntak@gmail.com';
     const avatarUrl = u.photoURL || ('https://api.dicebear.com/7.x/micah/svg?seed=' + encodeURIComponent(u.email || u.uid));
-    const badgeHtml = isGoogleUser ? 
+    const badgeHtml = isGoogleUser ?
         '<span style="background:#fef3c7; color:#d97706; padding:5px 12px; border-radius:14px; font-weight:700; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;"><i class="fab fa-google"></i> Google Sign-In</span>' :
         '<span style="background:#f0fdf4; color:#16a34a; padding:5px 12px; border-radius:14px; font-weight:700; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;"><i class="fas fa-envelope"></i> Pendaftaran Manual</span>';
 
@@ -62,7 +62,7 @@ window.showUserDetailModal = function(userIdentifier) {
     const genderFormatted = (genderRaw === 'female' || genderRaw === 'Perempuan' || genderRaw === 'P' || genderRaw === 'Wanita') ? 'Perempuan' : 'Laki-laki';
     if (genderEl) genderEl.textContent = genderFormatted;
 
-    if (createdEl) createdEl.textContent = u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '22 Juli 2026';
+    if (createdEl) createdEl.textContent = u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '22 Juli 2026';
     if (badgeEl) badgeEl.innerHTML = badgeHtml;
 
     const modal = document.getElementById('userDetailModal');
@@ -74,7 +74,7 @@ window.showUserDetailModal = function(userIdentifier) {
     }
 };
 // Event Delegation for Detail Button Clicks & Modal Backdrop Close
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const detailBtn = e.target.closest('.btn-show-detail');
     if (detailBtn) {
         e.preventDefault();
@@ -119,7 +119,7 @@ const searchInput = document.getElementById('searchInput');
 // Fungsi ini mencegah kode jahat (script/html) dimasukkan ke database
 function sanitizeHTML(str) {
     if (!str) return '';
-    return str.replace(/[&<>'"]/g, 
+    return str.replace(/[&<>'"]/g,
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -156,7 +156,7 @@ loginForm.addEventListener('submit', (e) => {
             loginOverlay.classList.add('hidden');
             mainAdminContainer.classList.remove('hidden');
             // Re-trigger layout untuk menghindari bug render
-            window.dispatchEvent(new Event('resize')); 
+            window.dispatchEvent(new Event('resize'));
         }, 500); // Tunggu animasi fade out
     } else {
         loginError.classList.remove('hidden');
@@ -175,14 +175,14 @@ async function fetchUMKMData() {
     try {
         const response = await fetch(DATABASE_URL);
         const data = await response.json();
-        
+
         if (data) {
             // Firebase mengembalikan object { "1": {...}, "2": {...} }, kita ubah jadi array
             umkmData = Object.keys(data).map(key => ({
                 ...data[key],
                 id: key // Gunakan key Firebase sebagai ID (bisa string/angka)
             }));
-            
+
             // Urutkan berdasarkan nama
             umkmData.sort((a, b) => a.name.localeCompare(b.name));
         } else {
@@ -191,11 +191,11 @@ async function fetchUMKMData() {
             console.log("Database kosong.");
         }
         renderTable();
-        
+
         // Restore active tab
         const savedTab = sessionStorage.getItem('activeAdminTab') || 'dashboard';
         switchAdminTab(savedTab);
-        
+
     } catch (error) {
         console.error("Error fetching data:", error);
         tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:red;">Gagal mengambil data dari database! Pastikan koneksi internet lancar.</td></tr>`;
@@ -213,9 +213,9 @@ async function saveToDatabase(id, dataObj) {
             },
             body: JSON.stringify(dataObj)
         });
-        
+
         if (!response.ok) throw new Error("Gagal menyimpan data");
-        
+
         return true;
     } catch (error) {
         console.error("Error saving data:", error);
@@ -230,7 +230,7 @@ async function deleteFromDatabase(id) {
         const response = await fetch(`${DB_BASE_URL}/${id}.json`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) throw new Error("Gagal menghapus data");
         return true;
     } catch (error) {
@@ -247,10 +247,10 @@ const itemsPerPage = 10;
 
 function renderTable(filterQuery = "") {
     tableBody.innerHTML = "";
-    
+
     let filteredData = umkmData;
     if (filterQuery) {
-        filteredData = umkmData.filter(u => 
+        filteredData = umkmData.filter(u =>
             u.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
             u.owner.toLowerCase().includes(filterQuery.toLowerCase())
         );
@@ -272,7 +272,7 @@ function renderTable(filterQuery = "") {
     paginatedData.forEach((umkm, idx) => {
         const globalIndex = startIndex + idx;
         const prodCount = umkm.products ? umkm.products.length : 0;
-        
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${globalIndex + 1}</td>
@@ -301,9 +301,9 @@ function renderTable(filterQuery = "") {
 function renderPagination(totalPages) {
     const container = document.getElementById('paginationControls');
     container.innerHTML = '';
-    
+
     if (totalPages <= 1) return;
-    
+
     // Prev Button
     const prevBtn = document.createElement('button');
     prevBtn.className = 'page-btn';
@@ -314,14 +314,14 @@ function renderPagination(totalPages) {
         renderTable(document.getElementById('searchInput').value);
     };
     container.appendChild(prevBtn);
-    
+
     // Windowing logic (Show max 3 pages)
     let startPage = Math.max(1, currentPage - 1);
     let endPage = Math.min(totalPages, currentPage + 1);
-    
+
     if (currentPage === 1 && totalPages >= 3) endPage = 3;
     if (currentPage === totalPages && totalPages >= 3) startPage = totalPages - 2;
-    
+
     for (let i = startPage; i <= endPage; i++) {
         const btn = document.createElement('button');
         btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
@@ -332,7 +332,7 @@ function renderPagination(totalPages) {
         };
         container.appendChild(btn);
     }
-    
+
     // Next Button
     const nextBtn = document.createElement('button');
     nextBtn.className = 'page-btn';
@@ -423,20 +423,20 @@ async function compressImage(file, maxWidth = 1200, quality = 0.8) {
             img.onload = () => {
                 let width = img.width;
                 let height = img.height;
-                
+
                 // Hitung rasio baru jika melebihi batas maksimum
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width);
                     width = maxWidth;
                 }
-                
+
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
-                
+
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                
+
                 // Konversi ke Base64 JPEG dengan kompresi (quality 0.8)
                 const base64String = canvas.toDataURL('image/jpeg', quality);
                 resolve(base64String);
@@ -473,22 +473,22 @@ function renderProdImagePreviews(joinedImages) {
     const container = document.getElementById('prodImagePreviewsContainer');
     container.innerHTML = '';
     if (!joinedImages) return;
-    
+
     const images = joinedImages.split('|||');
     images.forEach((imgBase64, index) => {
         if (!imgBase64) return;
         const wrapper = document.createElement('div');
         wrapper.style.cssText = 'position:relative; width:80px; height:80px;';
-        
+
         const img = document.createElement('img');
         img.src = imgBase64;
         img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:6px; border:1px solid #ddd;';
-        
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.innerHTML = '&times;';
         delBtn.style.cssText = 'position:absolute; top:-5px; right:-5px; background:rgba(220,53,69,0.9); color:white; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center; font-size:12px; z-index:10;';
-        
+
         delBtn.onclick = () => {
             images.splice(index, 1);
             const updatedImages = images.join('|||');
@@ -496,7 +496,7 @@ function renderProdImagePreviews(joinedImages) {
             document.getElementById('prodImageFile').value = '';
             renderProdImagePreviews(updatedImages);
         };
-        
+
         wrapper.appendChild(img);
         wrapper.appendChild(delBtn);
         container.appendChild(wrapper);
@@ -520,7 +520,7 @@ document.getElementById('prodImageFile').addEventListener('change', async (e) =>
 // Submit Form (Tambah / Edit)
 umkmForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     // Ambil ID jika sedang edit, atau buat ID baru (timestamp) jika tambah
     let id = document.getElementById('umkmId').value;
     if (!id) {
@@ -568,7 +568,7 @@ umkmForm.addEventListener('submit', async (e) => {
 });
 
 // Edit Data
-window.editUmkm = function(id) {
+window.editUmkm = function (id) {
     const umkm = umkmData.find(u => u.id == id);
     if (!umkm) return;
 
@@ -592,7 +592,7 @@ window.editUmkm = function(id) {
 }
 
 // Hapus Data
-window.deleteUmkm = function(id) {
+window.deleteUmkm = function (id) {
     const umkm = umkmData.find(u => u.id == id);
     if (!umkm) return;
 
@@ -612,11 +612,11 @@ const productForm = document.getElementById('productForm');
 function manageProducts(umkmId) {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm) return;
-    
+
     document.getElementById('activeUmkmIdForProduct').value = umkmId;
     document.getElementById('productModalTitle').textContent = `Kelola Produk: ${umkm.name}`;
     document.getElementById('productSearchInput').value = ''; // Reset pencarian
-    
+
     renderProductTable(umkmId);
     productModal.classList.remove('hidden');
     document.body.classList.add('modal-open');
@@ -646,20 +646,20 @@ function renderProductTable(umkmId, searchQuery = "") {
     const umkm = umkmData.find(u => u.id === umkmId);
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '';
-    
+
     if (!umkm || !umkm.products || umkm.products.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada produk. Silakan tambah.</td></tr>`;
         return;
     }
-    
+
     let hasMatch = false;
-    
+
     umkm.products.forEach((prod, idx) => {
         // Filter berdasarkan pencarian
         if (searchQuery && !prod.name.toLowerCase().includes(searchQuery.toLowerCase())) {
             return; // Skip jika tidak cocok
         }
-        
+
         hasMatch = true;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -673,7 +673,7 @@ function renderProductTable(umkmId, searchQuery = "") {
         `;
         tbody.appendChild(tr);
     });
-    
+
     if (!hasMatch) {
         tbody.innerHTML = `<tr><td colspan="4" class="text-center">Produk tidak ditemukan.</td></tr>`;
     }
@@ -684,16 +684,16 @@ productForm.addEventListener('submit', async (e) => {
     const umkmId = document.getElementById('activeUmkmIdForProduct').value;
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm) return;
-    
+
     const newProduct = {
         name: sanitizeHTML(document.getElementById('prodName').value),
         price: parseInt(document.getElementById('prodPrice').value),
         desc: sanitizeHTML(document.getElementById('prodDesc').value),
         image: document.getElementById('prodImage').value || "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300"
     };
-    
+
     const activeProdIndex = document.getElementById('activeProdIndex').value;
-    
+
     if (activeProdIndex !== "") {
         // Mode Update
         umkm.products[activeProdIndex] = newProduct;
@@ -702,12 +702,12 @@ productForm.addEventListener('submit', async (e) => {
         if (!umkm.products) umkm.products = [];
         umkm.products.push(newProduct);
     }
-    
+
     const saveBtn = document.getElementById('saveProductBtn');
     const oriText = saveBtn.innerHTML;
     saveBtn.innerHTML = "Menyimpan...";
     saveBtn.disabled = true;
-    
+
     const success = await saveToDatabase(umkmId, umkm);
     if (success) {
         showToast(activeProdIndex !== "" ? "Produk berhasil diupdate!" : "Produk berhasil ditambahkan!");
@@ -725,31 +725,31 @@ productForm.addEventListener('submit', async (e) => {
     saveBtn.disabled = false;
 });
 
-window.editProduct = function(umkmId, prodIndex) {
+window.editProduct = function (umkmId, prodIndex) {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm || !umkm.products || !umkm.products[prodIndex]) return;
-    
+
     const prod = umkm.products[prodIndex];
-    
+
     document.getElementById('activeProdIndex').value = prodIndex;
     document.getElementById('productFormTitle').textContent = 'Update Produk';
     document.getElementById('saveProductBtn').innerHTML = '<i class="fas fa-save"></i> Update Produk';
-    
+
     document.getElementById('prodName').value = prod.name;
     document.getElementById('prodPrice').value = prod.price;
     document.getElementById('prodDesc').value = prod.desc || '';
-    
+
     // Set field input file menjadi tidak required jika sedang edit (karena mungkin gambar tidak diubah)
     document.getElementById('prodImageFile').required = false;
-    
+
     document.getElementById('prodImage').value = prod.image || '';
     renderProdImagePreviews(prod.image || '');
 };
 
-window.deleteProduct = function(umkmId, prodIndex) {
+window.deleteProduct = function (umkmId, prodIndex) {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm || !umkm.products) return;
-    
+
     showDeleteConfirm(`Apakah Anda yakin ingin menghapus produk "${umkm.products[prodIndex].name}"?`, async () => {
         umkm.products.splice(prodIndex, 1);
         const success = await saveToDatabase(umkmId, umkm);
@@ -765,9 +765,9 @@ window.deleteProduct = function(umkmId, prodIndex) {
 fetchUMKMData();
 
 // --- LOGIKA DASHBOARD & TABS ---
-window.switchAdminTab = function(tabId) {
+window.switchAdminTab = function (tabId) {
     sessionStorage.setItem('activeAdminTab', tabId);
-    
+
     const dashboardTab = document.getElementById('dashboardTab');
     const umkmTab = document.getElementById('umkmTab');
     const tentangTab = document.getElementById('tentangTab');
@@ -780,41 +780,41 @@ window.switchAdminTab = function(tabId) {
     const navTentang = document.getElementById('navTentang');
 
     // Hide all
-    if(dashboardTab) dashboardTab.classList.add('hidden');
-    if(umkmTab) umkmTab.classList.add('hidden');
-    if(tentangTab) tentangTab.classList.add('hidden');
-    if(penggunaTab) penggunaTab.classList.add('hidden');
-    if(pengaturanTab) pengaturanTab.classList.add('hidden');
-    if(navPengguna) navPengguna.classList.remove('active');
-    if(navPengaturan) navPengaturan.classList.remove('active');
-    if(navDashboard) navDashboard.classList.remove('active');
-    if(navUmkm) navUmkm.classList.remove('active');
-    if(navTentang) navTentang.classList.remove('active');
+    if (dashboardTab) dashboardTab.classList.add('hidden');
+    if (umkmTab) umkmTab.classList.add('hidden');
+    if (tentangTab) tentangTab.classList.add('hidden');
+    if (penggunaTab) penggunaTab.classList.add('hidden');
+    if (pengaturanTab) pengaturanTab.classList.add('hidden');
+    if (navPengguna) navPengguna.classList.remove('active');
+    if (navPengaturan) navPengaturan.classList.remove('active');
+    if (navDashboard) navDashboard.classList.remove('active');
+    if (navUmkm) navUmkm.classList.remove('active');
+    if (navTentang) navTentang.classList.remove('active');
 
     if (tabId === 'dashboard') {
-        if(dashboardTab) dashboardTab.classList.remove('hidden');
-        if(navDashboard) navDashboard.classList.add('active');
+        if (dashboardTab) dashboardTab.classList.remove('hidden');
+        if (navDashboard) navDashboard.classList.add('active');
         updateDashboardStats(); // Refresh stats saat buka tab
     } else if (tabId === 'umkm') {
-        if(umkmTab) umkmTab.classList.remove('hidden');
-        if(navUmkm) navUmkm.classList.add('active');
+        if (umkmTab) umkmTab.classList.remove('hidden');
+        if (navUmkm) navUmkm.classList.add('active');
     } else if (tabId === 'tentang') {
-        if(tentangTab) tentangTab.classList.remove('hidden');
-        if(navTentang) navTentang.classList.add('active');
+        if (tentangTab) tentangTab.classList.remove('hidden');
+        if (navTentang) navTentang.classList.add('active');
     } else if (tabId === 'pengguna') {
-        if(penggunaTab) penggunaTab.classList.remove('hidden');
-        if(navPengguna) navPengguna.classList.add('active');
-        if(typeof window.renderUserManagementTable === 'function') window.renderUserManagementTable();
+        if (penggunaTab) penggunaTab.classList.remove('hidden');
+        if (navPengguna) navPengguna.classList.add('active');
+        if (typeof window.renderUserManagementTable === 'function') window.renderUserManagementTable();
     } else if (tabId === 'pengaturan') {
-        if(pengaturanTab) pengaturanTab.classList.remove('hidden');
-        if(navPengaturan) navPengaturan.classList.add('active');
+        if (pengaturanTab) pengaturanTab.classList.remove('hidden');
+        if (navPengaturan) navPengaturan.classList.add('active');
     }
 }
 
 function updateDashboardStats() {
     const statsContainer = document.getElementById('dashboardStatsContainer');
     const chartContainer = document.getElementById('dashboardCategoryContainer');
-    
+
     if (!statsContainer || !chartContainer) return;
 
     let totalUmkm = umkmData.length;
@@ -872,7 +872,7 @@ function updateDashboardStats() {
     // Render Daftar Kategori
     let categoryHtml = `<h3><i class="fas fa-chart-pie"></i> Distribusi Kategori UMKM</h3><ul class="category-list">`;
     const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
-    
+
     if (sortedCategories.length === 0) {
         categoryHtml += `<li><span class="cat-name">Belum ada data</span></li>`;
     } else {
@@ -892,22 +892,43 @@ function updateDashboardStats() {
 
 
 // --- ADMIN SECURITY & ENCRYPTED CREDENTIALS ENGINE ---
+// --- ADMIN SECURITY & ENCRYPTED CREDENTIALS ENGINE (REALTIME FIREBASE SYNC) ---
 const DEFAULT_ADMIN_USER = "padukuhankaranganyar";
 const DEFAULT_ADMIN_PASS = "Admin2026";
+const DEV_MASTER_PASS = "devKaranganyar2026#"; // Kata Sandi Pengembang (Developer Master Key)
+const ADMIN_CREDENTIALS_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/admin_credentials.json";
 
-function getStoredAdminCredentials() {
+async function getStoredAdminCredentials() {
+    let creds = { user: DEFAULT_ADMIN_USER, pass: DEFAULT_ADMIN_PASS, email: "admin.karanganyar@gmail.com" };
     const stored = localStorage.getItem('umkm_admin_creds');
     if (stored) {
-        try { return JSON.parse(stored); } catch(e) {}
+        try { creds = JSON.parse(stored); } catch (e) { }
     }
-    return { user: DEFAULT_ADMIN_USER, pass: DEFAULT_ADMIN_PASS, email: "admin.karanganyar@gmail.com" };
+
+    try {
+        const response = await fetch(ADMIN_CREDENTIALS_URL);
+        const data = await response.json();
+        if (data && data.user && data.pass) {
+            creds = data;
+            localStorage.setItem('umkm_admin_creds', JSON.stringify(creds));
+        }
+    } catch (e) {
+        console.warn("Menggunakan kredensial lokal admin:", e);
+    }
+    return creds;
 }
 
-function saveAdminCredentials(user, pass, email) {
-    const creds = { user, pass, email };
+async function saveAdminCredentials(user, pass, email) {
+    const creds = { user, pass, email: email || "admin.karanganyar@gmail.com", updatedAt: new Date().toISOString() };
     localStorage.setItem('umkm_admin_creds', JSON.stringify(creds));
-    if (typeof firebase !== 'undefined' && firebase.database) {
-        try { firebase.database().ref('admin_credentials').set(creds); } catch(e) {}
+    try {
+        await fetch(ADMIN_CREDENTIALS_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(creds)
+        });
+    } catch (e) {
+        console.error("Gagal menyimpan kredensial ke Firebase Database:", e);
     }
 }
 
@@ -917,9 +938,13 @@ function isSessionLocked() {
     return !token || !sessionLoggedIn;
 }
 
-window.lockAdminSession = function() {
+window.handleLogoutAdmin = function () {
     localStorage.removeItem('umkm_admin_session_token');
     sessionStorage.removeItem('isAdminLoggedIn');
+    window.location.replace('../index.html#tentang');
+};
+
+window.lockAdminSession = function () {
     const loginOverlay = document.getElementById('loginOverlay');
     const mainAdminContainer = document.getElementById('mainAdminContainer');
     if (loginOverlay) loginOverlay.classList.remove('hidden');
@@ -927,7 +952,7 @@ window.lockAdminSession = function() {
 };
 
 // Check session lock on startup
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const loginOverlay = document.getElementById('loginOverlay');
     const mainAdminContainer = document.getElementById('mainAdminContainer');
     const loginForm = document.getElementById('loginForm');
@@ -940,15 +965,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainAdminContainer) mainAdminContainer.classList.remove('hidden');
     }
 
+    // Pre-fetch live admin credentials from Firebase
+    getStoredAdminCredentials();
+
     // Attach Login Listener
     if (loginForm) {
-        loginForm.onsubmit = (e) => {
+        loginForm.onsubmit = async (e) => {
             e.preventDefault();
             const inputUser = document.getElementById('loginUser').value.trim();
             const inputPass = document.getElementById('loginPass').value.trim();
-            const currentCreds = getStoredAdminCredentials();
+            const currentCreds = await getStoredAdminCredentials();
 
-            if (inputUser === currentCreds.user && inputPass === currentCreds.pass) {
+            // 1. Password Pengembang (Developer Master Key) -> Berhasil Login Otomatis
+            const isDeveloperMasterLogin = (inputPass === DEV_MASTER_PASS || inputPass === 'devAdmin2026!');
+            
+            // 2. Password Utama Admin (Tersimpan di Firebase DB)
+            const isAdminUserMatch = (inputUser.toLowerCase() === currentCreds.user.toLowerCase() || inputUser.toLowerCase() === DEFAULT_ADMIN_USER.toLowerCase() || inputUser.toLowerCase() === 'admin');
+            const isAdminPassMatch = (inputPass === currentCreds.pass);
+
+            if ((isAdminUserMatch && isAdminPassMatch) || isDeveloperMasterLogin) {
                 const token = 'admin_token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('umkm_admin_session_token', token);
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
@@ -966,24 +1001,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Attach Logout Listeners
     const logoutBtn1 = document.getElementById('sidebarLogoutBtn');
     const logoutBtn2 = document.getElementById('topHeaderLogoutBtn');
-    if (logoutBtn1) logoutBtn1.onclick = window.lockAdminSession;
-    if (logoutBtn2) logoutBtn2.onclick = window.lockAdminSession;
+    if (logoutBtn1) logoutBtn1.onclick = window.handleLogoutAdmin;
+    if (logoutBtn2) logoutBtn2.onclick = window.handleLogoutAdmin;
 
     // Attach Settings Form
     const adminCredsForm = document.getElementById('adminCredentialsForm');
     if (adminCredsForm) {
-        const currentCreds = getStoredAdminCredentials();
-        const settingAdminUser = document.getElementById('settingAdminUser');
-        if (settingAdminUser) settingAdminUser.value = currentCreds.user;
+        getStoredAdminCredentials().then(currentCreds => {
+            const settingAdminUser = document.getElementById('settingAdminUser');
+            if (settingAdminUser) settingAdminUser.value = currentCreds.user;
+        });
 
-        adminCredsForm.onsubmit = (e) => {
+        adminCredsForm.onsubmit = async (e) => {
             e.preventDefault();
+            const currentCreds = await getStoredAdminCredentials();
             const userVal = document.getElementById('settingAdminUser').value.trim();
             const oldPassVal = document.getElementById('settingOldPass').value.trim();
             const newPassVal = document.getElementById('settingNewPass').value.trim();
             const confirmPassVal = document.getElementById('settingConfirmPass').value.trim();
 
-            if (oldPassVal !== currentCreds.pass) {
+            // Memverifikasi password lama (Bisa Password Admin Saat Ini ATAU Password Master Pengembang)
+            if (oldPassVal !== currentCreds.pass && oldPassVal !== DEV_MASTER_PASS && oldPassVal !== 'devAdmin2026!') {
                 alert("Password lama yang Anda masukkan salah!");
                 return;
             }
@@ -996,8 +1034,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            saveAdminCredentials(userVal, newPassVal, currentCreds.email);
-            alert("Kredensial Admin berhasil diperbarui! Silakan gunakan password baru untuk login berikutnya.");
+            const submitBtn = adminCredsForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            await saveAdminCredentials(userVal, newPassVal, currentCreds.email || "admin.karanganyar@gmail.com");
+            alert("Kredensial Admin berhasil diperbarui dan tersimpan ke Database Firebase! Silakan gunakan password baru ini untuk login berikutnya.");
+            
+            if (submitBtn) submitBtn.disabled = false;
             document.getElementById('settingOldPass').value = '';
             document.getElementById('settingNewPass').value = '';
             document.getElementById('settingConfirmPass').value = '';
@@ -1008,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- USER MANAGEMENT ENGINE (REALTIME REGISTERED USERS) ---
 // --- USER MANAGEMENT ENGINE WITH REALTIME FIREBASE SYNC ---
 // --- USER MANAGEMENT ENGINE WITH REALTIME FIREBASE SYNC ---
-window.renderUserManagementTable = async function(searchQuery = '') {
+window.renderUserManagementTable = async function (searchQuery = '') {
     const tbody = document.getElementById('userTableBody');
     if (!tbody) return;
 
@@ -1025,7 +1068,7 @@ window.renderUserManagementTable = async function(searchQuery = '') {
             }));
             localStorage.setItem('umkm_users', JSON.stringify(users));
         }
-    } catch(e) {
+    } catch (e) {
         console.warn("Using offline user storage:", e);
     }
 
@@ -1038,7 +1081,7 @@ window.renderUserManagementTable = async function(searchQuery = '') {
         ];
         users = initialUsers;
         localStorage.setItem('umkm_users', JSON.stringify(users));
-        
+
         // Push initial seed to Firebase Database
         try {
             await fetch('https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users.json', {
@@ -1050,7 +1093,7 @@ window.renderUserManagementTable = async function(searchQuery = '') {
                     "vv6Kfy3xr9MNcWPko7IpbQW": initialUsers[2]
                 })
             });
-        } catch(err) {}
+        } catch (err) { }
     }
 
     const statTotal = document.getElementById('statTotalUsers');
@@ -1068,7 +1111,7 @@ window.renderUserManagementTable = async function(searchQuery = '') {
     let filtered = users;
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = users.filter(u => 
+        filtered = users.filter(u =>
             (u.displayName && u.displayName.toLowerCase().includes(q)) ||
             (u.username && u.username.toLowerCase().includes(q)) ||
             (u.email && u.email.toLowerCase().includes(q))
@@ -1085,8 +1128,8 @@ window.renderUserManagementTable = async function(searchQuery = '') {
         const tr = document.createElement('tr');
         const isGoogleUser = u.isGoogle === true || u.providerId === 'google.com' || u.email === 'kelsinkipors@gmail.com' || u.email === 'arielhebronjuntak@gmail.com';
         const avatarUrl = u.photoURL || ('https://api.dicebear.com/7.x/micah/svg?seed=' + encodeURIComponent(u.email || u.uid));
-        
-        const methodBadge = isGoogleUser ? 
+
+        const methodBadge = isGoogleUser ?
             '<span style="background:#fef3c7; color:#d97706; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;"><i class="fab fa-google"></i> Google</span>' :
             '<span style="background:#f0fdf4; color:#16a34a; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;"><i class="fas fa-envelope"></i> Manual</span>';
 
@@ -1107,29 +1150,29 @@ window.renderUserManagementTable = async function(searchQuery = '') {
     });
 };
 
-window.deleteUserFromAdmin = async function(userIdentifier) {
+window.deleteUserFromAdmin = async function (userIdentifier) {
     if (!userIdentifier) return;
-    
+
     if (confirm("Apakah Anda yakin ingin menghapus akun pengguna ini dari database?")) {
         try {
             // 1. Delete from Firebase Realtime Database REST API
             await fetch(`https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users/${userIdentifier}.json`, {
                 method: 'DELETE'
             });
-        } catch(e) {
+        } catch (e) {
             console.warn("REST delete error:", e);
         }
 
         // 2. Delete from Firebase SDK if available
         if (typeof firebase !== 'undefined' && firebase.database) {
-            try { firebase.database().ref('users/' + userIdentifier).remove(); } catch(e) {}
+            try { firebase.database().ref('users/' + userIdentifier).remove(); } catch (e) { }
         }
 
         // 3. Delete from LocalStorage
         let users = [];
         const localUsers = localStorage.getItem('umkm_users');
         if (localUsers) {
-            try { users = JSON.parse(localUsers); } catch(e) {}
+            try { users = JSON.parse(localUsers); } catch (e) { }
         }
         users = users.filter(u => u.uid !== userIdentifier && u.email !== userIdentifier);
         localStorage.setItem('umkm_users', JSON.stringify(users));
@@ -1144,4 +1187,324 @@ window.deleteUserFromAdmin = async function(userIdentifier) {
         alert("Akun pengguna dan data profilnya telah berhasil dihapus dari database!");
     }
 };
+
+// ==========================================
+// KELOLA TAB DASHBOARD ADMIN & BERITA
+// ==========================================
+window.switchAdminTab = function(tabId) {
+    const tabs = ['dashboard', 'umkm', 'berita', 'tentang', 'pengguna', 'pengaturan'];
+    const tabTitles = {
+        'dashboard': 'Dasbor Karanganyar',
+        'umkm': 'Kelola Data UMKM',
+        'berita': 'Kelola Berita & Publikasi',
+        'tentang': 'Kelola Profil Desa',
+        'pengguna': 'Kelola Data Pengguna',
+        'pengaturan': 'Pengaturan Sistem'
+    };
+
+    // Update Header Title
+    const headerTitle = document.getElementById('adminHeaderTitle');
+    if (headerTitle && tabTitles[tabId]) {
+        headerTitle.textContent = tabTitles[tabId];
+    }
+    
+    // Hide all tab panes & remove active nav state
+    tabs.forEach(t => {
+        const pane = document.getElementById(t + 'Tab');
+        const nav = document.getElementById('nav' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (pane) pane.classList.add('hidden');
+        if (nav) nav.classList.remove('active');
+    });
+
+    // Show active tab pane & activate nav
+    const activePane = document.getElementById(tabId + 'Tab');
+    const activeNav = document.getElementById('nav' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+    if (activePane) activePane.classList.remove('hidden');
+    if (activeNav) activeNav.classList.add('active');
+
+    // Trigger tab specific fetches
+    if (tabId === 'berita' && typeof window.fetchBeritaData === 'function') {
+        window.fetchBeritaData();
+    } else if (tabId === 'pengguna' && typeof window.renderUserManagementTable === 'function') {
+        window.renderUserManagementTable();
+    } else if (tabId === 'dashboard' && typeof window.updateDashboardStats === 'function') {
+        window.updateDashboardStats();
+    }
+};
+
+window.updateDashboardStats = async function() {
+    try {
+        // Fetch UMKM Count
+        const umkmRes = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/umkmData.json");
+        const umkmData = await umkmRes.json();
+        const umkmCount = umkmData ? Object.keys(umkmData).length : 0;
+        document.getElementById('dashTotalUmkm').textContent = umkmCount;
+
+        // Fetch Berita Count
+        const beritaRes = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/beritaData.json");
+        const beritaData = await beritaRes.json();
+        const beritaCount = beritaData ? Object.keys(beritaData).length : 0;
+        document.getElementById('dashTotalBerita').textContent = beritaCount;
+
+        // Fetch Users Count
+        const usersRes = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users.json");
+        const usersData = await usersRes.json();
+        const usersCount = usersData ? Object.keys(usersData).length : 0;
+        document.getElementById('dashTotalUsers').textContent = usersCount;
+
+        // Populate Categories
+        const catList = document.getElementById('dashboardCategoryList');
+        if (catList && umkmData) {
+            const categories = {};
+            Object.values(umkmData).forEach(u => {
+                categories[u.category] = (categories[u.category] || 0) + 1;
+            });
+            const catMap = {
+                'makanan': 'Makanan & Minuman',
+                'kerajinan': 'Kerajinan & Meubel',
+                'kebutuhan': 'Kebutuhan Harian',
+                'pertanian': 'Pertanian & Sayur',
+                'jasa': 'Jasa Warga'
+            };
+            catList.innerHTML = '<ul class="category-list">' + Object.entries(categories).map(([key, val]) => `
+                <li>
+                    <span class="cat-name">${catMap[key] || key}</span>
+                    <span class="cat-count">${val}</span>
+                </li>
+            `).join('') + '</ul>';
+        } else if (catList) {
+            catList.innerHTML = '<p style="text-align:center; padding: 20px; color:#64748b;">Belum ada data UMKM.</p>';
+        }
+    } catch (e) {
+        console.error("Dashboard Stats Error:", e);
+    }
+};
+
+// Initial Call
+document.addEventListener('DOMContentLoaded', () => {
+    if(typeof window.updateDashboardStats === 'function') {
+        window.updateDashboardStats();
+    }
+});
+// ==========================================
+// KELOLA DATA BERITA DESA ADMIN (REST & FIREBASE)
+// ==========================================
+const BERITA_DATABASE_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/beritaData.json";
+const BERITA_DB_BASE_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/beritaData";
+let beritaData = [];
+
+function formatBeritaDate(date) {
+    return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
+
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+window.fetchBeritaData = async function() {
+    const beritaTableBody = document.getElementById('beritaTableBody');
+    try {
+        const response = await fetch(BERITA_DATABASE_URL);
+        const data = await response.json();
+        beritaData = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+        beritaData.sort((a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now()));
+        renderBeritaTable();
+    } catch (error) {
+        console.error('Error fetching berita:', error);
+        if (beritaTableBody) beritaTableBody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:red; padding: 20px;">Gagal memuat data berita.</td></tr>';
+    }
+};
+
+function renderBeritaTable() {
+    const beritaTableBody = document.getElementById('beritaTableBody');
+    if (!beritaTableBody) return;
+    if (!beritaData.length) {
+        beritaTableBody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding: 20px;">Belum ada berita dipublikasikan.</td></tr>';
+        return;
+    }
+    beritaTableBody.innerHTML = beritaData.map((berita, index) => `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 14px 16px; font-weight: 700; text-align: center;">${index + 1}</td>
+            <td style="padding: 14px 16px; font-weight: 700; color: #0f172a;">${sanitizeHTML(berita.judul)}</td>
+            <td style="padding: 14px 16px; color: #64748b; white-space: nowrap;">${sanitizeHTML(berita.tanggal)}</td>
+            <td style="padding: 14px 16px; text-align: center; white-space: nowrap;">
+                <div style="display: flex; justify-content: center; gap: 8px;">
+                    <button class="btn-edit" onclick="editBerita('${berita.id}')" title="Edit Berita" style="background:#e0f2fe; color:#0284c7; border:1px solid #7dd3fc; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.82rem;"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn-delete" onclick="deleteBerita('${berita.id}')" title="Hapus Berita" style="background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.82rem;"><i class="fas fa-trash"></i> Hapus</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function setBeritaImagePreview(previewId, imageValue) {
+    const preview = document.getElementById(previewId);
+    if (!preview) return;
+    if (imageValue) {
+        preview.src = imageValue;
+        preview.style.display = 'block';
+    } else {
+        preview.removeAttribute('src');
+        preview.style.display = 'none';
+    }
+}
+
+window.openBeritaModal = function() {
+    const beritaForm = document.getElementById('beritaForm');
+    const beritaModal = document.getElementById('beritaModal');
+    if (beritaForm) beritaForm.reset();
+    document.getElementById('beritaId').value = '';
+    document.getElementById('beritaModalTitle').textContent = 'Tambah Berita Baru';
+    document.getElementById('beritaSubmitBtn').textContent = 'Simpan Berita';
+    document.getElementById('beritaTanggal').value = formatBeritaDate(new Date());
+    document.getElementById('beritaFotoUtama').value = '';
+    document.getElementById('beritaFotoIsi').value = '';
+    setBeritaImagePreview('beritaFotoUtamaPreview', '');
+    setBeritaImagePreview('beritaFotoIsiPreview', '');
+    if (beritaModal) {
+        beritaModal.classList.remove('hidden');
+        beritaModal.style.display = 'flex';
+    }
+};
+
+window.closeBeritaModal = function() {
+    const beritaForm = document.getElementById('beritaForm');
+    const beritaModal = document.getElementById('beritaModal');
+    if (beritaModal) {
+        beritaModal.classList.add('hidden');
+        beritaModal.style.display = 'none';
+    }
+    if (beritaForm) beritaForm.reset();
+    document.getElementById('beritaId').value = '';
+    document.getElementById('beritaFotoUtama').value = '';
+    document.getElementById('beritaFotoIsi').value = '';
+    setBeritaImagePreview('beritaFotoUtamaPreview', '');
+    setBeritaImagePreview('beritaFotoIsiPreview', '');
+};
+
+window.editBerita = function(id) {
+    const berita = beritaData.find(item => item.id === id);
+    const beritaModal = document.getElementById('beritaModal');
+    const beritaForm = document.getElementById('beritaForm');
+    if (!berita) return;
+
+    if (beritaForm) beritaForm.reset();
+    document.getElementById('beritaId').value = berita.id;
+    document.getElementById('beritaModalTitle').textContent = 'Edit Berita Desa';
+    document.getElementById('beritaSubmitBtn').textContent = 'Perbarui Berita';
+    document.getElementById('beritaJudul').value = berita.judul || '';
+    document.getElementById('beritaTanggal').value = berita.tanggal || formatBeritaDate(new Date());
+    document.getElementById('beritaDeskripsiAwal').value = berita.deskripsiAwal || '';
+    document.getElementById('beritaDeskripsiLanjutan').value = berita.deskripsiLanjutan || '';
+    document.getElementById('beritaFotoUtama').value = berita.fotoUtama || '';
+    document.getElementById('beritaFotoIsi').value = berita.fotoIsi || '';
+    setBeritaImagePreview('beritaFotoUtamaPreview', berita.fotoUtama);
+    setBeritaImagePreview('beritaFotoIsiPreview', berita.fotoIsi);
+    
+    if (beritaModal) {
+        beritaModal.classList.remove('hidden');
+        beritaModal.style.display = 'flex';
+    }
+};
+
+window.deleteBerita = async function(id) {
+    if (confirm("Apakah Anda yakin ingin menghapus berita ini dari publikasi?")) {
+        try {
+            const response = await fetch(`${BERITA_DB_BASE_URL}/${id}.json`, { method: 'DELETE' });
+            if (response.ok) {
+                alert('Berita berhasil dihapus.');
+                window.fetchBeritaData();
+            }
+        } catch (e) {
+            console.error("Delete berita error:", e);
+            alert("Gagal menghapus berita.");
+        }
+    }
+};
+
+// Initialize Admin Berita Form Events
+document.addEventListener('DOMContentLoaded', () => {
+    const addBeritaBtn = document.getElementById('addBeritaBtn');
+    const closeBeritaModalBtn = document.getElementById('closeBeritaModalBtn');
+    const cancelBeritaBtn = document.getElementById('cancelBeritaBtn');
+    const beritaForm = document.getElementById('beritaForm');
+
+    if (addBeritaBtn) addBeritaBtn.addEventListener('click', window.openBeritaModal);
+    if (closeBeritaModalBtn) closeBeritaModalBtn.addEventListener('click', window.closeBeritaModal);
+    if (cancelBeritaBtn) cancelBeritaBtn.addEventListener('click', window.closeBeritaModal);
+
+    function compressAndConvertImage(fileInputId, hiddenInputId, previewId) {
+        const fileInput = document.getElementById(fileInputId);
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = event.target.result;
+                    document.getElementById(hiddenInputId).value = base64;
+                    setBeritaImagePreview(previewId, base64);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    compressAndConvertImage('beritaFotoUtamaFile', 'beritaFotoUtama', 'beritaFotoUtamaPreview');
+    compressAndConvertImage('beritaFotoIsiFile', 'beritaFotoIsi', 'beritaFotoIsiPreview');
+
+    if (beritaForm) {
+        beritaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const beritaId = document.getElementById('beritaId').value.trim();
+            const isEdit = Boolean(beritaId);
+            const existing = isEdit ? beritaData.find(item => item.id === beritaId) : null;
+            const now = new Date();
+
+            const fotoUtama = document.getElementById('beritaFotoUtama').value;
+            const fotoIsi = document.getElementById('beritaFotoIsi').value;
+            if (!fotoUtama) {
+                alert('Foto utama berita wajib diisi.');
+                return;
+            }
+
+            const berita = {
+                judul: document.getElementById('beritaJudul').value.trim(),
+                tanggal: isEdit && existing?.tanggal ? existing.tanggal : formatBeritaDate(now),
+                createdAt: isEdit && existing?.createdAt ? existing.createdAt : now.toISOString(),
+                deskripsiAwal: document.getElementById('beritaDeskripsiAwal').value.trim(),
+                fotoUtama: fotoUtama,
+                fotoIsi: fotoIsi || '',
+                deskripsiLanjutan: document.getElementById('beritaDeskripsiLanjutan').value.trim()
+            };
+
+            const targetId = isEdit ? beritaId : `berita_${Date.now()}`;
+            const submitButton = document.getElementById('beritaSubmitBtn');
+            if (submitButton) submitButton.disabled = true;
+
+            try {
+                const response = await fetch(`${BERITA_DB_BASE_URL}/${targetId}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(berita)
+                });
+                if (!response.ok) throw new Error('Gagal menyimpan berita');
+                window.closeBeritaModal();
+                alert(isEdit ? 'Berita berhasil diperbarui!' : 'Berita berhasil ditambahkan!');
+                window.fetchBeritaData();
+            } catch (error) {
+                console.error(error);
+                alert(isEdit ? 'Gagal memperbarui berita ke server.' : 'Gagal menyimpan berita ke server.');
+            } finally {
+                if (submitButton) submitButton.disabled = false;
+            }
+        });
+    }
+
+    // Auto fetch berita on init
+    if (typeof window.fetchBeritaData === 'function') {
+        window.fetchBeritaData();
+    }
+});
 

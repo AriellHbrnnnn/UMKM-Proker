@@ -168,9 +168,44 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
     };
 
     window.saveRegisteredUser = function (userObj) {
+        if (!userObj || !userObj.uid) return;
         const users = window.getRegisteredUsers();
-        users.push(userObj);
+        const idx = users.findIndex(u => u.uid === userObj.uid || (u.email && userObj.email && u.email.toLowerCase() === userObj.email.toLowerCase()));
+        
+        const payload = {
+            uid: userObj.uid,
+            email: userObj.email || '',
+            username: userObj.username || userObj.displayName || '',
+            displayName: userObj.displayName || userObj.username || '',
+            password: userObj.password || 'password_protected',
+            dob: userObj.dob || '',
+            gender: userObj.gender || 'Laki-laki',
+            photoURL: userObj.photoURL || `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(userObj.email || 'user')}`,
+            isGoogle: !!userObj.isGoogle,
+            providerId: userObj.providerId || (userObj.isGoogle ? 'google.com' : 'password'),
+            createdAt: userObj.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        if (idx >= 0) {
+            users[idx] = { ...users[idx], ...payload };
+        } else {
+            users.push(payload);
+        }
         localStorage.setItem('umkm_users', JSON.stringify(users));
+
+        // Realtime REST Sync to Firebase DB for Admin Panel
+        try {
+            fetch(`https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users/${payload.uid}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.warn("Firebase REST Sync error:", e));
+        } catch (e) { }
+
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            try { firebase.database().ref('users/' + payload.uid).set(payload); } catch (e) { }
+        }
     };
 
 
@@ -183,52 +218,128 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
         console.log("Cleared local users database!");
     };
 
+    window.getFirebaseApiKey = function () {
+        if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'GANTI_DENGAN_API_KEY_ANDA') {
+            return firebaseConfig.apiKey;
+        }
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+            return firebase.apps[0].options && firebase.apps[0].options.apiKey;
+        }
+        return null;
+    };
+
+    window.buildAuthUserFromEmailCheck = function (email, signinMethods = []) {
+        const cleanEmail = email.trim().toLowerCase();
+        const methods = Array.isArray(signinMethods) ? signinMethods : [];
+        const isGoogle = methods.includes('google.com');
+        const hasPassword = methods.includes('password') || methods.includes('emailLink');
+
+        return {
+            uid: 'fb_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+            email: cleanEmail,
+            username: cleanEmail.split('@')[0],
+            displayName: cleanEmail.split('@')[0],
+            isGoogle: isGoogle,
+            methods: methods,
+            providerId: isGoogle ? 'google.com' : (hasPassword ? 'password' : 'unknown'),
+            password: isGoogle ? 'google_firebase_auth' : ''
+        };
+    };
+
+    // Cek keberadaan email di Firebase Authentication (manual + Google provider)
+    window.checkEmailInFirebaseAuth = async function (email) {
+        const cleanEmail = email.trim().toLowerCase();
+        if (!cleanEmail.includes('@')) return null;
+
+        let signinMethods = [];
+
+        // Metode 1: SDK (bisa kosong jika Email Enumeration Protection aktif)
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try {
+                const methods = await firebase.auth().fetchSignInMethodsForEmail(cleanEmail);
+                if (methods && methods.length > 0) {
+                    signinMethods = methods;
+                    return {
+                        registered: true,
+                        signinMethods: methods,
+                        user: window.buildAuthUserFromEmailCheck(cleanEmail, methods)
+                    };
+                }
+            } catch (errAuth) {
+                console.warn("fetchSignInMethodsForEmail note:", errAuth);
+            }
+        }
+
+        // Metode 2: REST createAuthUri (lebih andal untuk akun Google saat enumeration protection aktif)
+        const apiKey = window.getFirebaseApiKey();
+        if (apiKey) {
+            try {
+                const continueUri = window.location.origin + (window.location.pathname || '/');
+                const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        identifier: cleanEmail,
+                        continueUri: continueUri
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.registered === true) {
+                        signinMethods = data.signinMethods || data.allProviders || signinMethods;
+                        return {
+                            registered: true,
+                            signinMethods: signinMethods,
+                            user: window.buildAuthUserFromEmailCheck(cleanEmail, signinMethods)
+                        };
+                    }
+                }
+            } catch (errRest) {
+                console.warn("createAuthUri check note:", errRest);
+            }
+        }
+
+        return null;
+    };
+
     window.findUserByIdentifierAsync = async function (identifier) {
         if (!identifier) return null;
         const cleanId = identifier.trim().toLowerCase();
 
-        // 1. Check local localStorage first
-        const localMatch = window.findUserByIdentifier(cleanId);
-        if (localMatch) return localMatch;
-
-        // 2. Check Firebase Cloud if identifier is an email
-        if (typeof firebase !== 'undefined' && firebase.auth && cleanId.includes('@')) {
-            try {
-                const methods = await firebase.auth().fetchSignInMethodsForEmail(cleanId);
-                if (methods && methods.length > 0) {
-                    const cloudUser = {
-                        uid: 'firebase_' + Date.now(),
-                        email: cleanId,
-                        username: cleanId.split('@')[0],
-                        displayName: cleanId.split('@')[0],
-                        methods: methods
-                    };
-                    window.saveRegisteredUser(cloudUser);
-                    return cloudUser;
-                } else if (methods && methods.length === 0) {
-                    return null;
-                }
-            } catch (e) {
-                // Fallback: Test via sendPasswordResetEmail to probe Firebase Auth
-                try {
-                    await firebase.auth().sendPasswordResetEmail(cleanId);
-                    const cloudUser = {
-                        uid: 'firebase_' + Date.now(),
-                        email: cleanId,
-                        username: cleanId.split('@')[0],
-                        displayName: cleanId.split('@')[0]
-                    };
-                    window.saveRegisteredUser(cloudUser);
-                    return cloudUser;
-                } catch (errReset) {
-                    if (errReset.code === 'auth/user-not-found') {
-                        return null; // Definitely not registered
+        // 1. Fetch live users directly from Firebase Realtime DB
+        try {
+            const res = await fetch('https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users.json');
+            if (res.ok) {
+                const firebaseUsers = await res.json();
+                if (firebaseUsers) {
+                    const foundUid = Object.keys(firebaseUsers).find(uid => {
+                        const u = firebaseUsers[uid];
+                        return (u.email && u.email.toLowerCase() === cleanId) ||
+                               (u.username && u.username.toLowerCase() === cleanId);
+                    });
+                    if (foundUid) {
+                        return { uid: foundUid, ...firebaseUsers[foundUid] };
                     }
                 }
             }
+        } catch (e) {
+            console.warn("Live DB check fallback:", e);
         }
 
-        return window.findUserByIdentifier(cleanId);
+        // 2. Cek Firebase Authentication (email/password + Google provider)
+        if (cleanId.includes('@')) {
+            const authCheck = await window.checkEmailInFirebaseAuth(cleanId);
+            if (authCheck && authCheck.registered && authCheck.user) {
+                return authCheck.user;
+            }
+        }
+
+        // 3. Fallback ke local storage
+        const localUser = window.findUserByIdentifier(cleanId);
+        if (localUser) return localUser;
+
+        return null;
     };
 
     window.findUserByIdentifier = function (identifier) {
@@ -262,9 +373,15 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
             if (cartIconBtn) cartIconBtn.classList.remove('hidden');
 
             const name = user.displayName || user.username || (user.email ? user.email.split('@')[0] : 'Pengguna');
-            const firstName = name.split(' ')[0];
+            let firstName = name.split(' ')[0];
+            if (firstName.length > 12) {
+                firstName = firstName.substring(0, 10) + '...';
+            }
 
-            if (userNameDisplay) userNameDisplay.textContent = firstName;
+            if (userNameDisplay) {
+                userNameDisplay.textContent = firstName;
+                userNameDisplay.title = name; // Tooltip showing full name on hover
+            }
 
             const dropdownName = document.getElementById('dropdownName');
             if (dropdownName) dropdownName.textContent = name;
@@ -278,7 +395,10 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
             // GUEST MODE (LOGGED OUT)
             if (authButtonsContainer) {
                 authButtonsContainer.classList.remove('hidden');
-                if (authButtonsContainer.style) authButtonsContainer.style.setProperty('display', 'flex', 'important');
+                if (authButtonsContainer.style) {
+                    authButtonsContainer.style.setProperty('display', 'flex', 'important');
+                    authButtonsContainer.style.setProperty('visibility', 'visible', 'important');
+                }
             }
             if (userProfileContainer) {
                 userProfileContainer.classList.add('hidden');
@@ -315,7 +435,7 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
     };
 
     // 5. Perform Logout Function
-    window.logoutUser = function () {
+    window.logoutUser = function (showMsg = true, redirectPage = 'tentangPage') {
         localStorage.removeItem('umkm_active_uid');
         localStorage.removeItem('umkm_active_user');
         localStorage.removeItem('saved_tokopedia_account');
@@ -335,7 +455,14 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
             loadUserState();
         }
 
-        window.showAuthAlert('Berhasil keluar dari akun.', 'success');
+        // Automatically switch away from profile/private pages to Tentang Karanganyar page
+        if (typeof window.switchPage === 'function') {
+            window.switchPage(redirectPage || 'tentangPage');
+        }
+
+        if (showMsg) {
+            window.showAuthAlert('Berhasil keluar dari akun.', 'success');
+        }
     };
 
     // 6. REAL FIREBASE GOOGLE OAUTH WITH LOCAL FALLBACK
@@ -357,26 +484,24 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                     username: displayName.toLowerCase().replace(/\s+/g, '_'),
                     displayName: displayName,
                     password: 'google_firebase_auth',
-                    photoURL: photoURL
+                    photoURL: photoURL,
+                    isGoogle: true,
+                    providerId: 'google.com'
                 };
 
                 const existingUser = window.findUserByIdentifier(email);
                 if (mode === 'login') {
-                    if (!existingUser) {
-                        window.showAuthAlert(`Akun Google (${email}) belum terdaftar. Silakan klik "Daftar" terlebih dahulu!`);
-                        return;
-                    }
-                    window.loginUserObject(existingUser, true);
+                    const userToLogin = existingUser
+                        ? { ...existingUser, ...newUser, uid: gUser.uid }
+                        : newUser;
+                    window.saveRegisteredUser(userToLogin);
+                    window.loginUserObject(userToLogin, true);
+                    window.showAuthAlert(`Berhasil masuk dengan Google: ${email}`, 'success');
                 } else {
                     // Register Mode
-                    if (existingUser) {
-                        window.showAuthAlert(`Akun Google (${email}) sudah terdaftar! Otomatis masuk.`, 'success');
-                        window.loginUserObject(existingUser, true);
-                    } else {
-                        window.saveRegisteredUser(newUser);
-                        window.loginUserObject(newUser, true);
-                        window.showAuthAlert(`Berhasil mendaftar dengan Google: ${email}`, 'success');
-                    }
+                    window.saveRegisteredUser(newUser);
+                    window.loginUserObject(newUser, true);
+                    window.showAuthAlert(`Berhasil mendaftar dengan Google: ${email}`, 'success');
                 }
             }).catch((error) => {
                 console.error("Firebase Google Auth Error:", error);
@@ -511,6 +636,15 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 if (target) target.classList.remove('hidden');
             }
         }
+        window.showAuthScreen = showAuthScreen;
+        window.openLoginModal = function(toRegister = false) {
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) {
+                loginModal.classList.remove('hidden');
+                loginModal.style.display = 'flex';
+            }
+            showAuthScreen(toRegister ? 'authScreen5' : 'authScreen1');
+        };
 
         // Open Modal Buttons from Header
         const headerBtnMasuk = document.querySelector('.btn-masuk');
@@ -598,41 +732,132 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
         const authInputEmail = document.getElementById('authInputEmail') || document.getElementById('authInputEmail1');
         const authBtnNext = document.getElementById('authBtnNext') || document.getElementById('authBtnNextEmail');
 
+        window.closeAccountNotFoundModal = function() {
+            const modal = document.getElementById('accountNotFoundModal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.showAccountNotFoundModal = function(identifier) {
+            const modal = document.getElementById('accountNotFoundModal');
+            const emailText = document.getElementById('unregisteredEmailText');
+            const btnGoReg = document.getElementById('btnGoToRegisterFromNotFound');
+
+            if (emailText) emailText.textContent = identifier;
+            if (modal) modal.style.display = 'flex';
+
+            if (btnGoReg) {
+                btnGoReg.onclick = () => {
+                    window.closeAccountNotFoundModal();
+                    if (typeof showAuthScreen === 'function') {
+                        showAuthScreen('authScreen5');
+                    }
+                    const regEmailInput = document.getElementById('authRegisterEmail') || document.getElementById('authInputEmailRegister');
+                    if (regEmailInput) {
+                        regEmailInput.value = identifier;
+                    }
+                };
+            }
+        };
+
         async function handleScreen1Submit(e) {
             if (e) e.preventDefault();
-            const identifier = authInputEmail ? authInputEmail.value.trim() : '';
+            const inputField = document.getElementById('authInputEmail1') || document.getElementById('authInputEmail');
+            const btn = document.getElementById('authBtnNext') || document.getElementById('authBtnNextEmail');
+            const identifier = inputField ? inputField.value.trim() : '';
 
             if (!identifier) {
-                window.showAuthAlert('Silakan masukkan Email atau Username.');
+                window.showAuthAlert('Silakan masukkan Email Anda terlebih dahulu.', 'error');
+                if (inputField) inputField.focus();
                 return;
             }
 
-            const userObj = await window.findUserByIdentifierAsync(identifier);
-            if (!userObj) {
-                window.showAuthAlert(`Akun (${identifier}) tidak terdaftar. Silakan daftar terlebih dahulu!`);
-                return;
+            // ====================================================================
+            // ALUR 1: CEK PENULISAN FORMAT EMAIL (SEKETIKA TANPA ANIMASI LOADING)
+            // ====================================================================
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            const lowerId = identifier.toLowerCase();
+            const hasTypoDomain = lowerId.endsWith('@gmai.com') || lowerId.endsWith('@gmaill.com') || lowerId.endsWith('@gmil.com') || lowerId.endsWith('@gmal.com') || lowerId.endsWith('@yaho.com') || lowerId.endsWith('@hotmai.com');
+
+            // Cek apakah format penulisan email sudah valid dan benar
+            const isValidEmailFormat = emailRegex.test(identifier) && !hasTypoDomain;
+
+            if (!isValidEmailFormat) {
+                // JIKA PENULISAN EMAIL SALAH -> SEKETIKA MUNCULKAN NOTIFIKASI SALAH PENULISAN EMAIL!
+                window.showAuthAlert('Penulisan email tidak benar! Harap masukkan format email yang sesuai (contoh: nama@gmail.com).', 'error');
+                if (inputField) inputField.focus();
+                return; // LANGSUNG KELUAR & STAY DI KOLOM EMAIL, TANPA MASUK KE ANIMASI LOADING!
             }
 
-            // User found! Save reference
-            window.targetLoginUser = userObj;
-
-            // If account is registered via Google OAuth in Firebase Cloud
-            if (userObj.methods && userObj.methods.includes('google.com') && !userObj.password) {
-                window.showAuthAlert(`Akun (${identifier}) terdaftar menggunakan Google Sign-In. Membuka Autentikasi Google...`, 'success');
-                setTimeout(() => {
-                    window.handleRealFirebaseGoogleAuth('login');
-                }, 1000);
-                return;
+            // ====================================================================
+            // ALUR 2: PENULISAN EMAIL SUDAH BENAR -> MASUK KE ANIMASI LOADING (1.5s)
+            // ====================================================================
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin" style="margin-right: 8px; font-size: 1.1rem;"></i> Memeriksa Email...';
+                btn.disabled = true;
+                btn.style.opacity = '0.85';
+                btn.style.cursor = 'wait';
+                btn.style.background = '#00AA5B';
+            }
+            if (inputField) {
+                inputField.readOnly = true;
             }
 
-            const authDisplayEmail = document.getElementById('authDisplayEmail');
-            if (authDisplayEmail) authDisplayEmail.textContent = userObj.email || userObj.username;
+            try {
+                // Loading 1.5 detik untuk verifikasi keberadaan email di database
+                await new Promise(r => setTimeout(r, 1500));
 
-            const authScreen1 = document.getElementById('authScreen1');
-            const authScreen2 = document.getElementById('authScreen2');
-            if (authScreen1) authScreen1.classList.add('hidden');
-            if (authScreen2) authScreen2.classList.remove('hidden');
+                // Restorasi status tombol dan input
+                if (btn) {
+                    btn.innerHTML = 'Selanjutnya';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.style.background = 'var(--primary)';
+                }
+                if (inputField) {
+                    inputField.readOnly = false;
+                }
+
+                // ====================================================================
+                // ALUR 3: VERIFIKASI KEBERADAAN EMAIL DI DATABASE
+                // ====================================================================
+                const userObj = await window.findUserByIdentifierAsync(identifier);
+
+                // --- KASUS A: EMAIL BELUM TERDAFTAR ---
+                if (!userObj) {
+                    window.showAuthAlert(`Email (${identifier}) belum terdaftar! Silakan daftar akun terlebih dahulu.`, 'error');
+                    window.showAccountNotFoundModal(identifier);
+                    return;
+                }
+
+                // --- KASUS B: EMAIL SUDAH TERDAFTAR (manual maupun Google) ---
+                // Alur sama: langsung beralih ke form kata sandi
+                window.targetLoginUser = userObj;
+
+                const authDisplayEmail = document.getElementById('authDisplayEmail');
+                if (authDisplayEmail) authDisplayEmail.textContent = userObj.email || userObj.username;
+
+                if (authInputPassword) authInputPassword.value = '';
+                showAuthScreen('authScreen2');
+
+            } catch (err) {
+                console.error("Screen 1 submit check error:", err);
+                window.showAuthAlert('Terjadi kesalahan saat mengecek email. Silakan coba lagi.');
+            } finally {
+                if (inputField) {
+                    inputField.readOnly = false;
+                }
+                if (btn) {
+                    btn.innerHTML = 'Selanjutnya';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.style.background = 'var(--primary)';
+                }
+            }
         }
+
+        window.handleScreen1Submit = handleScreen1Submit;
 
         if (formAuthScreen1) {
             formAuthScreen1.onsubmit = handleScreen1Submit;
@@ -660,36 +885,51 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 return;
             }
 
-            // If account is registered via Google Sign-In, transition smoothly to Google Login
-            if (targetUser.methods && targetUser.methods.includes('google.com') && targetUser.password === 'google_firebase_auth') {
-                window.showAuthAlert(`Akun (${targetUser.email}) terdaftar menggunakan Google Sign-In. Membuka login dengan Google...`, 'success');
-                setTimeout(() => {
-                    window.handleRealFirebaseGoogleAuth('login');
-                }, 1000);
+            if (!password) {
+                window.showAuthAlert('Silakan masukkan Kata Sandi Anda.');
                 return;
             }
 
-            let firebaseAuthSuccess = false;
-
+            // REALTIME FIREBASE CLOUD AUTHENTICATION CHECK (STRICT SINGLE SOURCE OF TRUTH)
             if (typeof firebase !== 'undefined' && firebase.auth) {
                 try {
                     const cred = await firebase.auth().signInWithEmailAndPassword(targetUser.email || targetUser.username, password);
                     if (cred && cred.user) {
-                        firebaseAuthSuccess = true;
                         targetUser.uid = cred.user.uid;
+                        targetUser.password = password; // Update local user password to new reset password
                         if (cred.user.displayName) targetUser.displayName = cred.user.displayName;
                         if (cred.user.photoURL) targetUser.photoURL = cred.user.photoURL;
-                    }
-                } catch (errFb) {
-                    if (errFb.code === 'auth/wrong-password' || errFb.code === 'auth/invalid-credential' || errFb.code === 'auth/invalid-login-credentials') {
-                        window.showAuthAlert('Kata sandi salah! Silakan periksa kembali.');
+
+                        // Sync updated password to local storage & Realtime DB
+                        window.saveRegisteredUser(targetUser);
+                        window.loginUserObject(targetUser, true);
                         return;
                     }
+                } catch (errFb) {
+                    console.warn("Firebase Auth Login Error:", errFb);
+                    const cleanMsg = (function(err) {
+                        if (!err) return 'Kata sandi salah! Silakan periksa kembali kata sandi Anda.';
+                        const code = (err.code || '').toLowerCase();
+                        const msg = (err.message || '').toString();
+
+                        if (code.includes('user-not-found') || msg.includes('USER_NOT_FOUND')) {
+                            window.findUserByIdentifierAsync(targetUser.email || targetUser.username);
+                            return 'Akun ini telah dihapus atau tidak terdaftar di Firebase! Silakan daftar akun baru.';
+                        }
+                        if (code.includes('too-many-requests') || msg.includes('TOO_MANY_ATTEMPTS')) {
+                            return 'Terlalu banyak percobaan masuk yang gagal. Silakan coba lagi nanti.';
+                        }
+                        return 'Kata sandi salah! Silakan periksa kembali kata sandi Anda.';
+                    })(errFb);
+
+                    window.showAuthAlert(cleanMsg);
+                    return;
                 }
             }
 
-            if (!firebaseAuthSuccess && targetUser.password && targetUser.password !== password) {
-                window.showAuthAlert('Kata sandi salah! Silakan periksa kembali.');
+            // Fallback for offline mode ONLY if Firebase Auth SDK is unavailable
+            if (targetUser.password && targetUser.password !== password) {
+                window.showAuthAlert('Kata sandi salah! Silakan periksa kembali kata sandi Anda.');
                 return;
             }
 
@@ -730,45 +970,38 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 return;
             }
 
-            let isUserRegistered = false;
-            let firebaseResetError = null;
+            // Cek email di Realtime DB, Firebase Auth (manual/Google), atau local storage
+            const userInDb = await window.findUserByIdentifierAsync(email);
+            const authCheck = await window.checkEmailInFirebaseAuth(email);
+            const hasAuthAccount = !!(authCheck && authCheck.registered);
 
-            // 1. Check local registered database
-            const localUser = window.findUserByIdentifier(email);
-            if (localUser) {
-                isUserRegistered = true;
-            }
-
-            // 2. Query Firebase Auth directly via sendPasswordResetEmail & fetchSignInMethods
-            if (typeof firebase !== 'undefined' && firebase.auth) {
-                try {
-                    const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
-                    if (methods && methods.length > 0) {
-                        isUserRegistered = true;
-                    }
-                } catch (err) {
-                    console.log("fetchSignInMethods err:", err);
-                }
-
-                try {
-                    await firebase.auth().sendPasswordResetEmail(email);
-                    isUserRegistered = true; // Accepted by Firebase Cloud!
-                } catch (err) {
-                    firebaseResetError = err;
-                    if (err.code === 'auth/user-not-found') {
-                        isUserRegistered = false;
-                    }
-                }
-            }
-
-            // If account is definitely not registered anywhere
-            if (!isUserRegistered) {
-                window.showAuthAlert(`Akun dengan email (${email}) belum terdaftar. Silakan periksa kembali email Anda!`);
+            if (!userInDb && !hasAuthAccount) {
+                window.showAuthAlert(`Akun dengan email (${email}) belum terdaftar di database! Silakan periksa kembali email Anda.`);
                 return;
             }
 
-            // Account IS registered -> Show success notification & 60s cooldown timer
-            window.showAuthAlert(`Tautan verifikasi atur ulang kata sandi telah dikirim ke ${email}. Silakan periksa kotak masuk (Inbox), folder Junk, atau Spam Anda!`, 'success');
+            // Email IS registered -> Send reset email via Firebase Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                try {
+                    await firebase.auth().sendPasswordResetEmail(email);
+                } catch (err) {
+                    console.warn("sendPasswordResetEmail note:", err);
+                    if (err.code === 'auth/user-not-found') {
+                        window.showAuthAlert(`Akun dengan email (${email}) belum terdaftar di Firebase! Silakan periksa kembali email Anda.`);
+                        return;
+                    }
+                }
+            }
+
+            // If user is currently logged in, perform automatic logout as requested by user
+            if (typeof currentUser !== 'undefined' && currentUser && currentUser.email && currentUser.email.toLowerCase() === email.toLowerCase()) {
+                if (typeof window.logoutUser === 'function') {
+                    window.logoutUser();
+                }
+            }
+
+            // Show success alert & start 60s cooldown timer
+            window.showAuthAlert(`Tautan atur ulang kata sandi telah dikirim ke ${email}. Demi keamanan akun Anda, Anda telah keluar secara otomatis. Silakan periksa email dan masuk kembali menggunakan kata sandi baru Anda!`, 'success');
 
             if (authBtnReset) {
                 authBtnReset.disabled = true;
@@ -776,22 +1009,21 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 authBtnReset.style.background = '#B3B9C1';
                 authBtnReset.style.cursor = 'not-allowed';
 
-                let secondsLeft = 60;
-                authBtnReset.textContent = `Kirim Ulang (${secondsLeft}s)`;
+                let count = 60;
+                authBtnReset.textContent = `Kirim Ulang (${count}s)`;
 
                 if (resetTimerInterval) clearInterval(resetTimerInterval);
-
                 resetTimerInterval = setInterval(() => {
-                    secondsLeft--;
-                    if (secondsLeft > 0) {
-                        authBtnReset.textContent = `Kirim Ulang (${secondsLeft}s)`;
+                    count--;
+                    if (count > 0) {
+                        authBtnReset.textContent = `Kirim Ulang (${count}s)`;
                     } else {
                         clearInterval(resetTimerInterval);
                         authBtnReset.disabled = false;
                         authBtnReset.style.pointerEvents = 'auto';
                         authBtnReset.style.background = 'var(--primary)';
                         authBtnReset.style.cursor = 'pointer';
-                        authBtnReset.textContent = 'Kirim Ulang Tautan';
+                        authBtnReset.textContent = 'Kirim Ulang';
                     }
                 }, 1000);
             }
@@ -833,19 +1065,8 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 return;
             }
 
-            const existingEmail = await window.findUserByIdentifierAsync(email);
-            if (existingEmail) {
-                window.showAuthAlert('Email ini sudah terdaftar! Silakan gunakan email lain atau masuk.');
-                return;
-            }
-
-            const existingUser = window.findUserByIdentifier(username);
-            if (existingUser) {
-                window.showAuthAlert('Username ini sudah digunakan! Silakan pilih username lain.');
-                return;
-            }
-
             let firebaseUser = null;
+            let isExistingAuthUser = false;
 
             // REALTIME FIREBASE AUTHENTICATION CLOUD CREATION
             if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -856,10 +1077,16 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                         await firebaseUser.updateProfile({ displayName: username });
                     }
                 } catch (fbErr) {
-                    console.error("Firebase registration error:", fbErr);
+                    console.warn("Firebase registration note:", fbErr);
                     if (fbErr.code === 'auth/email-already-in-use') {
-                        window.showAuthAlert('Email ini sudah terdaftar di Firebase! Silakan gunakan email lain atau masuk.');
-                        return;
+                        try {
+                            const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
+                            firebaseUser = cred.user;
+                            isExistingAuthUser = true;
+                        } catch (signInErr) {
+                            window.showAuthAlert('Email ini sudah terdaftar! Silakan masuk atau gunakan email baru.');
+                            return;
+                        }
                     } else if (fbErr.code === 'auth/invalid-email') {
                         window.showAuthAlert('Format email tidak valid.');
                         return;
@@ -881,44 +1108,21 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 dob: dob || '',
                 gender: gender || 'Laki-laki',
                 photoURL: `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(email)}&mouth=smile,laughing&backgroundColor=b6e3f4`,
+                isGoogle: false,
+                providerId: 'password',
                 createdAt: new Date().toISOString()
             };
 
-            // Realtime Sync to Firestore / Realtime DB
-            if (typeof firebase !== 'undefined') {
-                if (firebase.firestore) {
-                    try {
-                        await firebase.firestore().collection('users').doc(uid).set({
-                            uid: uid,
-                            email: email,
-                            username: username,
-                            displayName: username,
-                            dob: dob || '',
-                            gender: gender || 'Laki-laki',
-                            photoURL: newUser.photoURL,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    } catch (errFs) { }
-                }
-                if (firebase.database) {
-                    try {
-                        await firebase.database().ref('users/' + uid).set({
-                            uid: uid,
-                            email: email,
-                            username: username,
-                            displayName: username,
-                            dob: dob || '',
-                            gender: gender || 'Laki-laki',
-                            photoURL: newUser.photoURL,
-                            createdAt: new Date().toISOString()
-                        });
-                    } catch (errDb) { }
-                }
-            }
-
+            // Save & Sync user to Firebase Realtime Database for Admin Panel
             window.saveRegisteredUser(newUser);
+
             window.loginUserObject(newUser, true);
-            window.showAuthAlert(`Pendaftaran berhasil! Akun ${username} telah terdaftar secara Realtime di Firebase Cloud.`, 'success');
+            
+            if (isExistingAuthUser) {
+                window.showAuthAlert(`Email sudah terdaftar. Berhasil masuk ke akun ${username}!`, 'success');
+            } else {
+                window.showAuthAlert(`Pendaftaran berhasil! Selamat datang, ${username}.`, 'success');
+            }
         }
 
         if (formAuthScreen5) {

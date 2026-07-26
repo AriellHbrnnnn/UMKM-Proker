@@ -46,6 +46,7 @@ html {
 html {
     background-color: #111;
     /* Dark background for overscroll */
+    overflow-x: hidden;
 }
 
 body {
@@ -56,6 +57,7 @@ body {
     /* Mencegah UI bergeser (layout shift) saat modal terbuka atau ganti halaman */
     overflow-y: scroll;
     scrollbar-gutter: stable;
+    overflow-x: hidden;
 }
 
 h1,
@@ -122,12 +124,32 @@ body.home-mode {
 }
 
 .header.transparent-mode .logo {
-    color: #fff !important;
+    color: #ffffff !important;
+}
+
+.header.transparent-mode .logo span {
+    color: #ffffff !important;
 }
 
 .header.transparent-mode .logo-icon path,
 .header.transparent-mode .logo-icon rect {
-    fill: #fff !important;
+    fill: #ffffff !important;
+}
+
+.header:not(.transparent-mode) .logo {
+    color: #00AA5B !important;
+}
+
+.header:not(.transparent-mode) .logo span {
+    color: #31353b !important;
+}
+
+.header:not(.transparent-mode) .logo-icon rect {
+    fill: #00AA5B !important;
+}
+
+.header:not(.transparent-mode) .logo-icon path {
+    fill: #4caf50 !important;
 }
 
 .header.transparent-mode .category-btn {
@@ -147,6 +169,20 @@ body.home-mode {
 .header.transparent-mode .search-icon,
 .header.transparent-mode .search-icon-left {
     color: #fff;
+}
+
+#userNameDisplay {
+    max-width: 95px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+@media (min-width: 768px) {
+    #userNameDisplay {
+        max-width: 140px;
+    }
 }
 
 .header.transparent-mode .header-icons i,
@@ -1346,10 +1382,14 @@ body.village-mode .search-container {
     display: none !important;
 }
 
-/* Sembunyikan kolom pencarian di halaman Pusat Bantuan */
+/* Sembunyikan kolom pencarian di halaman Pusat Bantuan / Kebijakan */
 body.hide-search .search-container,
 body.hide-search .popular-searches {
     display: none !important;
+}
+
+body.hide-search {
+    padding-top: 65px !important;
 }
 
 /* Mencegah tombol 'Masuk' turun ke baris baru jika pencarian disembunyikan */
@@ -2745,33 +2785,79 @@ body.hide-auth-buttons #userProfileContainer {
     display: none !important;
 }
 
-/* Profile Dropdown Overlay */
+/* Disable background dark overlay on desktop */
 .profile-dropdown-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4); /* Abu-abu transparan (overlay) */
-    z-index: 999; /* Tepat di bawah header (z-index: 1000) */
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    display: none !important;
 }
 
-/* Profile Dropdown Hover */
+.header, .main-header, #userProfileContainer {
+    overflow: visible !important;
+}
+
+/* Base Dropdown Container */
+.profile-dropdown-container,
+#profileDropdown {
+    position: absolute !important;
+    top: 55px !important;
+    right: 0 !important;
+    width: 420px !important;
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
+    border: 1px solid #E5E7E9 !important;
+    padding: 16px !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    gap: 16px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(8px) !important;
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease !important;
+}
+
+/* Show Dropdown on Hover or when .show class is present */
 #userProfileContainer:hover #profileDropdown,
+#profileDropdown:hover,
 #profileDropdown.show {
     opacity: 1 !important;
     visibility: visible !important;
+    pointer-events: auto !important;
     transform: translateY(0) !important;
 }
 
-#userProfileContainer:hover .profile-dropdown-overlay,
-#profileDropdown.show ~ .profile-dropdown-overlay {
-    opacity: 1 !important;
-    visibility: visible !important;
+#profileDropdown a,
+#profileDropdown button,
+#profileDropdown div {
+    pointer-events: auto !important;
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        display: none !important;
+    }
+    .header {
+        top: 0 !important;
+    }
+    .profile-dropdown-container,
+    #profileDropdown {
+        position: fixed !important;
+        top: 65px !important;
+        right: 15px !important;
+        left: 15px !important;
+        width: auto !important;
+        max-width: 350px !important;
+        margin: 0 auto !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border-radius: 16px !important;
+    }
+    #profileDropdown > div {
+        width: 100% !important;
+        flex: none !important;
+    }
 }
 
 
@@ -2884,18 +2970,21 @@ body.hide-auth-buttons #userProfileContainer {
 /* Biodata Diri Layout */
 .biodata-container {
     display: flex;
-    gap: 40px;
+    gap: 30px;
     padding-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .biodata-left {
-    width: 310px;
+    width: 280px;
     flex-shrink: 0;
     border: 1px solid #e5e7e9;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 16px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
     background: white;
+    box-sizing: border-box;
 }
 
 .biodata-avatar-box {
@@ -2932,6 +3021,7 @@ body.hide-auth-buttons #userProfileContainer {
 
 .biodata-right {
     flex-grow: 1;
+    min-width: 0; /* Prevent flex overflow */
 }
 
 .biodata-right h3 {
@@ -2945,12 +3035,15 @@ body.hide-auth-buttons #userProfileContainer {
     display: flex;
     margin-bottom: 24px;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .biodata-label {
-    width: 160px;
+    width: 140px;
     font-size: 0.9rem;
     color: rgba(0, 0, 0, 0.54);
+    flex-shrink: 0;
 }
 
 .biodata-value {
@@ -2958,24 +3051,72 @@ body.hide-auth-buttons #userProfileContainer {
     color: #31353B;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .biodata-action {
     color: #03ac0e;
     font-weight: 700;
     text-decoration: none;
-    margin-left: 12px;
+    margin-left: auto;
     font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .badge-verified {
     background: #E8F5E9;
     color: #03ac0e;
     font-size: 0.75rem;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-right: 12px;
+}
+
+/* RESPONSIVE AUTO-FIT PROFILE BIODATA (HP, TABLET, PC) */
+@media (max-width: 992px) {
+    .biodata-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .biodata-left {
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+
+    .biodata-right {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .biodata-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px dashed #f0f0f0;
+    }
+
+    .biodata-label {
+        width: 100%;
+        font-weight: 600;
+        color: #6D7588;
+        font-size: 0.85rem;
+    }
+
+    .biodata-value {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .biodata-action {
+        margin-left: 0;
+    }
 }
 
 /* Notifikasi Settings */
@@ -5123,11 +5264,16 @@ body[data-theme="dark"] .batas-card div {
    UNIFIED GLOBAL HEADER & STORE/PDP SUB-HEADER STYLING
    ========================================================================== */
 
-/* Ensure main header is ALWAYS visible on both Detail UMKM and Detail Produk */
-body.store-mode .main-header,
-body.pdp-mode .main-header,
+/* Ensure main header & topbar are properly stacked on both Detail UMKM and Detail Produk */
 body.store-mode header,
-body.pdp-mode header {
+body.pdp-mode header,
+body.store-mode .header,
+body.pdp-mode .header {
+    display: block !important;
+}
+
+body.store-mode .main-header,
+body.pdp-mode .main-header {
     display: flex !important;
 }
 
@@ -5208,25 +5354,67 @@ body.pdp-mode header {
     z-index: 1000 !important;
 }
 
-/* 2. Fix topbar links tidak bergeser di store-mode / product-mode */
+/* 2. Fix topbar links & content alignment on store-mode / pdp-mode */
 body.store-mode .topbar,
-body.store-mode .topbar-content {
-    display: flex !important;
+body.pdp-mode .topbar {
+    display: block !important;
     visibility: visible !important;
 }
 
-.topbar-links {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 0;
+body.store-mode .topbar-content,
+body.pdp-mode .topbar-content,
+.topbar-content {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-left: auto !important;
 }
 
-.topbar-content {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    width: 100%;
+body.store-mode .topbar-links,
+body.pdp-mode .topbar-links,
+.topbar-links {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0 !important;
+}
+
+/* Back Button Desktop Styling for Store Page & PDP Page */
+.btn-back-store-desktop,
+.btn-back-pdp {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 18px !important;
+    border-radius: 24px !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    color: #1e293b !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    text-decoration: none !important;
+    font-family: inherit !important;
+    outline: none !important;
+}
+
+.btn-back-store-desktop:hover,
+.btn-back-pdp:hover {
+    background: #f0fdf4 !important;
+    border-color: #03ac0e !important;
+    color: #03ac0e !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(3, 172, 14, 0.12) !important;
+}
+
+.btn-back-store-desktop i,
+.btn-back-pdp i {
+    color: #03ac0e !important;
+    font-size: 0.9rem !important;
 }
 
 /* 3. Scroll Reveal Animations — Tentang Karanganyar */
@@ -5370,5 +5558,778 @@ body.store-mode .topbar-content {
 .batas-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+/* ==========================================================================
+   FORCE TOPBAR ALIGNMENT TO TOP RIGHT ON ALL PAGES & MODES
+   ========================================================================== */
+body.store-mode .topbar,
+body.pdp-mode .topbar,
+.topbar {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+}
+
+body.store-mode .topbar-content,
+body.pdp-mode .topbar-content,
+.topbar-content {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 1400px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+}
+
+body.store-mode .topbar-links,
+body.pdp-mode .topbar-links,
+.topbar-links {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+body.store-mode .topbar-links a,
+body.pdp-mode .topbar-links a,
+.topbar-links a {
+    margin-left: 20px !important;
+}
+
+/* ==========================================================================
+   PDP LONG TEXT WRAPPING & GRID OVERFLOW PREVENTION FIX
+   ========================================================================== */
+.pdp-layout,
+.pdp-info,
+.pdp-title,
+.pdp-price-section,
+.pdp-store-profile,
+.pdp-description-box,
+.pdp-desc-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+    box-sizing: border-box !important;
+}
+
+.pdp-desc-text,
+.pdp-description-box p,
+.pdp-description-box div {
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    max-width: 100% !important;
+}
+
+@media (min-width: 992px) {
+    .pdp-info {
+        grid-template-columns: minmax(0, 1fr) 280px !important;
+    }
+}
+
+/* ==========================================================================
+   WATER RESOURCES MAP & BENTO GRID STYLING FOR KEHIDUPAN & BUDAYA
+   ========================================================================== */
+
+/* Water Resources Map Section */
+.water-map-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 36px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body[data-theme="dark"] .water-map-card {
+    background: #1e1e1e;
+    border-color: #2d2d2d;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.water-map-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+.water-map-header {
+    margin-bottom: 24px;
+}
+
+.water-map-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #e0f2fe;
+    color: #0284c7;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+body[data-theme="dark"] .water-map-badge {
+    background: rgba(2, 132, 199, 0.2);
+    color: #38bdf8;
+}
+
+.water-map-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+body[data-theme="dark"] .water-map-title {
+    color: #f8fafc;
+}
+
+.water-map-sub {
+    font-size: 0.98rem;
+    color: #64748b;
+    margin: 0;
+}
+
+body[data-theme="dark"] .water-map-sub {
+    color: #94a3b8;
+}
+
+.water-map-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.water-map-img-wrapper {
+    position: relative;
+    width: 100%;
+    max-height: 480px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+}
+
+.water-map-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    max-height: 480px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+.water-map-img-wrapper:hover img {
+    transform: scale(1.02);
+}
+
+.water-map-overlay-tag {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.water-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+}
+
+body[data-theme="dark"] .water-map-legend {
+    background: #181818;
+    border-color: #2a2a2a;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+body[data-theme="dark"] .legend-item {
+    color: #cbd5e1;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-dot.blue { background: #0284c7; }
+.legend-dot.green { background: #059669; }
+.legend-dot.orange { background: #ea580c; }
+
+
+/* Bento Grid for Kehidupan Masyarakat & Budaya Lokal */
+.km-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+}
+
+@media (max-width: 991px) {
+    .km-bento-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+}
+
+.km-bento-card {
+    border-radius: 24px;
+    padding: 36px;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.km-bento-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.09);
+}
+
+/* Society Theme (Emerald / Nature) */
+.km-bento-card.theme-society {
+    background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%);
+    border: 1px solid #bbf7d0;
+}
+
+body[data-theme="dark"] .km-bento-card.theme-society {
+    background: linear-gradient(145deg, #062c19 0%, #121f18 100%);
+    border-color: #166534;
+}
+
+/* Culture Theme (Warm Amber / Heritage) */
+.km-bento-card.theme-culture {
+    background: linear-gradient(145deg, #fffbeb 0%, #ffffff 100%);
+    border: 1px solid #fef3c7;
+}
+
+body[data-theme="dark"] .km-bento-card.theme-culture {
+    background: linear-gradient(145deg, #2e1d05 0%, #1c1812 100%);
+    border-color: #78350f;
+}
+
+/* Card Header */
+.km-card-header {
+    margin-bottom: 24px;
+}
+
+.km-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.badge-society {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+body[data-theme="dark"] .badge-society {
+    background: rgba(22, 101, 52, 0.3);
+    color: #4ade80;
+}
+
+.badge-culture {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+body[data-theme="dark"] .badge-culture {
+    background: rgba(120, 53, 15, 0.3);
+    color: #fbbf24;
+}
+
+.km-section-label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.km-card-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+body[data-theme="dark"] .km-card-title {
+    color: #f8fafc;
+}
+
+/* Rows & Mini Card Items */
+.km-rows-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.km-row-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: #ffffff;
+    padding: 18px 20px;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+body[data-theme="dark"] .km-row-item {
+    background: #181818;
+    border-color: #2a2a2a;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.km-row-item:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
+}
+
+.km-icon-box {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.icon-society {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.icon-culture {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.km-row-content {
+    flex: 1;
+}
+
+.km-tag-pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.tag-society {
+    background: #e6f4ea;
+    color: #137333;
+}
+
+body[data-theme="dark"] .tag-society {
+    background: rgba(19, 115, 51, 0.2);
+    color: #81c995;
+}
+
+.tag-culture {
+    background: #fef7e0;
+    color: #b06000;
+}
+
+body[data-theme="dark"] .tag-culture {
+    background: rgba(176, 96, 0, 0.2);
+    color: #fdd663;
+}
+
+.km-row-content p {
+    font-size: 0.95rem;
+    color: #334155;
+    margin: 0;
+    line-height: 1.5;
+}
+
+body[data-theme="dark"] .km-row-content p {
+    color: #cbd5e1;
+}
+
+/* Ensure topbar links are hidden on mobile responsive view (width <= 768px) */
+@media screen and (max-width: 768px) {
+    .topbar,
+    .topbar-content,
+    .topbar-links,
+    body.store-mode .topbar,
+    body.pdp-mode .topbar,
+    body.store-mode .topbar-content,
+    body.pdp-mode .topbar-content,
+    body.store-mode .topbar-links,
+    body.pdp-mode .topbar-links {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
+    }
+}
+
+/* --- CMS WATER MAP & GALLERY PRECISE LAYOUT --- */
+.water-map-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    margin-top: 30px;
+}
+
+.water-map-img-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    min-height: 300px !important;
+}
+
+.water-map-img-wrapper img {
+    width: 100% !important;
+    height: 450px !important;
+    object-fit: cover !important;
+    display: block !important;
+    cursor: pointer !important;
+}
+
+.water-map-overlay-tag {
+    position: absolute !important;
+    bottom: 15px !important;
+    left: 15px !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 12px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    backdrop-filter: blur(4px) !important;
+    z-index: 5 !important;
+}
+
+/* --- ARTISTIC MASONRY GALLERY LAYOUT --- */
+.tkp-gallery-masonry {
+    column-count: 3 !important;
+    column-gap: 24px !important;
+    margin-top: 30px !important;
+}
+
+.tkp-gal-item {
+    break-inside: avoid !important;
+    margin-bottom: 24px !important;
+    position: relative !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07) !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+}
+
+/* Variasi Tinggi Artistik Masonry */
+.tkp-gal-1 { height: 320px !important; }
+.tkp-gal-2 { height: 230px !important; }
+.tkp-gal-3 { height: 370px !important; }
+.tkp-gal-4 { height: 260px !important; }
+.tkp-gal-5 { height: 350px !important; }
+.tkp-gal-6 { height: 240px !important; }
+
+.tkp-gal-item:hover {
+    transform: translateY(-8px) scale(1.02) !important;
+    box-shadow: 0 22px 45px rgba(0, 0, 0, 0.14) !important;
+}
+
+.tkp-gal-item img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    cursor: pointer !important;
+    transition: transform 0.5s ease !important;
+}
+
+.tkp-gal-item:hover img {
+    transform: scale(1.08) !important;
+}
+
+/* Responsive Masonry */
+@media screen and (max-width: 992px) {
+    .tkp-gallery-masonry {
+        column-count: 2 !important;
+        column-gap: 18px !important;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .tkp-gallery-masonry {
+        column-count: 1 !important;
+    }
+    .tkp-gal-1, .tkp-gal-2, .tkp-gal-3, .tkp-gal-4, .tkp-gal-5, .tkp-gal-6 {
+        height: 240px !important;
+    }
+}
+
+/* ==========================================
+   BERITA DESA STYLES
+   ========================================== */
+#beritaPage {
+    padding-top: 0 !important;
+}
+
+/* Sembunyikan Kategori pada Halaman Berita Desa */
+body.berita-mode .category-btn,
+body.berita-mode .category-dropdown,
+body.berita-mode #categoryDropdown,
+body.berita-mode .header .category-btn {
+    display: none !important;
+}
+
+body.berita-mode .header:not(.transparent-mode) {
+    background-color: var(--surface) !important;
+    box-shadow: var(--shadow-header) !important;
+}
+
+body.berita-mode .header:not(.transparent-mode) .logo {
+    color: var(--primary) !important;
+}
+
+body.berita-mode .header:not(.transparent-mode) .logo span {
+    color: var(--wood, #31353b);
+}
+
+body.berita-mode .header:not(.transparent-mode) .topbar {
+    background-color: var(--bg-page, #f3f4f5) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+body.berita-mode #beritaPage .slide {
+    padding-top: 100px;
+}
+
+#beritaSearchEmpty {
+    color: var(--text-muted);
+    margin: 0 auto 24px;
+    max-width: 860px;
+    text-align: center;
+}
+
+.berita-page-header {
+    max-width: 860px;
+    margin: 48px auto 28px;
+    text-align: center;
+}
+
+.berita-page-header h1 {
+    color: var(--text-main);
+    font-size: 2rem;
+    margin: 0 0 10px;
+}
+
+.berita-page-header p {
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.berita-empty {
+    color: var(--text-muted);
+    margin: 0 auto 60px;
+    max-width: 860px;
+    text-align: center;
+}
+
+.berita-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px 32px;
+    justify-content: center;
+    max-width: 1100px;
+    margin: 0 auto 60px;
+}
+
+.berita-article {
+    min-width: 0;
+    cursor: pointer;
+    text-align: left;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid var(--border, #e2e8f0);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+}
+
+.berita-article:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    border-color: var(--primary);
+}
+
+.berita-article:hover h2 {
+    color: var(--primary);
+}
+
+.berita-article-image {
+    border-radius: 12px;
+    display: block;
+    height: 190px;
+    margin: 0 auto 14px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.berita-article h2 {
+    margin: 10px 0 8px;
+    color: var(--text-main);
+    font-size: 1.15rem;
+    line-height: 1.55;
+    font-weight: 700;
+}
+
+.berita-article time {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.berita-article-excerpt {
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    line-height: 1.6;
+    margin: 0;
+    overflow: hidden;
+    font-size: 0.9rem;
+}
+
+.berita-detail {
+    max-width: 800px;
+    margin: 42px auto 60px;
+    text-align: left;
+    background: #ffffff;
+    padding: 32px;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    border: 1px solid var(--border, #e2e8f0);
+}
+
+body.berita-mode.berita-detail-open {
+    padding-top: 115px !important;
+}
+
+body.berita-mode.berita-detail-open .berita-detail {
+    margin-top: 24px;
+}
+
+.berita-back {
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: var(--primary);
+    cursor: pointer;
+    display: inline-flex;
+    font-weight: 700;
+    gap: 8px;
+    margin: 0 0 28px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.berita-back:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+}
+
+.berita-detail-header {
+    margin-bottom: 28px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 16px;
+}
+
+.berita-detail h1 {
+    color: var(--text-main);
+    font-size: 2rem;
+    line-height: 1.35;
+    margin: 0 0 12px;
+    font-weight: 800;
+}
+
+.berita-detail time {
+    color: var(--text-muted);
+    display: block;
+    margin: 0;
+    font-weight: 600;
+}
+
+.berita-detail p {
+    color: var(--text-main);
+    line-height: 1.8;
+    margin: 0 0 28px;
+    text-align: justify;
+    white-space: pre-line;
+    font-size: 1rem;
+}
+
+.berita-detail-image {
+    border-radius: 16px;
+    display: block;
+    max-height: 480px;
+    object-fit: cover;
+    width: 100%;
+    margin: 0 auto 28px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 

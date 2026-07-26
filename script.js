@@ -9,8 +9,9 @@ let followedShops = [];
 let userCollections = [];
 
 function getUserKey(baseKey) {
-    if (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) {
-        return baseKey + '_' + currentUser.uid;
+    const activeUid = (typeof localStorage !== 'undefined' ? localStorage.getItem('umkm_active_uid') : null) || (typeof currentUser !== 'undefined' && currentUser ? currentUser.uid : null);
+    if (activeUid) {
+        return baseKey + '_' + activeUid;
     }
     return baseKey + '_guest';
 }
@@ -21,6 +22,18 @@ function loadUserState() {
     userCollections = JSON.parse(localStorage.getItem(getUserKey('userCollections')) || '[]');
     followedShops = JSON.parse(localStorage.getItem(getUserKey('followedShops')) || '[]');
     
+    try {
+        cart = JSON.parse(localStorage.getItem(getUserKey('umkm_cart'))) || {};
+    } catch (e) {
+        cart = {};
+    }
+    if (typeof checkedCartItems !== 'undefined') {
+        checkedCartItems = {};
+    }
+
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+    if (typeof renderCartPage === 'function') renderCartPage();
+
     // Re-render UI depending on state
     if (typeof renderWishlist === 'function') renderWishlist();
     if (typeof renderTerakhirDilihat === 'function') renderTerakhirDilihat();
@@ -33,7 +46,6 @@ function loadUserState() {
     } else {
         const ucc2 = document.getElementById('userCollectionCard'); if(ucc2) ucc2.style.display = 'none';
     }
-
 }
 
 let umkmData = [];
@@ -57,6 +69,7 @@ async function fetchUMKMData() {
         }
         
         // Setelah data berhasil diambil, render grid
+        loadUserState();
         renderUMKM();
         if(typeof renderFavoriteShops === "function") renderFavoriteShops();
         if(typeof renderTerakhirDilihat === "function") renderTerakhirDilihat();
@@ -65,12 +78,17 @@ async function fetchUMKMData() {
         // Default ke tentangPage jika belum ada sesi
         const savedPage = sessionStorage.getItem('activePage') || 'tentangPage';
         const savedStoreId = sessionStorage.getItem('activeStoreId');
+        const savedProdIndex = sessionStorage.getItem('activeProdIndex');
         
-        if (savedPage === 'storePage' && savedStoreId) {
+        if (savedPage === 'productPage' && savedStoreId !== null && savedProdIndex !== null) {
+            openProductDetail(savedStoreId, parseInt(savedProdIndex, 10));
+        } else if (savedPage === 'storePage' && savedStoreId) {
             openStore(savedStoreId);
-        } else {
+        } else if (savedPage !== 'tentangPage' && savedPage !== 'homePage') {
+            // Only call switchPage if it's different from what was already shown
             switchPage(savedPage, true);
         }
+        // If savedPage is tentangPage or homePage, already shown by immediatePageRestore
         
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -90,6 +108,7 @@ const formatRupiah = (angka) => {
 
 // Elements
 const homePage = document.getElementById('homePage');
+const beritaPage = document.getElementById('beritaPage');
 const storePage = document.getElementById('storePage');
 const helpPage = document.getElementById('helpPage');
 const tentangPage = document.getElementById('tentangPage');
@@ -135,12 +154,18 @@ let previousPageId = 'homePage';
 // Fungsi Pindah Halaman & Simpan State (Refresh Proof)
 function switchPage(pageId, skipHistory = false) {
     // Simpan posisi scroll halaman yang akan ditinggalkan
-    const pages = [homePage, storePage, helpPage, tentangPage, termsPage, privacyPage, faqPage, productPage, cartPage, profilePage, wishlistPage, favoritesPage];
+    const pages = [homePage, beritaPage, storePage, helpPage, tentangPage, termsPage, privacyPage, faqPage, productPage, cartPage, profilePage, wishlistPage, favoritesPage];
     const activePage = pages.find(p => p && !p.classList.contains('hidden'));
     if (activePage) {
         scrollPositions[activePage.id] = window.scrollY;
         if(activePage.id !== pageId) previousPageId = activePage.id;
     }
+
+    // Dismiss profile dropdown on page transition
+    const pDropdownDismiss = document.getElementById('profileDropdown');
+    if (pDropdownDismiss) pDropdownDismiss.classList.remove('show');
+    const pOverlayDismiss = document.getElementById('profileDropdownOverlay');
+    if (pOverlayDismiss) pOverlayDismiss.classList.remove('show');
 
     // Sembunyikan semua
     pages.forEach(p => {
@@ -159,11 +184,20 @@ function switchPage(pageId, skipHistory = false) {
         target.classList.add('page-enter');
     }
 
+    // Mode Berita Desa
+    if (pageId === 'beritaPage') {
+        document.body.classList.add('berita-mode');
+        if (typeof window.loadBerita === 'function') window.loadBerita();
+    } else {
+        document.body.classList.remove('berita-mode');
+    }
+
     // Mode profil desa
     if (pageId === 'tentangPage') {
         document.body.classList.add('village-mode');
-        // Panggil animasi jalannya angka statistik
+        // Panggil animasi jalannya angka statistik & animasi tik huruf hero
         animateCounters();
+        triggerHeroTypewriter();
     } else {
         document.body.classList.remove('village-mode');
     }
@@ -189,19 +223,31 @@ function switchPage(pageId, skipHistory = false) {
         document.body.classList.remove('store-mode');
     }
 
-    // Ubah Teks Logo Sesuai Halaman Aktif
-    if (pageId === 'tentangPage' || pageId === 'helpPage' || pageId === 'termsPage' || pageId === 'privacyPage') {
+    // Ubah Teks Logo & Kategori Sesuai Halaman Aktif
+    const categoryBtnEl = document.querySelector('.category-btn') || document.querySelector('.category-dropdown') || document.getElementById('categoryDropdown');
+    if (pageId === 'beritaPage') {
+        logoBtn.innerHTML = '<svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;"><rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50"/></svg> Berita<span>Karanganyar</span>';
+        if (categoryBtnEl) categoryBtnEl.style.setProperty('display', 'none', 'important');
+        if (searchInput) {
+            searchInput.placeholder = 'Cari Berita Karanganyar';
+            searchInput.value = '';
+        }
+    } else if (pageId === 'tentangPage' || pageId === 'helpPage' || pageId === 'termsPage' || pageId === 'privacyPage') {
         logoBtn.innerHTML = '<svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;"><rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50"/></svg> Padukuhan<span>Karanganyar</span>';
+        if (categoryBtnEl) categoryBtnEl.style.removeProperty('display');
+        if (searchInput) searchInput.placeholder = 'Cari di Pasar Karanganyar';
     } else {
         logoBtn.innerHTML = '<svg class="logo-icon" width="1em" height="1em" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: -0.125em;"><rect x="42" y="10" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="50" width="16" height="35" rx="4" fill="#2e7d32"/><rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32"/><path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50"/><path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50"/></svg> Pasar<span>Karanganyar</span>';
+        if (categoryBtnEl) categoryBtnEl.style.removeProperty('display');
+        if (searchInput) searchInput.placeholder = 'Cari di Pasar Karanganyar';
     }
 
     // Reset animasi scroll reveal jika ada, agar bisa dimainkan ulang saat di-scroll
     if(target) {
-        const reveals = target.querySelectorAll('.reveal');
+        const reveals = target.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
         reveals.forEach(r => {
             r.classList.remove('active');
-            if (typeof globalScrollObserver !== 'undefined') {
+            if (typeof globalScrollObserver !== 'undefined' && globalScrollObserver) {
                 globalScrollObserver.unobserve(r);
                 globalScrollObserver.observe(r);
             }
@@ -214,27 +260,32 @@ function switchPage(pageId, skipHistory = false) {
     // Simpan ke History API agar tombol Back Browser berfungsi
     if (!skipHistory) {
         const pageToHash = {
-            'homePage': '',
+            'homePage': '#promo',
+            'beritaPage': '#berita',
             'termsPage': '#terms',
             'privacyPage': '#privacy',
             'faqPage': '#faq',
             'tentangPage': '#tentang',
-            'helpPage': '#help'
+            'helpPage': '#help',
+            'wishlistPage': '#wishlist',
+            'favoritesPage': '#favorites',
+            'profilePage': '#profile',
+            'cartPage': '#cart'
         };
         const hashStr = pageToHash[pageId] !== undefined ? pageToHash[pageId] : '';
         history.pushState({ pageId: pageId }, "", window.location.pathname + hashStr);
     }
     
     // Tokopedia header mode
-    if(pageId === 'homePage' || pageId === 'tentangPage') {
+    if(pageId === 'homePage' || pageId === 'tentangPage' || pageId === 'beritaPage') {
         document.body.classList.add('home-mode');
     } else {
         document.body.classList.remove('home-mode');
     }
     
     // Update header mode directly
-    if(typeof updateHeaderMode === 'function') {
-        updateHeaderMode();
+    if(typeof window.updateHeaderMode === 'function') {
+        window.updateHeaderMode();
     }
     
     // Pulihkan posisi scroll hanya jika kembali ke halaman utama (homePage)
@@ -244,33 +295,89 @@ function switchPage(pageId, skipHistory = false) {
             window.scrollTo(0, scrollPositions[pageId]);
         }, 30);
     } else {
-        window.scrollTo(0, 0);
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 30);
     }
 }
+
+// LOGIKA TRANSMUTASI SCROLL HEADER (MODAL/HERO TOKOPEDIA STYLE)
+window.updateHeaderMode = function() {
+    const header = document.querySelector('.header');
+    if (!header) return;
+
+    const isHeroPage = document.body.classList.contains('home-mode');
+    if (isHeroPage && window.scrollY <= 30 && !document.body.classList.contains('berita-detail-open')) {
+        header.classList.add('transparent-mode');
+    } else {
+        header.classList.remove('transparent-mode');
+    }
+};
+
+window.addEventListener('scroll', window.updateHeaderMode);
 
 // Tangkap event saat tombol Back/Forward browser ditekan
 window.addEventListener('popstate', (event) => {
     if (event.state && event.state.pageId) {
         switchPage(event.state.pageId, true);
     } else {
-        // Jika tidak ada state, cek hash URL atau asumsikan kembali ke halaman awal
+        // Cek hash URL atau fallback ke activePage di sessionStorage
         const hash = window.location.hash;
-        if(hash === '#terms') {
-            switchPage('termsPage', true);
-        } else if (hash === '#privacy') {
-            switchPage('privacyPage', true);
-        } else if (hash === '#faq') {
-            switchPage('faqPage', true);
-        } else if (hash === '#tentang') {
-            switchPage('tentangPage', true);
-        } else {
-            switchPage('tentangPage', true);
-        }
+        const hashToPage = {
+            '#terms': 'termsPage',
+            '#privacy': 'privacyPage',
+            '#faq': 'faqPage',
+            '#tentang': 'tentangPage',
+            '#help': 'helpPage',
+            '#wishlist': 'wishlistPage',
+            '#favorites': 'favoritesPage',
+            '#profile': 'profilePage',
+            '#cart': 'cartPage',
+            '#promo': 'homePage'
+        };
+        const targetPage = hashToPage[hash] || sessionStorage.getItem('activePage') || 'tentangPage';
+        switchPage(targetPage, true);
     }
 });
 
-// Set state awal saat halaman pertama dimuat - default ke tentangPage
-history.replaceState({ pageId: sessionStorage.getItem('activePage') || 'tentangPage' }, "", "");
+// IMMEDIATE page restore — sebelum async fetch agar tidak ada flash
+// Langsung tampilkan halaman yang tersimpan tanpa menunggu data
+(function immediatePageRestore() {
+    const savedPageNow = sessionStorage.getItem('activePage') || 'tentangPage';
+    // Untuk storePage/productPage, jika butuh data UMKM yang belum ter-fetch
+    const showPage = (savedPageNow === 'storePage' || savedPageNow === 'productPage') ? 'homePage' : savedPageNow;
+    const pageIds = ['homePage', 'storePage', 'helpPage', 'tentangPage', 'termsPage', 'privacyPage', 'faqPage', 'productPage', 'cartPage', 'profilePage', 'wishlistPage', 'favoritesPage'];
+    pageIds.forEach(pid => {
+        const el = document.getElementById(pid);
+        if (el) el.classList.add('hidden');
+    });
+    const target = document.getElementById(showPage);
+    if (target) {
+        target.classList.remove('hidden');
+        // Apply body classes
+        if (showPage === 'tentangPage') {
+            document.body.classList.add('village-mode');
+            setTimeout(() => triggerHeroTypewriter(), 50);
+        }
+        if (showPage === 'helpPage') document.body.classList.add('hide-search');
+    }
+    const pageToHashInit = {
+        'homePage': '#promo',
+        'termsPage': '#terms',
+        'privacyPage': '#privacy',
+        'faqPage': '#faq',
+        'tentangPage': '#tentang',
+        'helpPage': '#help',
+        'wishlistPage': '#wishlist',
+        'favoritesPage': '#favorites',
+        'profilePage': '#profile',
+        'cartPage': '#cart'
+    };
+    const initHash = pageToHashInit[showPage] || '';
+    history.replaceState({ pageId: showPage }, "", window.location.pathname + initHash);
+})();
+
+
 
 // Fungsi Animasi Counter Angka Statistik
 // Animate a single counter element from 0 to its target
@@ -321,6 +428,51 @@ function animateCounters() {
             }
         });
     }, 200);
+}
+
+let heroTypewriterTimer1 = null;
+let heroTypewriterTimer2 = null;
+
+// Animasi Tik Huruf (Typewriter) Real-Time untuk Judul Hero "Kenali lebih dekat Karanganyar"
+function triggerHeroTypewriter() {
+    const titleEl = document.getElementById('typewriterHeroTitle');
+    if (!titleEl) return;
+
+    if (heroTypewriterTimer1) clearTimeout(heroTypewriterTimer1);
+    if (heroTypewriterTimer2) clearTimeout(heroTypewriterTimer2);
+
+    const line1Text = "Kenali lebih dekat";
+    const line2Text = "Karanganyar";
+
+    titleEl.innerHTML = '<span id="twLine1"></span><br><span id="twLine2" class="tw-green"></span><span class="typewriter-cursor"></span>';
+
+    const line1El = document.getElementById('twLine1');
+    const line2El = document.getElementById('twLine2');
+
+    if (!line1El || !line2El) return;
+
+    let idx1 = 0;
+    let idx2 = 0;
+
+    function typeLine1() {
+        if (idx1 < line1Text.length) {
+            line1El.textContent += line1Text.charAt(idx1);
+            idx1++;
+            heroTypewriterTimer1 = setTimeout(typeLine1, 45);
+        } else {
+            heroTypewriterTimer2 = setTimeout(typeLine2, 120);
+        }
+    }
+
+    function typeLine2() {
+        if (idx2 < line2Text.length) {
+            line2El.textContent += line2Text.charAt(idx2);
+            idx2++;
+            heroTypewriterTimer2 = setTimeout(typeLine2, 55);
+        }
+    }
+
+    typeLine1();
 }
 
 // IntersectionObserver khusus untuk counter di tentangPage
@@ -397,6 +549,14 @@ function handleSearch() {
     if (!searchInput) return;
     const query = searchInput.value;
     
+    // Jika sedang berada di halaman berita desa, lakukan filter artikel berita
+    if (beritaPage && !beritaPage.classList.contains('hidden')) {
+        if (typeof window.filterBerita === 'function') {
+            window.filterBerita(query);
+        }
+        return;
+    }
+    
     // Jika sedang tidak di halaman home, pindah ke home dulu
     if (homePage.classList.contains('hidden')) {
         switchPage('homePage');
@@ -406,7 +566,19 @@ function handleSearch() {
     
     // Update active state kategori ke "Semua"
     categoryItems.forEach(c => c.classList.remove('active'));
-    document.querySelector('.category-item[data-filter="all"]').classList.add('active');
+    const allCat = document.querySelector('.category-item[data-filter="all"]');
+    if (allCat) allCat.classList.add('active');
+}
+
+// Listener Pencarian Realtime (Memfilter saat pengguna mengetik)
+if (searchInput) {
+    searchInput.addEventListener('input', () => {
+        if (beritaPage && !beritaPage.classList.contains('hidden')) {
+            if (typeof window.filterBerita === 'function') {
+                window.filterBerita(searchInput.value);
+            }
+        }
+    });
 }
 
 // Open Store Details
@@ -416,6 +588,7 @@ function openStore(id) {
 
     // Simpan ke session storage agar toko tidak hilang saat direfresh
     sessionStorage.setItem('activeStoreId', id);
+    sessionStorage.removeItem('activeProdIndex');
 
     // Toggle Pages
     switchPage('storePage');
@@ -623,11 +796,11 @@ categoryItems.forEach(item => {
     });
 });
 
-// Logic Slider Hero Banner
-const slides = document.querySelectorAll('.slide');
-const dots = document.querySelectorAll('.dot');
-const prevBtn = document.querySelector('.prev-slide');
-const nextBtn = document.querySelector('.next-slide');
+// Logic Slider Hero Banner (Khusus Halaman Utama UMKM)
+const slides = document.querySelectorAll('#homePage .slide');
+const dots = document.querySelectorAll('#homePage .dot');
+const prevBtn = document.querySelector('#homePage .prev-slide');
+const nextBtn = document.querySelector('#homePage .next-slide');
 let currentSlide = 0;
 let slideInterval;
 
@@ -795,6 +968,7 @@ window.addEventListener('click', (e) => {
     }
     if (loginModal && e.target === loginModal) {
         loginModal.classList.add('hidden');
+        document.querySelectorAll('#loginModal [id^="authScreen"]').forEach(s => s.classList.add('hidden'));
     }
 });
 
@@ -865,19 +1039,34 @@ const authBtnReset = document.getElementById('authBtnReset');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
 
 // Navigation Helpers
-function showAuthScreen(screen) {
+window.showAuthScreen = function(screen) {
     if(typeof clearInputErrors === 'function') clearInputErrors();
-    [authScreen1, authScreen2, authScreen3, authScreen4, authScreen5, authScreen6, authScreen7, authScreen8, authScreen9].forEach(s => {
-        if(s) s.classList.add('hidden');
+    const allScreens = document.querySelectorAll('#loginModal [id^="authScreen"]');
+    allScreens.forEach(s => {
+        s.classList.add('hidden');
     });
-    if(screen) screen.classList.remove('hidden');
+    
+    let targetEl = null;
+    if (typeof screen === 'string') {
+        targetEl = document.getElementById(screen);
+    } else if (screen && screen.nodeType) {
+        targetEl = screen;
+    }
+    
+    if (targetEl) {
+        targetEl.classList.remove('hidden');
+    }
+};
+function showAuthScreen(screen) {
+    window.showAuthScreen(screen);
 }
 
 // Close Buttons
-[1,2,3,4,5,6,7,8,9].forEach(num => {
+[1,2,3,4,5,6,7,8,9,10].forEach(num => {
     const btn = document.getElementById(`closeModal${num}`);
     if(btn) btn.addEventListener('click', () => {
-        loginModal.classList.add('hidden');
+        if(loginModal) loginModal.classList.add('hidden');
+        document.querySelectorAll('#loginModal [id^="authScreen"]').forEach(s => s.classList.add('hidden'));
     });
 });
 
@@ -942,20 +1131,10 @@ if(authInputEmail1 && authBtnNext) {
         }
     });
     
-    authBtnNext.addEventListener('click', () => {
-        if(typeof clearInputErrors === 'function') clearInputErrors();
-        const email = authInputEmail1.value.trim();
-        if(email.length > 0) {
-            if(!auth) {
-                if(typeof showInputError === 'function') showInputError('authInputEmail1', "Firebase Auth SDK tidak ditemukan.");
-                return;
-            }
-            if(!email.includes('@') || !email.includes('.')) {
-                if(typeof showInputError === 'function') showInputError('authInputEmail1', "Harap masukkan format email yang valid (contoh: user@gmail.com).");
-                return;
-            }
-            if(authDisplayEmail) authDisplayEmail.textContent = email;
-            showAuthScreen(authScreen2);
+    authBtnNext.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof window.handleScreen1Submit === 'function') {
+            window.handleScreen1Submit(e);
         }
     });
 }
@@ -977,45 +1156,9 @@ if(authBtnOtherMethods) authBtnOtherMethods.addEventListener('click', () => {
 // Firebase Auth Actions
 if(authBtnLogin) {
     authBtnLogin.addEventListener('click', () => {
-        if(typeof clearInputErrors === 'function') clearInputErrors();
-        if(!auth) {
-            if(typeof showInputError === 'function') showInputError('authInputPassword', "Sistem auth tidak siap.");
-            return;
-        }
-        const email = authDisplayEmail.textContent;
-        const password = authInputPassword.value;
-        if(!password) {
-            if(typeof showInputError === 'function') showInputError('authInputPassword', "Kata sandi tidak boleh kosong.");
-            return;
-        }
-        authBtnLogin.textContent = "Loading...";
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                authBtnLogin.textContent = "Masuk";
-                authInputPassword.value = '';
-                
-                if(!sessionStorage.getItem('phonePromptShown')) {
-                    sessionStorage.setItem('phonePromptShown', 'true');
-                    setTimeout(() => {
-                        loginModal.classList.remove('hidden');
-                        showAuthScreen(authScreen7);
-                    }, 500);
-                } else {
-                    loginModal.classList.add('hidden');
-                }
-            })
-            .catch((error) => {
-                authBtnLogin.textContent = "Masuk";
-                if(typeof showInputError === 'function') {
-                    if(error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
-                        showInputError('authInputPassword', "Akun tidak ditemukan atau kata sandi salah.");
-                    } else if (error.code === 'auth/wrong-password') {
-                        showInputError('authInputPassword', "Kata sandi salah. Silakan coba lagi.");
-                    } else {
-                        showInputError('authInputPassword', "Terjadi kesalahan: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating login submit to auth_engine.js...");
+        return;
     });
 }
 
@@ -1029,32 +1172,9 @@ if(authGoToLogin) authGoToLogin.addEventListener('click', (e) => {
 const googleRegisterBtn = document.getElementById('googleRegisterBtn');
 if(googleRegisterBtn) {
     googleRegisterBtn.addEventListener('click', () => {
-        if (!auth) {
-            if(typeof showInputError === 'function') showInputError('googleRegisterBtn', "Sistem auth tidak siap.");
-            return;
-        }
-        if(firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY_ANDA") return;
-        const originalHtml = googleRegisterBtn.innerHTML;
-        googleRegisterBtn.innerHTML = '<div class="loading-spinner"></div>';
-        googleRegisterBtn.style.pointerEvents = 'none';
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).then(() => {
-            setTimeout(() => {
-                googleRegisterBtn.innerHTML = originalHtml;
-                googleRegisterBtn.style.pointerEvents = 'auto';
-                if(!sessionStorage.getItem('phonePromptShown')) {
-                    sessionStorage.setItem('phonePromptShown', 'true');
-                    loginModal.classList.remove('hidden');
-                    showAuthScreen(authScreen7);
-                } else {
-                    loginModal.classList.add('hidden');
-                }
-            }, 3000);
-        }).catch((error) => {
-            console.error(error);
-            googleRegisterBtn.innerHTML = originalHtml;
-            googleRegisterBtn.style.pointerEvents = 'auto';
-        });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating Google Register to auth_engine.js...");
+        return;
     });
 }
 
@@ -1114,106 +1234,25 @@ if(authRegEmail && authBtnRegister) {
             return;
         }
 
-        // Step 2: Register User
-        if(!auth) return;
-        const password = authRegPassword.value;
-        const name = authRegName.value;
-        let hasError = false;
-        
-        if(!name) { if(typeof showInputError === 'function') showInputError('authRegName', "Nama tidak boleh kosong."); hasError = true; }
-        if(!password) { if(typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi tidak boleh kosong."); hasError = true; }
-        else if(password.length < 6) { if(typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi minimal 6 karakter."); hasError = true; }
-        
-        if(hasError) return;
-        
-        authBtnRegister.textContent = "Loading...";
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                const avatarUrl = getRandomAvatar(email);
-                return userCredential.user.updateProfile({ displayName: name, photoURL: avatarUrl });
-            })
-            .then(() => {
-                authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                if(userNameDisplay) userNameDisplay.textContent = name.split(' ')[0];
-                loginModal.classList.add('hidden');
-            })
-            .catch((error) => {
-                authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                if(typeof showInputError === 'function') {
-                    if(error.code === 'auth/email-already-in-use') {
-                        showInputError('authRegEmail', "Email ini sudah terdaftar.");
-                    } else if(error.code === 'auth/weak-password') {
-                        showInputError('authRegPassword', "Kata sandi terlalu lemah (minimal 6 karakter).");
-                    } else {
-                        showInputError('authRegPassword', "Kesalahan: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating registration submit to auth_engine.js...");
+        return;
     });
 }
 
 if(authBtnReset) {
     authBtnReset.addEventListener('click', () => {
-        if(typeof clearInputErrors === 'function') clearInputErrors();
-        if(!auth) return;
-        const email = authForgotEmail.value;
-        if(!email) {
-            if(typeof showInputError === 'function') showInputError('authForgotEmail', "Masukkan email.");
-            return;
-        }
-        if(!email.includes('@') || !email.includes('.')) {
-            if(typeof showInputError === 'function') showInputError('authForgotEmail', "Format email tidak valid.");
-            return;
-        }
-        authBtnReset.textContent = "Loading...";
-        auth.sendPasswordResetEmail(email)
-            .then(() => {
-                authBtnReset.textContent = "Lanjut";
-                if(typeof showInputError === 'function') {
-                    showInputError('authForgotEmail', "Tautan reset telah dikirim ke email Anda!");
-                    document.getElementById('authForgotEmail').style.borderColor = 'var(--primary)';
-                    document.getElementById('authForgotEmail').parentElement.querySelector('.input-error-msg').style.color = 'var(--primary)';
-                }
-            })
-            .catch((error) => {
-                authBtnReset.textContent = "Lanjut";
-                if(typeof showInputError === 'function') {
-                    if(error.code === 'auth/user-not-found') {
-                        showInputError('authForgotEmail', "Email ini tidak terdaftar.");
-                    } else {
-                        showInputError('authForgotEmail', "Gagal: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating forgot password submit to auth_engine.js...");
+        return;
     });
 }
 
 if(googleLoginBtn) {
     googleLoginBtn.addEventListener('click', () => {
-        if (!auth) return;
-        if(firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY_ANDA") return;
-        const originalHtml = googleLoginBtn.innerHTML;
-        googleLoginBtn.innerHTML = '<div class="loading-spinner"></div>';
-        googleLoginBtn.style.pointerEvents = 'none';
-        
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).then(() => {
-            setTimeout(() => {
-                googleLoginBtn.innerHTML = originalHtml;
-                googleLoginBtn.style.pointerEvents = 'auto';
-                if(!sessionStorage.getItem('phonePromptShown')) {
-                    sessionStorage.setItem('phonePromptShown', 'true');
-                    loginModal.classList.remove('hidden');
-                    showAuthScreen(authScreen7);
-                } else {
-                    loginModal.classList.add('hidden');
-                }
-            }, 3000);
-        }).catch((error) => {
-            console.error(error);
-            googleLoginBtn.innerHTML = originalHtml;
-            googleLoginBtn.style.pointerEvents = 'auto';
-        });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating Google Login to auth_engine.js...");
+        return;
     });
 }
 
@@ -1327,7 +1366,7 @@ if(authBtnLogoutSave) {
 
 // ======================= CART LOGIC =======================
 function saveCart() {
-    localStorage.setItem('umkm_cart', JSON.stringify(cart));
+    localStorage.setItem(getUserKey('umkm_cart'), JSON.stringify(cart));
     updateCartBadge();
 }
 
@@ -1771,7 +1810,7 @@ globalScrollObserver = new IntersectionObserver((entries) => {
             entry.target.classList.add('active');
         }
     });
-}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+}, { threshold: 0.08, rootMargin: '0px 0px -10% 0px' });
 
 function setupScrollReveal() {
     // Semua tipe reveal - pisahkan query agar tidak ada syntax error
@@ -1793,15 +1832,16 @@ function setupScrollReveal() {
 }
 setupScrollReveal();
 
-// Tombol Kembali dari PDP ke Store
+// Tombol Kembali Mobile dari Store ke Promo Desa
 const mobileBackStoreBtn = document.getElementById('mobileBackStoreBtn');
 if (mobileBackStoreBtn) {
-    mobileBackStoreBtn.addEventListener('click', () => {
-        const savedStoreId = sessionStorage.getItem('activeStoreId');
-        if (savedStoreId && typeof openStore === 'function') {
-            openStore(savedStoreId);
-        } else {
-            switchPage('homePage');
+    mobileBackStoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Kembali ke Promo Desa (halaman home dengan bagian promo)
+        switchPage('homePage');
+        if (typeof window.scrollToPromoSection === 'function') {
+            setTimeout(() => window.scrollToPromoSection(), 100);
         }
     });
 }
@@ -1929,7 +1969,9 @@ function openProductDetail(umkmId, prodIndex) {
 
     const product = umkm.products[prodIndex];
     
-    // Switch to PDP
+    // Switch to PDP & Save Session State for Refresh-Proofing
+    sessionStorage.setItem('activeStoreId', umkmId);
+    sessionStorage.setItem('activeProdIndex', prodIndex);
     switchPage('productPage');
     window.scrollTo(0, 0);
 
@@ -1974,8 +2016,11 @@ function openProductDetail(umkmId, prodIndex) {
     const soldCount = Math.floor(Math.random() * 200) + 10;
     const rating = (Math.random() * 1 + 4).toFixed(1);
     
-    document.getElementById('pdpSoldCount').textContent = soldCount;
-    document.getElementById('pdpRatingValue').textContent = rating;
+    const pdpSoldCountEl = document.getElementById('pdpSoldCount');
+    if (pdpSoldCountEl) pdpSoldCountEl.textContent = soldCount;
+
+    const pdpRatingValueEl = document.getElementById('pdpRatingValue');
+    if (pdpRatingValueEl) pdpRatingValueEl.textContent = rating;
 
     // Price
     document.getElementById('pdpPrice').textContent = 'Rp ' + product.price.toLocaleString('id-ID');
@@ -1987,6 +2032,24 @@ function openProductDetail(umkmId, prodIndex) {
     // Store Profile in PDP
     document.getElementById('pdpStoreImage').src = umkm.image;
     document.getElementById('pdpStoreName').innerHTML = `<i class="fas fa-check-circle" style="color: #00AA5B;"></i> ${umkm.name}`;
+
+    // PDP Store Follow Button
+    const pdpFollowBtn = document.getElementById('pdpFollowBtn');
+    if (pdpFollowBtn) {
+        const isFollowed = followedShops.some(s => s.id === umkm.id);
+        pdpFollowBtn.textContent = isFollowed ? 'Mengikuti' : 'Follow';
+        pdpFollowBtn.style.background = isFollowed ? '#f3f4f5' : '';
+        pdpFollowBtn.style.color = isFollowed ? '#6D7588' : '';
+        pdpFollowBtn.style.borderColor = isFollowed ? '#E5E7E9' : '';
+        pdpFollowBtn.onclick = (e) => {
+            toggleFollow(umkm.id, umkm.name, umkm.image, e);
+            const nowFollowed = followedShops.some(s => s.id === umkm.id);
+            pdpFollowBtn.textContent = nowFollowed ? 'Mengikuti' : 'Follow';
+            pdpFollowBtn.style.background = nowFollowed ? '#f3f4f5' : '';
+            pdpFollowBtn.style.color = nowFollowed ? '#6D7588' : '';
+            pdpFollowBtn.style.borderColor = nowFollowed ? '#E5E7E9' : '';
+        };
+    }
 
     // Action Box (Right side)
     document.getElementById('pdpActionThumb').src = images[0];
@@ -2022,7 +2085,7 @@ function openProductDetail(umkmId, prodIndex) {
     if (pdpAddToCartBtn) {
         pdpAddToCartBtn.onclick = () => {
             if (!currentUser) {
-                openLoginModal(false);
+                if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
                 if (typeof window.showAuthAlert === 'function') {
                     window.showAuthAlert('Silakan masuk atau daftar untuk menambah ke Keranjang.', 'error');
                 }
@@ -2038,7 +2101,7 @@ function openProductDetail(umkmId, prodIndex) {
     // Button Beli Langsung -> WhatsApp
     document.getElementById('pdpBuyBtn').onclick = () => {
         if (!currentUser) {
-            openLoginModal(false);
+            if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
             if (typeof window.showAuthAlert === 'function') {
                 window.showAuthAlert('Silakan masuk atau daftar untuk membeli produk.', 'error');
             }
@@ -2051,8 +2114,10 @@ function openProductDetail(umkmId, prodIndex) {
     // Button Chat -> WhatsApp
     document.getElementById('pdpChatBtn').onclick = () => {
         if (!currentUser) {
-            openLoginModal(false);
-            window.showAuthAlert('Silakan masuk atau daftar untuk menggunakan fitur Chat.', 'error');
+            if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
+            if (typeof window.showAuthAlert === 'function') {
+                window.showAuthAlert('Silakan masuk atau daftar untuk menggunakan fitur Chat.', 'error');
+            }
             return;
         }
         const textMessage = `Halo ${umkm.owner}, saya ingin bertanya tentang produk ${product.name} yang ada di toko Anda.`;
@@ -2070,6 +2135,13 @@ function openProductDetail(umkmId, prodIndex) {
         }
         
         pdpWishlistBtn.onclick = () => {
+            if (!currentUser) {
+                if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
+                if (typeof window.showAuthAlert === 'function') {
+                    window.showAuthAlert('Silakan masuk atau daftar untuk menyimpan produk ke Wishlist.', 'error');
+                }
+                return;
+            }
             if (typeof toggleWishlist === 'function') {
                 toggleWishlist(umkm.id, prodIndex);
                 
@@ -2083,7 +2155,92 @@ function openProductDetail(umkmId, prodIndex) {
             }
         };
     }
+
+    // Share Button in PDP
+    const pdpShareBtn = document.getElementById('pdpShareBtn');
+    if (pdpShareBtn) {
+        pdpShareBtn.onclick = () => {
+            if (typeof window.openPdpShareModal === 'function') {
+                window.openPdpShareModal();
+            }
+        };
+    }
 }
+
+// ==========================================
+// PRODUCT SHARE ENGINE (TOKOPEDIA STYLE)
+// ==========================================
+window.openPdpShareModal = function() {
+    const productName = document.getElementById('pdpProductName')?.innerText || 'Produk UMKM Karanganyar';
+    const pageUrl = window.location.href;
+
+    if (navigator.share) {
+        navigator.share({
+            title: productName,
+            text: `Beli ${productName} berkualitas di UMKM Padukuhan Karanganyar!`,
+            url: pageUrl
+        }).catch(() => {
+            showPdpShareModal(pageUrl);
+        });
+    } else {
+        showPdpShareModal(pageUrl);
+    }
+};
+
+function showPdpShareModal(pageUrl) {
+    const modal = document.getElementById('pdpShareModal');
+    const input = document.getElementById('shareProductUrlInput');
+    if (input) input.value = pageUrl;
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+window.closePdpShareModal = function() {
+    const modal = document.getElementById('pdpShareModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.copyProductLink = function() {
+    const input = document.getElementById('shareProductUrlInput');
+    if (input) {
+        navigator.clipboard.writeText(input.value).then(() => {
+            if (typeof window.showToast === 'function') {
+                window.showToast('🔗 Tautan produk berhasil disalin ke clipboard!');
+            } else {
+                alert('Tautan produk berhasil disalin!');
+            }
+            window.closePdpShareModal();
+        }).catch(() => {
+            input.select();
+            document.execCommand('copy');
+            if (typeof window.showToast === 'function') {
+                window.showToast('🔗 Tautan produk berhasil disalin!');
+            }
+            window.closePdpShareModal();
+        });
+    }
+};
+
+window.shareProductTo = function(platform) {
+    const productName = document.getElementById('pdpProductName')?.innerText || 'Produk UMKM Karanganyar';
+    const pageUrl = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Beli ${productName} berkualitas di UMKM Padukuhan Karanganyar!`);
+
+    let targetUrl = '';
+    if (platform === 'wa') {
+        targetUrl = `https://api.whatsapp.com/send?text=${text}%20${pageUrl}`;
+    } else if (platform === 'fb') {
+        targetUrl = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`;
+    } else if (platform === 'twitter') {
+        targetUrl = `https://twitter.com/intent/tweet?text=${text}&url=${pageUrl}`;
+    }
+
+    if (targetUrl) {
+        window.open(targetUrl, '_blank', 'width=600,height=500');
+        window.closePdpShareModal();
+    }
+};
 
 // SPA Router on Load
 window.addEventListener('DOMContentLoaded', () => {
@@ -2208,6 +2365,11 @@ if(saveDobBtn) {
         extras.dob = dobStr;
         localStorage.setItem('user_profile_' + currentUser.uid, JSON.stringify(extras));
         
+        currentUser.dob = dobStr;
+        if (typeof window.saveRegisteredUser === 'function') {
+            window.saveRegisteredUser(currentUser);
+        }
+
         dobModal.classList.remove('active');
         loadBiodataExtras();
         if(typeof showToast === 'function') showToast("Tanggal lahir berhasil disimpan", "success");
@@ -2231,6 +2393,11 @@ if(saveGenderBtn) {
         extras.gender = selectedGender.value;
         localStorage.setItem('user_profile_' + currentUser.uid, JSON.stringify(extras));
         
+        currentUser.gender = selectedGender.value;
+        if (typeof window.saveRegisteredUser === 'function') {
+            window.saveRegisteredUser(currentUser);
+        }
+
         genderModal.classList.remove('active');
         loadBiodataExtras();
         if(typeof showToast === 'function') showToast("Jenis kelamin berhasil disimpan", "success");
@@ -2304,7 +2471,8 @@ if(uploadPhotoInput) {
 }
 
 function updateProfileAvatar(url) {
-    if(!currentUser) return;
+    const activeUid = localStorage.getItem('umkm_active_uid') || (currentUser ? currentUser.uid : null);
+    if (!activeUid) return;
     
     const applyAvatar = () => {
         const avatars = [
@@ -2320,23 +2488,23 @@ function updateProfileAvatar(url) {
         if(typeof showToast === 'function') showToast("Foto profil berhasil diubah", "success");
     };
 
-    if(url.startsWith('data:')) {
-        // Firebase photoURL has length limits, so for base64 we save it locally
-        try {
-            localStorage.setItem('local_avatar_' + currentUser.uid, url);
-            applyAvatar();
-        } catch (e) {
-            if(typeof showToast === 'function') showToast("Gambar terlalu besar untuk disimpan.", "error");
-        }
-    } else {
-        // It's a standard URL (DiceBear), save to Firebase
-        currentUser.updateProfile({ photoURL: url }).then(() => {
-            localStorage.removeItem('local_avatar_' + currentUser.uid); // Clear local if using URL
-            applyAvatar();
-        }).catch((err) => {
-            if(typeof showToast === 'function') showToast("Gagal mengubah foto: " + err.message, "error");
-        });
+    try {
+        localStorage.setItem('local_avatar_' + activeUid, url);
+    } catch (e) {
+        console.warn("Local avatar set warning:", e);
     }
+
+    if (currentUser) {
+        currentUser.photoURL = url;
+        if (typeof window.saveRegisteredUser === 'function') {
+            window.saveRegisteredUser(currentUser);
+        }
+        if (currentUser.updateProfile && !url.startsWith('data:')) {
+            currentUser.updateProfile({ photoURL: url }).catch(() => {});
+        }
+    }
+
+    applyAvatar();
 }
 
 
@@ -2391,7 +2559,13 @@ if(saveNameBtn) {
         if(!currentUser) return;
         
         saveNameBtn.textContent = 'Menyimpan...';
-        currentUser.updateProfile({ displayName: newName })
+        currentUser.displayName = newName;
+        if (typeof window.saveRegisteredUser === 'function') {
+            window.saveRegisteredUser(currentUser);
+        }
+
+        const updateFn = currentUser.updateProfile ? currentUser.updateProfile({ displayName: newName }) : Promise.resolve();
+        updateFn
             .then(() => {
                 saveNameBtn.textContent = 'Simpan';
                 nameModal.classList.remove('active');
@@ -2502,6 +2676,88 @@ if(savePhoneBtn) {
     });
 }
 
+/* ======================= PASSWORD MODAL ======================= */
+const btnChangePassword = document.getElementById('btnChangePassword');
+const passwordModal = document.getElementById('passwordModal');
+const closePasswordModal = document.getElementById('closePasswordModal');
+const newPasswordInput = document.getElementById('newPasswordInput');
+const btnSaveNewPassword = document.getElementById('btnSaveNewPassword');
+
+if (btnChangePassword) {
+    btnChangePassword.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!currentUser) {
+            if (typeof showToast === 'function') showToast("Silakan login terlebih dahulu", "error");
+            return;
+        }
+        if (newPasswordInput) newPasswordInput.value = '';
+        if (passwordModal) passwordModal.classList.add('active');
+    });
+}
+
+if (closePasswordModal) {
+    closePasswordModal.addEventListener('click', () => {
+        if (passwordModal) passwordModal.classList.remove('active');
+    });
+}
+
+if (btnSaveNewPassword) {
+    btnSaveNewPassword.addEventListener('click', async () => {
+        if (!currentUser) return;
+        const newPass = newPasswordInput ? newPasswordInput.value.trim() : '';
+
+        if (!newPass) {
+            if (typeof showToast === 'function') showToast("Masukkan kata sandi baru", "error");
+            return;
+        }
+        if (newPass.length < 6) {
+            if (typeof showToast === 'function') showToast("Kata sandi minimal 6 karakter", "error");
+            return;
+        }
+
+        btnSaveNewPassword.textContent = "Menyimpan...";
+
+        // 1. Update in Firebase Auth SDK if user is authenticated via Firebase
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+            try {
+                await firebase.auth().currentUser.updatePassword(newPass);
+            } catch (err) {
+                console.warn("Firebase updatePassword error:", err);
+                if (err.code === 'auth/requires-recent-login') {
+                    if (typeof showToast === 'function') showToast("Sesi login perlu diperbarui. Silakan login ulang.", "error");
+                    if (passwordModal) passwordModal.classList.remove('active');
+                    if (typeof window.logoutUser === 'function') window.logoutUser();
+                    return;
+                }
+            }
+        }
+
+        // 2. Update user object and sync to Firebase Realtime DB & local storage
+        currentUser.password = newPass;
+        if (typeof window.saveRegisteredUser === 'function') {
+            window.saveRegisteredUser(currentUser);
+        }
+
+        if (passwordModal) passwordModal.classList.remove('active');
+        btnSaveNewPassword.textContent = "Simpan Kata Sandi";
+
+        // 3. AUTOMATIC LOGOUT & SWITCH TO TENTANG KARANGANYAR PAGE
+        if (typeof window.logoutUser === 'function') {
+            window.logoutUser(false, 'tentangPage');
+        } else if (typeof switchPage === 'function') {
+            switchPage('tentangPage');
+        }
+
+        setTimeout(() => {
+            if (typeof window.showAuthAlert === 'function') {
+                window.showAuthAlert('Kata sandi telah berhasil diubah! Anda telah keluar secara otomatis. Silakan masuk kembali menggunakan kata sandi baru Anda.', 'success');
+            }
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) loginModal.classList.remove('hidden');
+        }, 300);
+    });
+}
+
 // Tokopedia Transparent Header Logic
 function updateHeaderMode() {
     const header = document.querySelector('.header');
@@ -2524,6 +2780,13 @@ window.addEventListener('scroll', updateHeaderMode);
 
 
 function toggleWishlist(umkmId, prodIndex) {
+    if (!currentUser) {
+        if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
+        if (typeof window.showAuthAlert === 'function') {
+            window.showAuthAlert('Silakan masuk atau daftar untuk menyimpan produk ke Wishlist.', 'error');
+        }
+        return;
+    }
     const existingIndex = wishlist.findIndex(item => item.umkmId === umkmId && item.prodIndex === prodIndex);
     if (existingIndex > -1) {
         wishlist.splice(existingIndex, 1);
@@ -2842,7 +3105,7 @@ document.addEventListener('click', function(e) {
 // Auth guard helper untuk aksi yang memerlukan login
 function requireAuthForAction(actionLabel, callback) {
     if (!currentUser) {
-        openLoginModal(false);
+        if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
         if (typeof window.showAuthAlert === 'function') {
             window.showAuthAlert(`Silakan masuk atau daftar untuk ${actionLabel}.`, 'error');
         }
@@ -2865,7 +3128,7 @@ function toggleFollow(id, name, imgUrl, e) {
 
     // Auth Guard: Harus login untuk ikuti toko
     if (!currentUser) {
-        openLoginModal(false);
+        if (typeof window.openLoginModal === 'function') window.openLoginModal(false);
         if (typeof window.showAuthAlert === 'function') {
             window.showAuthAlert('Silakan masuk atau daftar untuk mengikuti toko ini.', 'error');
         }
@@ -2990,7 +3253,142 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeFavTab) {
         if(typeof switchFavTab === 'function') switchFavTab(activeFavTab);
     }
+
+    // Attach theme card click handlers per active user UID
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const themeVal = card.getAttribute('data-value');
+            if (!themeVal) return;
+            const activeUid = localStorage.getItem('umkm_active_uid') || (currentUser ? currentUser.uid : 'guest');
+            localStorage.setItem('umkm_theme_' + activeUid, themeVal);
+            
+            if (typeof window.applyUserTheme === 'function') {
+                window.applyUserTheme(themeVal);
+            }
+            
+            const notif = document.getElementById('themeAppliedNotif');
+            if (notif) {
+                notif.style.display = 'block';
+                setTimeout(() => { notif.style.display = 'none'; }, 3000);
+            }
+        });
+    });
+
+    if (typeof window.applyUserTheme === 'function') {
+        window.applyUserTheme();
+    }
+
+    // Auto-load berita pada inisialisasi
+    if (typeof window.loadBerita === 'function') {
+        window.loadBerita();
+    }
 });
+
+// ==========================================
+// KELOLA DATA BERITA DESA PENGUNJUNG
+// ==========================================
+const BERITA_DATABASE_URL = 'https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/beritaData.json';
+let beritaItems = [];
+
+function escapeBeritaText(text) {
+    return String(text || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+window.loadBerita = async function() {
+    const beritaList = document.getElementById('beritaList');
+    const beritaEmpty = document.getElementById('beritaEmpty');
+    if (!beritaList) return;
+    try {
+        const response = await fetch(BERITA_DATABASE_URL);
+        const data = await response.json();
+        beritaItems = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+        beritaItems.sort((a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now()));
+
+        if (!beritaItems.length) {
+            beritaList.innerHTML = '';
+            if (beritaEmpty) {
+                beritaEmpty.textContent = 'Belum ada berita yang dipublikasikan.';
+                beritaEmpty.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (beritaEmpty) beritaEmpty.classList.add('hidden');
+        beritaList.innerHTML = beritaItems.map(item => `
+            <article class="berita-article" data-berita-title="${escapeBeritaText(item.judul)}" data-berita-id="${escapeBeritaText(item.id)}" onclick="showBeritaDetail('${item.id}')" tabindex="0" role="button">
+                ${item.fotoUtama ? `<img src="${escapeBeritaText(item.fotoUtama)}" alt="${escapeBeritaText(item.judul)}" class="berita-article-image">` : ''}
+                <time><i class="far fa-calendar-alt"></i> ${escapeBeritaText(item.tanggal)}</time>
+                <h2>${escapeBeritaText(item.judul)}</h2>
+                <p class="berita-article-excerpt">${escapeBeritaText(item.deskripsiAwal)}</p>
+            </article>
+        `).join('');
+    } catch (error) {
+        console.error('Gagal memuat berita:', error);
+        beritaList.innerHTML = '';
+        if (beritaEmpty) {
+            beritaEmpty.textContent = 'Gagal memuat berita. Silakan coba lagi.';
+            beritaEmpty.classList.remove('hidden');
+        }
+    }
+};
+
+window.showBeritaDetail = function(id) {
+    const item = beritaItems.find(berita => berita.id === id);
+    const detail = document.getElementById('beritaDetail');
+    const listSection = document.getElementById('beritaListSection');
+    const hero = document.getElementById('beritaHero');
+    if (!item || !detail || !listSection || !hero) return;
+
+    detail.innerHTML = `
+        <button type="button" class="berita-back" onclick="hideBeritaDetail()">
+            <i class="fas fa-arrow-left"></i> Kembali ke Daftar Berita
+        </button>
+        <article class="berita-detail-article">
+            <header class="berita-detail-header">
+                <h1>${escapeBeritaText(item.judul)}</h1>
+                <time><i class="far fa-calendar-alt"></i> ${escapeBeritaText(item.tanggal)}</time>
+            </header>
+            ${item.fotoUtama ? `<img src="${escapeBeritaText(item.fotoUtama)}" alt="${escapeBeritaText(item.judul)}" class="berita-detail-image">` : ''}
+            <p>${escapeBeritaText(item.deskripsiAwal)}</p>
+            ${item.fotoIsi ? `<img src="${escapeBeritaText(item.fotoIsi)}" alt="Foto isi ${escapeBeritaText(item.judul)}" class="berita-detail-image">` : ''}
+            <p>${escapeBeritaText(item.deskripsiLanjutan)}</p>
+        </article>
+    `;
+    hero.classList.add('hidden');
+    listSection.classList.add('hidden');
+    detail.classList.remove('hidden');
+    document.body.classList.add('berita-detail-open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.hideBeritaDetail = function() {
+    const hero = document.getElementById('beritaHero');
+    const listSection = document.getElementById('beritaListSection');
+    const detail = document.getElementById('beritaDetail');
+    if (hero) hero.classList.remove('hidden');
+    if (listSection) listSection.classList.remove('hidden');
+    if (detail) detail.classList.add('hidden');
+    document.body.classList.remove('berita-detail-open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.filterBerita = function(query) {
+    const normalizedQuery = String(query || '').trim().toLowerCase();
+    const articles = document.querySelectorAll('#beritaList .berita-article');
+    const emptySearchMsg = document.getElementById('beritaSearchEmpty');
+    let matchedCount = 0;
+
+    articles.forEach(article => {
+        const title = (article.getAttribute('data-berita-title') || article.querySelector('h2')?.textContent || '').toLowerCase();
+        const isMatch = !normalizedQuery || title.includes(normalizedQuery);
+        article.classList.toggle('hidden', !isMatch);
+        if (isMatch) matchedCount++;
+    });
+
+    if (emptySearchMsg) {
+        emptySearchMsg.classList.toggle('hidden', !normalizedQuery || matchedCount > 0);
+    }
+};
 
 
 // ==========================================
@@ -3008,3 +3406,86 @@ function closePdpWishlistModal() {
         modal.classList.remove('active');
     }
 }
+
+// ==========================================
+// MAP SLIDER & SWITCHER LOGIC
+// ==========================================
+window.currentMapSlide = 'imgmap';
+window.switchMapSlide = function(target) {
+    const gmapsEl = document.getElementById('mapSlideGmaps');
+    const imgmapEl = document.getElementById('mapSlideImgmap');
+    const btnGmaps = document.getElementById('btnShowGmaps');
+    const btnImgmap = document.getElementById('btnShowImgMap');
+
+    if (target === 'gmaps') {
+        window.currentMapSlide = 'gmaps';
+        if (gmapsEl) gmapsEl.style.display = 'block';
+        if (imgmapEl) imgmapEl.style.display = 'none';
+        if (btnGmaps) {
+            btnGmaps.style.background = '#00AA5B';
+            btnGmaps.style.color = 'white';
+            btnGmaps.style.borderColor = '#00AA5B';
+        }
+        if (btnImgmap) {
+            btnImgmap.style.background = 'white';
+            btnImgmap.style.color = '#6D7588';
+            btnImgmap.style.borderColor = '#E5E7E9';
+        }
+    } else {
+        window.currentMapSlide = 'imgmap';
+        if (gmapsEl) gmapsEl.style.display = 'none';
+        if (imgmapEl) imgmapEl.style.display = 'block';
+        if (btnImgmap) {
+            btnImgmap.style.background = '#00AA5B';
+            btnImgmap.style.color = 'white';
+            btnImgmap.style.borderColor = '#00AA5B';
+        }
+        if (btnGmaps) {
+            btnGmaps.style.background = 'white';
+            btnGmaps.style.color = '#6D7588';
+            btnGmaps.style.borderColor = '#E5E7E9';
+        }
+    }
+};
+
+window.nextMapSlide = function() {
+    if (window.currentMapSlide === 'gmaps') window.switchMapSlide('imgmap');
+    else window.switchMapSlide('gmaps');
+};
+
+window.prevMapSlide = function() {
+    if (window.currentMapSlide === 'gmaps') window.switchMapSlide('imgmap');
+    else window.switchMapSlide('gmaps');
+};
+
+// ==========================================
+// IMAGE LIGHTBOX POP-UP PREVIEW
+// ==========================================
+window.openImageLightbox = function(src, title) {
+    const modal = document.getElementById('imageLightboxModal');
+    const imgEl = document.getElementById('lightboxImageSrc');
+    const titleEl = document.getElementById('lightboxTitleText');
+    if (modal && imgEl) {
+        imgEl.src = src;
+        if (titleEl) titleEl.innerText = title || 'Detail Gambar Peta';
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.setProperty('pointer-events', 'auto', 'important');
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.closeImageLightbox = function() {
+    const modal = document.getElementById('imageLightboxModal');
+    if (modal) {
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = 'auto';
+    }
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        window.closeImageLightbox();
+    }
+});

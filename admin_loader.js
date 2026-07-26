@@ -8,6 +8,8 @@
             { selector: '.tkp-challenge .tkp-section-title', type: 'text', key: 'cms_tantangan_title' },
             { selector: '.tkp-challenge .tkp-section-desc', type: 'html', key: 'cms_tantangan_desc' },
             { selector: '.tkp-map-container iframe', type: 'iframe', key: 'cms_map_url' },
+            { selector: '.tkp-map-img-container', type: 'image', key: 'cms_map_custom_image' },
+            { selector: '.water-map-img-wrapper', type: 'image', key: 'cms_peta_sumber_air' },
             { selector: '.tkp-mission-text h2', type: 'text', key: 'cms_sejarah_title' },
             { selector: '.tkp-collage-img1', type: 'image', key: 'cms_img_sejarah_1' },
             { selector: '.tkp-collage-img2', type: 'image', key: 'cms_img_sejarah_2' },
@@ -47,7 +49,8 @@
             { selector: '.tkp-gal-2', type: 'image', key: 'cms_galeri_img_2' },
             { selector: '.tkp-gal-3', type: 'image', key: 'cms_galeri_img_3' },
             { selector: '.tkp-gal-4', type: 'image', key: 'cms_galeri_img_4' },
-            { selector: '.tkp-gal-5', type: 'image', key: 'cms_galeri_img_5' }
+            { selector: '.tkp-gal-5', type: 'image', key: 'cms_galeri_img_5' },
+            { selector: '.tkp-gal-6', type: 'image', key: 'cms_galeri_img_6' }
         ];
 
         cmsMapping.forEach(item => {
@@ -57,7 +60,25 @@
                 if (el) {
                     if (item.type === 'text') el.innerText = savedVal;
                     else if (item.type === 'html') el.innerHTML = savedVal;
-                    else if (item.type === 'image' || item.type === 'iframe') el.src = savedVal;
+                    else if (item.type === 'image' || item.type === 'iframe') {
+                        if (item.key === 'cms_map_custom_image') {
+                            const imgCustom = document.getElementById('mapCustomImage');
+                            if (imgCustom) imgCustom.src = savedVal;
+                            
+                            const ph = document.getElementById('mapImgPlaceholder');
+                            if (ph) ph.style.display = 'none';
+                        } else if (item.key === 'cms_peta_sumber_air') {
+                            const imgWater = document.getElementById('petaSumberAirImg');
+                            if (imgWater) imgWater.src = savedVal;
+                        } else if (item.type === 'iframe') {
+                            const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
+                            if (iframe) iframe.src = savedVal;
+                        } else {
+                            const targetImg = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
+                            if (targetImg) targetImg.src = savedVal;
+                            else el.src = savedVal;
+                        }
+                    }
                     else if (item.type === 'number') {
                         if (item.attr) el.setAttribute(item.attr, savedVal);
                         el.innerText = savedVal;

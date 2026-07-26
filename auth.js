@@ -1,4 +1,4 @@
-﻿// Logic Sistem Login (Prototype)
+// Logic Sistem Login (Prototype)
 /* =========================================
    AUTH, CART, AND USER PROFILE SYSTEM
 ========================================= */
@@ -32,13 +32,31 @@ if (auth) {
 /* ======================= AUTH LOGIC (FIREBASE OBSERVER) ======================= */
 if (auth) {
     auth.onAuthStateChanged((user) => {
+        // Mark body as auth-resolved to prevent FOUC
+        document.body.classList.add('auth-resolved');
+
         if (user) {
             currentUser = user;
+            localStorage.setItem('umkm_active_uid', user.uid);
+            localStorage.setItem('umkm_active_user', JSON.stringify({
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL
+            }));
+
+            if (typeof loadUserState === 'function') {
+                loadUserState();
+            }
             if (authButtonsContainer) {
                 authButtonsContainer.classList.add('hidden');
                 authButtonsContainer.style.display = 'none';
+                authButtonsContainer.style.visibility = 'hidden';
             }
-            if (userProfileContainer) userProfileContainer.classList.remove('hidden');
+            if (userProfileContainer) {
+                userProfileContainer.classList.remove('hidden');
+                userProfileContainer.style.visibility = 'visible';
+            }
             if (cartIconBtn) cartIconBtn.classList.remove('hidden');
 
             const fallbackName = user.email ? user.email.split('@')[0] : 'Pengguna';
@@ -93,13 +111,103 @@ if (auth) {
             if (authButtonsContainer) {
                 authButtonsContainer.classList.remove('hidden');
                 authButtonsContainer.style.display = 'flex';
+                authButtonsContainer.style.visibility = 'visible'; // Restore from initial hidden
             }
-            if (userProfileContainer) userProfileContainer.classList.add('hidden');
+            if (userProfileContainer) {
+                userProfileContainer.classList.add('hidden');
+                userProfileContainer.style.visibility = '';
+            }
             if (cartIconBtn) cartIconBtn.classList.add('hidden');
             if (profileDropdown) profileDropdown.classList.add('hidden');
         }
+
+        // Setup mobile profile dropdown toggle (touch-friendly)
+        setupMobileProfileDropdown();
     });
 }
+
+// Mobile-friendly profile dropdown toggle
+function setupMobileProfileDropdown() {
+    const profileBtn = document.getElementById('userProfileBtnHeader');
+    const pDropdown = document.getElementById('profileDropdown');
+    const pOverlay = document.getElementById('profileDropdownOverlay') || document.querySelector('.profile-dropdown-overlay');
+
+    if (!pDropdown) return;
+
+    function closeDropdown() {
+        pDropdown.classList.remove('show');
+        if (pOverlay) {
+            pOverlay.classList.remove('show');
+            pOverlay.style.opacity = '';
+            pOverlay.style.visibility = '';
+            pOverlay.style.pointerEvents = '';
+        }
+    }
+
+    function openDropdown() {
+        pDropdown.classList.add('show');
+        if (pOverlay) {
+            pOverlay.classList.add('show');
+            pOverlay.style.opacity = '0.3';
+            pOverlay.style.visibility = 'visible';
+            pOverlay.style.pointerEvents = 'all';
+        }
+    }
+
+    function toggleDropdown(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (pDropdown.classList.contains('show')) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+
+    // Attach toggle event ONLY to the profile header button/avatar
+    if (profileBtn) {
+        profileBtn.onclick = toggleDropdown;
+    }
+
+    // Close when clicking any link inside the dropdown, without overriding existing link handlers
+    pDropdown.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            closeDropdown();
+        });
+    });
+
+    // Close when clicking overlay / backdrop
+    if (pOverlay) {
+        pOverlay.onclick = function (e) {
+            e.stopPropagation();
+            closeDropdown();
+        };
+    }
+
+    // Close when clicking anywhere outside on the document ("klik sembarangan")
+    if (!document._profileOutsideClickListener) {
+        document._profileOutsideClickListener = function (e) {
+            const container = document.getElementById('userProfileContainer');
+            if (container && !container.contains(e.target)) {
+                closeDropdown();
+            }
+        };
+        document.addEventListener('click', document._profileOutsideClickListener);
+    }
+
+    // Close when page is scrolled
+    if (!window._profileScrollListener) {
+        window._profileScrollListener = function () {
+            if (pDropdown.classList.contains('show')) {
+                closeDropdown();
+            }
+        };
+        window.addEventListener('scroll', window._profileScrollListener, { passive: true });
+    }
+}
+
 
 // ======================= AUTH ERROR HELPERS =======================
 function showInputError(inputId, message) {
@@ -130,11 +238,14 @@ function clearInputErrors() {
 
 // Navigation Helpers
 function showAuthScreen(screen) {
-    if (typeof clearInputErrors === 'function') clearInputErrors();
-    [authScreen1, authScreen2, authScreen3, authScreen4, authScreen5, authScreen6, authScreen7, authScreen8, authScreen9, authScreen10].forEach(s => {
-        if (s) s.classList.add('hidden');
-    });
-    if (screen) screen.classList.remove('hidden');
+    if (typeof window.showAuthScreen === 'function') {
+        window.showAuthScreen(screen);
+    } else {
+        if (typeof clearInputErrors === 'function') clearInputErrors();
+        const allScreens = document.querySelectorAll('#loginModal [id^="authScreen"]');
+        allScreens.forEach(s => s.classList.add('hidden'));
+        if (screen) screen.classList.remove('hidden');
+    }
 }
 
 // Screen 1: Next Logic
@@ -151,20 +262,10 @@ if (authInputEmail1 && authBtnNext) {
         }
     });
 
-    authBtnNext.addEventListener('click', () => {
-        if (typeof clearInputErrors === 'function') clearInputErrors();
-        const email = authInputEmail1.value.trim();
-        if (email.length > 0) {
-            if (!auth) {
-                if (typeof showInputError === 'function') showInputError('authInputEmail1', "Firebase Auth SDK tidak ditemukan.");
-                return;
-            }
-            if (!email.includes('@') || !email.includes('.')) {
-                if (typeof showInputError === 'function') showInputError('authInputEmail1', "Harap masukkan format email yang valid (contoh: user@gmail.com).");
-                return;
-            }
-            if (authDisplayEmail) authDisplayEmail.textContent = email;
-            showAuthScreen(authScreen2);
+    authBtnNext.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof window.handleScreen1Submit === 'function') {
+            window.handleScreen1Submit(e);
         }
     });
 }
@@ -175,37 +276,9 @@ if (authBtnOtherMethods) authBtnOtherMethods.addEventListener('click', () => {
 // Firebase Auth Actions
 if (authBtnLogin) {
     authBtnLogin.addEventListener('click', () => {
-        if (typeof clearInputErrors === 'function') clearInputErrors();
-        if (!auth) {
-            if (typeof showInputError === 'function') showInputError('authInputPassword', "Sistem auth tidak siap.");
-            return;
-        }
-        const email = authDisplayEmail.textContent;
-        const password = authInputPassword.value;
-        if (!password) {
-            if (typeof showInputError === 'function') showInputError('authInputPassword', "Kata sandi tidak boleh kosong.");
-            return;
-        }
-        authBtnLogin.textContent = "Loading...";
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                authBtnLogin.textContent = "Masuk";
-                authInputPassword.value = '';
-
-                loginModal.classList.add('hidden');
-            })
-            .catch((error) => {
-                authBtnLogin.textContent = "Masuk";
-                if (typeof showInputError === 'function') {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
-                        showInputError('authInputPassword', "Akun tidak ditemukan atau kata sandi salah.");
-                    } else if (error.code === 'auth/wrong-password') {
-                        showInputError('authInputPassword', "Kata sandi salah. Silakan coba lagi.");
-                    } else {
-                        showInputError('authInputPassword', "Terjadi kesalahan: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating login submit to auth_engine.js...");
+        return;
     });
 }
 if (authRegEmail && authBtnRegister) {
@@ -239,99 +312,54 @@ if (authRegEmail && authBtnRegister) {
                 return;
             }
             authBtnRegister.textContent = "Memeriksa...";
-            auth.fetchSignInMethodsForEmail(email).then((methods) => {
-                if (methods.length > 0) {
-                    authBtnRegister.textContent = "Daftar";
-                    if (typeof showInputError === 'function') showInputError('authRegEmail', "Email ini sudah terdaftar. Silakan gunakan email lain atau masuk.");
-                } else {
-                    authRegNameGroup.classList.remove('hidden');
-                    authRegPasswordGroup.classList.remove('hidden');
-                    authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                }
-            }).catch(e => {
+
+            const finishEmailCheck = (alreadyRegistered) => {
                 authBtnRegister.textContent = "Daftar";
-                if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/unauthorized-domain') {
+                if (alreadyRegistered) {
+                    if (typeof showInputError === 'function') showInputError('authRegEmail', "Email ini sudah terdaftar. Silakan gunakan email lain atau masuk.");
+                    return;
+                }
+                authRegNameGroup.classList.remove('hidden');
+                authRegPasswordGroup.classList.remove('hidden');
+                authBtnRegister.textContent = "Selesaikan Pendaftaran";
+            };
+
+            if (typeof window.checkEmailInFirebaseAuth === 'function') {
+                window.checkEmailInFirebaseAuth(email).then((authCheck) => {
+                    finishEmailCheck(!!(authCheck && authCheck.registered));
+                }).catch(() => {
                     authRegNameGroup.classList.remove('hidden');
                     authRegPasswordGroup.classList.remove('hidden');
                     authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                } else {
-                    if (typeof showInputError === 'function') showInputError('authRegEmail', "Kesalahan: " + e.message);
-                }
-            });
+                });
+            } else if (auth) {
+                auth.fetchSignInMethodsForEmail(email).then((methods) => {
+                    finishEmailCheck(methods.length > 0);
+                }).catch(e => {
+                    authBtnRegister.textContent = "Daftar";
+                    if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/unauthorized-domain') {
+                        authRegNameGroup.classList.remove('hidden');
+                        authRegPasswordGroup.classList.remove('hidden');
+                        authBtnRegister.textContent = "Selesaikan Pendaftaran";
+                    } else if (typeof showInputError === 'function') {
+                        showInputError('authRegEmail', "Kesalahan: " + e.message);
+                    }
+                });
+            }
             return;
         }
 
-        // Step 2: Register User
-        if (!auth) return;
-        const password = authRegPassword.value;
-        const name = authRegName.value;
-        let hasError = false;
-
-        if (!name) { if (typeof showInputError === 'function') showInputError('authRegName', "Nama tidak boleh kosong."); hasError = true; }
-        if (!password) { if (typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi tidak boleh kosong."); hasError = true; }
-        else if (password.length < 6) { if (typeof showInputError === 'function') showInputError('authRegPassword', "Kata sandi minimal 6 karakter."); hasError = true; }
-
-        if (hasError) return;
-
-        authBtnRegister.textContent = "Loading...";
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                const avatarUrl = getRandomAvatar(email);
-                return userCredential.user.updateProfile({ displayName: name, photoURL: avatarUrl });
-            })
-            .then(() => {
-                authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                if (userNameDisplay) userNameDisplay.textContent = name.split(' ')[0];
-                loginModal.classList.add('hidden');
-            })
-            .catch((error) => {
-                authBtnRegister.textContent = "Selesaikan Pendaftaran";
-                if (typeof showInputError === 'function') {
-                    if (error.code === 'auth/email-already-in-use') {
-                        showInputError('authRegEmail', "Email ini sudah terdaftar.");
-                    } else if (error.code === 'auth/weak-password') {
-                        showInputError('authRegPassword', "Kata sandi terlalu lemah (minimal 6 karakter).");
-                    } else {
-                        showInputError('authRegPassword', "Kesalahan: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating registration submit to auth_engine.js...");
+        return;
     });
 }
 
 if (authBtnReset) {
     authBtnReset.addEventListener('click', () => {
-        if (typeof clearInputErrors === 'function') clearInputErrors();
-        if (!auth) return;
-        const email = authForgotEmail.value;
-        if (!email) {
-            if (typeof showInputError === 'function') showInputError('authForgotEmail', "Masukkan email.");
-            return;
-        }
-        if (!email.includes('@') || !email.includes('.')) {
-            if (typeof showInputError === 'function') showInputError('authForgotEmail', "Format email tidak valid.");
-            return;
-        }
-        authBtnReset.textContent = "Loading...";
-        auth.sendPasswordResetEmail(email)
-            .then(() => {
-                authBtnReset.textContent = "Lanjut";
-                if (typeof showInputError === 'function') {
-                    showInputError('authForgotEmail', "Tautan reset telah dikirim ke email Anda!");
-                    document.getElementById('authForgotEmail').style.borderColor = 'var(--primary)';
-                    document.getElementById('authForgotEmail').parentElement.querySelector('.input-error-msg').style.color = 'var(--primary)';
-                }
-            })
-            .catch((error) => {
-                authBtnReset.textContent = "Lanjut";
-                if (typeof showInputError === 'function') {
-                    if (error.code === 'auth/user-not-found') {
-                        showInputError('authForgotEmail', "Email ini tidak terdaftar.");
-                    } else {
-                        showInputError('authForgotEmail', "Gagal: " + error.message);
-                    }
-                }
-            });
+        // Handled exclusively by auth_engine.js single source of truth
+        console.log("Delegating forgot password submit to auth_engine.js...");
+        return;
     });
 }
 
@@ -359,35 +387,11 @@ function handleGoogleAuth(btn) {
             return;
         }
 
-        if (!auth) return;
-
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<div class="loading-spinner"></div>';
-        btn.style.pointerEvents = 'none';
-
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).then((result) => {
-            setTimeout(() => {
-                btn.innerHTML = originalHtml;
-                btn.style.pointerEvents = 'auto';
-                if (result.additionalUserInfo && result.additionalUserInfo.isNewUser) {
-                    if (typeof showAuthScreen !== 'undefined' && typeof authScreen10 !== 'undefined') {
-                        showAuthScreen(authScreen10);
-                    }
-                } else {
-                    window.location.reload();
-                }
-            }, 3000);
-        }).catch((error) => {
-            console.error(error);
-            btn.innerHTML = originalHtml;
-            btn.style.pointerEvents = 'auto';
-        });
+        if (typeof window.handleRealFirebaseGoogleAuth === 'function') {
+            window.handleRealFirebaseGoogleAuth('login');
+        }
     });
 }
-
-handleGoogleAuth(googleLoginBtn);
-handleGoogleAuth(googleRegisterBtn);
 
 if (authBtnGoToAddPhone) {
     authBtnGoToAddPhone.addEventListener('click', () => showAuthScreen(authScreen8));
@@ -415,7 +419,6 @@ if (authInputPhone && authBtnSubmitPhone) {
 if (authBtnLogoutDontSave) {
     authBtnLogoutDontSave.addEventListener('click', () => {
         localStorage.removeItem('saved_tokopedia_account');
-        // Hapus session agar refresh kembali ke halaman default (tentangPage)
         sessionStorage.removeItem('activePage');
         if (auth) auth.signOut().then(() => location.reload());
     });
@@ -429,30 +432,20 @@ if (authBtnLogoutSave) {
                 photoURL: currentUser.photoURL
             }));
         }
-        // Hapus session agar refresh kembali ke halaman default (tentangPage)
         sessionStorage.removeItem('activePage');
         if (auth) auth.signOut().then(() => location.reload());
     });
 }
 
-
-// ==========================================
-// AVATAR SELECTION LOGIC (Layar 10)
-// ==========================================
-const avatarOptions = document.querySelectorAll('.avatar-option');
-const selectedAvatarUrl = document.getElementById('selectedAvatarUrl');
 if (avatarOptions && avatarOptions.length > 0 && selectedAvatarUrl) {
     avatarOptions.forEach(opt => {
         opt.addEventListener('click', () => {
-            // Remove 'selected' class and reset border for all
             avatarOptions.forEach(o => {
                 o.classList.remove('selected');
                 o.style.borderColor = 'transparent';
             });
-            // Add 'selected' class and green border to clicked option
             opt.classList.add('selected');
             opt.style.borderColor = '#00AA5B';
-            // Update hidden input value
             selectedAvatarUrl.value = opt.getAttribute('data-url');
         });
     });
