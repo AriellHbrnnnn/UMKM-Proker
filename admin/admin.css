@@ -1043,3 +1043,237 @@ body.modal-open {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================
+   CUSTOM ADMIN NOTIFICATION POPUP (Pengganti alert() browser)
+   - 4 Variants: success (hijau), error (merah), info (biru), warning (kuning)
+   - Responsive: Desktop centered, Mobile bottom-sheet
+   ============================================================ */
+
+.admin-notif-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: notifFadeIn 0.22s ease-out;
+    padding: 16px;
+}
+
+.admin-notif-overlay.hidden {
+    display: none !important;
+}
+
+@keyframes notifFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes notifPopIn {
+    0%   { transform: scale(0.9) translateY(12px); opacity: 0; }
+    60%  { transform: scale(1.02) translateY(-2px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes notifSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+.admin-notif-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05);
+    padding: 28px 24px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: notifPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.admin-notif-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #03ac0e, #16a34a);
+    border-radius: 20px 20px 0 0;
+}
+
+/* ===== Variant-specific: SUCCESS ===== */
+.admin-notif-card.variant-success::before { background: linear-gradient(90deg, #03ac0e, #16a34a); }
+.admin-notif-card.variant-success .admin-notif-icon-wrap { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #15803d; }
+.admin-notif-card.variant-success .admin-notif-btn-primary { background: linear-gradient(135deg, #03ac0e, #16a34a); }
+.admin-notif-card.variant-success .admin-notif-title { color: #15803d; }
+
+/* ===== Variant-specific: ERROR ===== */
+.admin-notif-card.variant-error::before { background: linear-gradient(90deg, #dc2626, #ef4444); }
+.admin-notif-card.variant-error .admin-notif-icon-wrap { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
+.admin-notif-card.variant-error .admin-notif-btn-primary { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.admin-notif-card.variant-error .admin-notif-title { color: #b91c1c; }
+
+/* ===== Variant-specific: INFO ===== */
+.admin-notif-card.variant-info::before { background: linear-gradient(90deg, #0284c7, #0ea5e9); }
+.admin-notif-card.variant-info .admin-notif-icon-wrap { background: linear-gradient(135deg, #e0f2fe, #bae6fd); color: #0369a1; }
+.admin-notif-card.variant-info .admin-notif-btn-primary { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
+.admin-notif-card.variant-info .admin-notif-title { color: #0369a1; }
+
+/* ===== Variant-specific: WARNING ===== */
+.admin-notif-card.variant-warning::before { background: linear-gradient(90deg, #d97706, #f59e0b); }
+.admin-notif-card.variant-warning .admin-notif-icon-wrap { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; }
+.admin-notif-card.variant-warning .admin-notif-btn-primary { background: linear-gradient(135deg, #d97706, #f59e0b); }
+.admin-notif-card.variant-warning .admin-notif-title { color: #b45309; }
+
+/* === Icon === */
+.admin-notif-icon-wrap {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    font-size: 2.3rem;
+    animation: notifIconBounce 0.45s ease-out 0.08s both;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+@keyframes notifIconBounce {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.18); opacity: 1; }
+    80%  { transform: scale(0.94); }
+    100% { transform: scale(1); }
+}
+
+.admin-notif-icon {
+    animation: notifIconPulse 2.2s ease-in-out 0.5s infinite;
+}
+
+@keyframes notifIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+/* === Body: Title & Message === */
+.admin-notif-body {
+    margin-bottom: 22px;
+    width: 100%;
+}
+
+.admin-notif-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.2px;
+}
+
+.admin-notif-message {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #475569;
+    margin: 0;
+    white-space: pre-line;
+}
+
+/* === Actions / Buttons === */
+.admin-notif-actions {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.admin-notif-btn {
+    padding: 11px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    min-width: 120px;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+}
+
+.admin-notif-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+}
+
+.admin-notif-btn:active {
+    transform: translateY(0);
+}
+
+.admin-notif-btn-primary {
+    background: linear-gradient(135deg, #03ac0e, #16a34a);
+    color: #ffffff;
+}
+
+.admin-notif-btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* ======= MOBILE RESPONSIVE: Popup jadi bottom-sheet ======= */
+@media (max-width: 560px) {
+    .admin-notif-overlay {
+        padding: 0;
+        align-items: flex-end;
+        background: rgba(15, 23, 42, 0.5);
+    }
+
+    .admin-notif-card {
+        max-width: 100%;
+        border-radius: 22px 22px 0 0;
+        padding: 24px 18px 20px;
+        animation: notifSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .admin-notif-card::before {
+        height: 4px;
+        border-radius: 0;
+    }
+
+    .admin-notif-icon-wrap {
+        width: 68px;
+        height: 68px;
+        font-size: 2rem;
+        margin-bottom: 14px;
+    }
+
+    .admin-notif-title {
+        font-size: 1.12rem;
+    }
+
+    .admin-notif-message {
+        font-size: 0.9rem;
+    }
+
+    .admin-notif-btn {
+        width: 100%;
+        padding: 13px 20px;
+        min-height: 48px;
+    }
+
+    .admin-notif-actions {
+        flex-direction: column-reverse;
+    }
+}

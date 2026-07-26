@@ -565,6 +565,33 @@
         </div>
     </div>
 
+    <!-- ============================================================
+         CUSTOM ADMIN NOTIFICATION POPUP (Menggantikan alert() browser)
+         - Responsive: Mobile fullwidth-bottom, Desktop centered-top
+         - 4 Variant: success / error / info / warning
+         ============================================================ -->
+    <div id="adminNotificationModal" class="admin-notif-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="adminNotifTitle" aria-describedby="adminNotifMsg">
+        <div class="admin-notif-card" id="adminNotifCard">
+            <!-- Icon Container (berwarna sesuai variant) -->
+            <div class="admin-notif-icon-wrap" id="adminNotifIconWrap">
+                <i class="fas fa-check-circle admin-notif-icon" id="adminNotifIcon"></i>
+            </div>
+
+            <!-- Judul & Pesan -->
+            <div class="admin-notif-body">
+                <h3 class="admin-notif-title" id="adminNotifTitle">Berhasil</h3>
+                <p class="admin-notif-message" id="adminNotifMsg">Pesan notifikasi.</p>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="admin-notif-actions" id="adminNotifActions">
+                <button type="button" id="adminNotifOkBtn" class="admin-notif-btn admin-notif-btn-primary">
+                    <i class="fas fa-check"></i> <span>OK</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="admin.js"></script>
 </body>
 </html>

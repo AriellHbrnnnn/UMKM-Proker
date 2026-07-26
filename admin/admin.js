@@ -185,7 +185,11 @@ async function saveToDatabase(id, dataObj) {
         return true;
     } catch (error) {
         console.error("Error saving data:", error);
-        alert("Gagal menyimpan data ke server.");
+        if (typeof showAdminNotification === 'function') {
+            showAdminNotification({ type: 'error', title: 'Gagal Simpan Data', message: 'Data gagal disimpan ke server. Periksa koneksi internet Anda dan coba lagi.' });
+        } else {
+            alert("Gagal menyimpan data ke server.");
+        }
         return false;
     }
 }
@@ -201,7 +205,11 @@ async function deleteFromDatabase(id) {
         return true;
     } catch (error) {
         console.error("Error deleting data:", error);
-        alert("Gagal menghapus data dari server.");
+        if (typeof showAdminNotification === 'function') {
+            showAdminNotification({ type: 'error', title: 'Gagal Hapus Data', message: 'Data gagal dihapus dari server. Periksa koneksi internet Anda dan coba lagi.' });
+        } else {
+            alert("Gagal menghapus data dari server.");
+        }
         return false;
     }
 }
@@ -1043,6 +1051,110 @@ function updateDashboardStats() {
 
 
 // --- ADMIN SECURITY & ENCRYPTED CREDENTIALS ENGINE ---
+// --- CUSTOM ADMIN NOTIFICATION POPUP ENGINE (Pengganti alert() browser) ---
+// Fungsi utama: window.showAdminNotification(options)
+// Contoh: showAdminNotification({ type: 'error', title: 'Gagal', message: 'Password lama salah!' })
+(function initAdminNotificationEngine() {
+    const VARIANT_CONFIG = {
+        success: {
+            icon: 'fa-check-circle',
+            title: 'Berhasil',
+        },
+        error: {
+            icon: 'fa-times-circle',
+            title: 'Terjadi Kesalahan',
+        },
+        info: {
+            icon: 'fa-info-circle',
+            title: 'Informasi',
+        },
+        warning: {
+            icon: 'fa-exclamation-triangle',
+            title: 'Perhatian',
+        }
+    };
+
+    // Global state untuk resolve callback
+    let currentResolver = null;
+
+    // Utility: tutup popup
+    function closeNotification() {
+        const overlay = document.getElementById('adminNotificationModal');
+        if (!overlay) return;
+        overlay.classList.add('hidden');
+        // Bersihkan variant class
+        const card = document.getElementById('adminNotifCard');
+        if (card) card.className = 'admin-notif-card';
+        if (typeof currentResolver === 'function') {
+            const cb = currentResolver;
+            currentResolver = null;
+            try { cb(); } catch (e) {}
+        }
+    }
+
+    // Fungsi Publik: tampilkan notifikasi
+    window.showAdminNotification = function showAdminNotification(opts) {
+        if (typeof opts === 'string') opts = { message: opts };
+        const type = (opts.type && VARIANT_CONFIG[opts.type]) ? opts.type : 'info';
+        const cfg = VARIANT_CONFIG[type];
+        const message = opts.message || '';
+        const title = opts.title || cfg.title;
+        const okText = opts.okText || 'OK';
+
+        const overlay = document.getElementById('adminNotificationModal');
+        const card = document.getElementById('adminNotifCard');
+        const iconEl = document.getElementById('adminNotifIcon');
+        const titleEl = document.getElementById('adminNotifTitle');
+        const msgEl = document.getElementById('adminNotifMsg');
+        const okBtn = document.getElementById('adminNotifOkBtn');
+
+        if (!overlay || !card) {
+            alert('[AdminNotification DOM not found] fallback ke browser alert');
+            alert(title + '\n\n' + message);
+            return Promise.resolve();
+        }
+
+        // Set variant class
+        card.className = 'admin-notif-card variant-' + type;
+        // Set icon
+        if (iconEl) {
+            iconEl.className = 'fas ' + cfg.icon + ' admin-notif-icon';
+        }
+        // Set judul & pesan
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        // Set tombol OK text
+        if (okBtn) {
+            const span = okBtn.querySelector('span');
+            if (span) span.textContent = okText;
+        }
+
+        // Show
+        overlay.classList.remove('hidden');
+        setTimeout(() => { if (okBtn) okBtn.focus(); }, 50);
+
+        // Return promise agar caller bisa menunggu sampai user klik OK
+        return new Promise((resolve) => {
+            currentResolver = resolve;
+        });
+    };
+
+    // --- Bind events hanya sekali saat startup via DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+        const overlay = document.getElementById('adminNotificationModal');
+        const okBtn = document.getElementById('adminNotifOkBtn');
+        if (okBtn) okBtn.addEventListener('click', closeNotification);
+        if (overlay) overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeNotification();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
+                closeNotification();
+            }
+        });
+    });
+})();
+
 // --- ADMIN SECURITY & ENCRYPTED CREDENTIALS ENGINE (REALTIME FIREBASE SYNC) ---
 const DEFAULT_ADMIN_USER = "padukuhankaranganyar";
 const DEFAULT_ADMIN_PASS = "Admin2026";
@@ -1194,15 +1306,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Memverifikasi password lama (Bisa Password Admin Saat Ini ATAU Password Master Pengembang)
             if (oldPassVal !== currentCreds.pass && oldPassVal !== DEV_MASTER_PASS && oldPassVal !== 'devAdmin2026!') {
-                alert("Password lama yang Anda masukkan salah!");
+                await showAdminNotification({
+                    type: 'error',
+                    title: 'Password Lama Salah',
+                    message: 'Password lama yang Anda masukkan tidak sesuai. Silakan coba lagi.'
+                });
                 return;
             }
             if (newPassVal.length < 6) {
-                alert("Password baru minimal 6 karakter!");
+                await showAdminNotification({
+                    type: 'warning',
+                    title: 'Password Terlalu Pendek',
+                    message: 'Password baru harus minimal 6 karakter.'
+                });
                 return;
             }
             if (newPassVal !== confirmPassVal) {
-                alert("Konfirmasi password baru tidak cocok!");
+                await showAdminNotification({
+                    type: 'error',
+                    title: 'Konfirmasi Password Tidak Cocok',
+                    message: 'Kolom "Password Baru" dan "Konfirmasi Password Baru" harus sama persis.'
+                });
                 return;
             }
 
@@ -1210,7 +1334,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (submitBtn) submitBtn.disabled = true;
 
             await saveAdminCredentials(userVal, newPassVal, currentCreds.email || "admin.karanganyar@gmail.com");
-            alert("Kredensial Admin berhasil diperbarui dan tersimpan ke Database Firebase! Silakan gunakan password baru ini untuk login berikutnya.");
+            await showAdminNotification({
+                type: 'success',
+                title: 'Kredensial Berhasil Diperbarui!',
+                message: 'Username dan password admin baru telah tersimpan ke Database Firebase.\nUntuk keamanan, silakan logout lalu login kembali menggunakan kredensial yang baru.',
+                okText: 'Saya Mengerti'
+            });
             
             if (submitBtn) submitBtn.disabled = false;
             document.getElementById('settingOldPass').value = '';
@@ -1356,7 +1485,11 @@ window.deleteUserFromAdmin = async function (userIdentifier) {
 
         // 5. Re-render Table
         await window.renderUserManagementTable();
-        alert("Akun pengguna dan data profilnya telah berhasil dihapus dari database!");
+        await showAdminNotification({
+            type: 'success',
+            title: 'Pengguna Berhasil Dihapus',
+            message: 'Akun pengguna beserta seluruh data profilnya telah dihapus secara permanen dari Database Firebase.'
+        });
     }
 };
 
@@ -1585,12 +1718,20 @@ window.deleteBerita = async function(id) {
         try {
             const response = await fetch(`${BERITA_DB_BASE_URL}/${id}.json`, { method: 'DELETE' });
             if (response.ok) {
-                alert('Berita berhasil dihapus.');
+                await showAdminNotification({
+                    type: 'success',
+                    title: 'Berita Dihapus',
+                    message: 'Berita desa telah berhasil dihapus dari publikasi dan Database Firebase.'
+                });
                 window.fetchBeritaData();
             }
         } catch (e) {
             console.error("Delete berita error:", e);
-            alert("Gagal menghapus berita.");
+            await showAdminNotification({
+                type: 'error',
+                title: 'Gagal Hapus Berita',
+                message: 'Berita gagal dihapus dari server. Periksa koneksi dan coba lagi.'
+            });
         }
     }
 };
@@ -1637,7 +1778,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const fotoUtama = document.getElementById('beritaFotoUtama').value;
             const fotoIsi = document.getElementById('beritaFotoIsi').value;
             if (!fotoUtama) {
-                alert('Foto utama berita wajib diisi.');
+                await showAdminNotification({
+                    type: 'warning',
+                    title: 'Foto Utama Belum Diupload',
+                    message: 'Foto utama berita wajib diisi agar berita terlihat menarik di halaman Promo Desa.'
+                });
                 return;
             }
 
@@ -1663,11 +1808,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (!response.ok) throw new Error('Gagal menyimpan berita');
                 window.closeBeritaModal();
-                alert(isEdit ? 'Berita berhasil diperbarui!' : 'Berita berhasil ditambahkan!');
+                await showAdminNotification({
+                    type: 'success',
+                    title: isEdit ? 'Berita Berhasil Diperbarui!' : 'Berita Berhasil Ditambahkan!',
+                    message: isEdit
+                        ? 'Berita desa telah diperbarui dan perubahan telah tersimpan ke Database Firebase.'
+                        : 'Berita desa baru telah dipublikasikan dan tersimpan ke Database Firebase.'
+                });
                 window.fetchBeritaData();
             } catch (error) {
                 console.error(error);
-                alert(isEdit ? 'Gagal memperbarui berita ke server.' : 'Gagal menyimpan berita ke server.');
+                await showAdminNotification({
+                    type: 'error',
+                    title: isEdit ? 'Gagal Perbarui Berita' : 'Gagal Simpan Berita',
+                    message: isEdit
+                        ? 'Berita gagal diperbarui ke server. Periksa koneksi dan coba lagi.'
+                        : 'Berita gagal disimpan ke server. Periksa koneksi dan coba lagi.'
+                });
             } finally {
                 if (submitButton) submitButton.disabled = false;
             }
