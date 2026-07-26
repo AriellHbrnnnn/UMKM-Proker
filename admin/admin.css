@@ -212,6 +212,14 @@ body {
     font-size: 1.5rem;
 }
 
+/* --------- Logout Button Visibility Strategy ---------
+ * DESKTOP (>768px)  : HANYA tampilkan Sidebar Logout (kiri bawah)
+ * MOBILE  (<=768px) : HANYA tampilkan Top Header Logout (kanan atas)
+ * ------------------------------------------------------- */
+#topHeaderLogoutBtn {
+    display: none !important; /* Sembunyikan di desktop (lebih baik sidebar saja) */
+}
+
 .content-wrapper {
     padding: 30px;
     flex: 1;
@@ -606,6 +614,11 @@ body.modal-open {
         display: none !important;
     }
 
+    /* Show top-header logout button ONLY on mobile (desktop uses sidebar logout) */
+    #topHeaderLogoutBtn {
+        display: flex !important;
+    }
+
     /* Ubah Sidebar menjadi Modern Floating Bottom Navigation Bar */
     .sidebar {
         width: 100%;
@@ -733,5 +746,300 @@ body.modal-open {
     }
     .stat-card {
         padding: 15px;
+    }
+}
+
+/* ============ PRODUK CARD LAYOUT ============ */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    padding: 5px;
+}
+
+.produk-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.produk-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(46,125,50,0.12);
+    border-color: #a5d6a7;
+}
+
+.produk-card-img-wrap {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    background: #f1f5f9;
+    overflow: hidden;
+}
+
+.produk-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.produk-img-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(46,125,50,0.92);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    backdrop-filter: blur(4px);
+}
+
+.produk-img-count {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(15,23,42,0.75);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+}
+
+.produk-card-body {
+    padding: 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.produk-card-nama {
+    font-weight: 800;
+    font-size: 1.02rem;
+    color: #0f172a;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.produk-card-harga {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: #2e7d32;
+    margin: 0;
+}
+
+.produk-card-desc {
+    font-size: 0.82rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.produk-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 14px 14px 14px;
+    flex-wrap: wrap;
+}
+
+.produk-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.produk-btn-detail {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+.produk-btn-detail:hover {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.produk-btn-edit {
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #67e8f9;
+}
+.produk-btn-edit:hover {
+    background: #cffafe;
+    color: #155e75;
+}
+
+.produk-btn-hapus {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+}
+.produk-btn-hapus:hover {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.produk-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 50px 20px;
+    color: #94a3b8;
+}
+.produk-empty i {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+.produk-empty h4 {
+    color: #64748b;
+    margin: 0 0 6px 0;
+}
+
+/* ============ PRODUCT DETAIL MODAL ============ */
+.product-detail-wrapper {
+    padding: 25px;
+}
+
+.product-detail-gallery {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.detail-main-img {
+    width: 220px;
+    height: 220px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid #e2e8f0;
+    flex-shrink: 0;
+    background: #f8fafc;
+}
+.detail-main-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-thumbnails {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+    align-content: flex-start;
+}
+.detail-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+}
+.detail-thumb:hover, .detail-thumb.active {
+    border-color: #2e7d32;
+    transform: scale(1.05);
+}
+.detail-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-detail-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.detail-info-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px 18px;
+}
+
+.detail-info-card.full {
+    grid-column: 1 / -1;
+}
+
+.detail-info-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.detail-info-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.5;
+}
+
+.detail-info-value.price {
+    color: #2e7d32;
+    font-size: 1.4rem;
+}
+
+.detail-desc-text {
+    font-size: 0.93rem;
+    line-height: 1.65;
+    color: #334155;
+    white-space: pre-line;
+}
+
+.detail-no-desc {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+    .product-detail-gallery {
+        flex-direction: column;
+    }
+    .detail-main-img {
+        width: 100%;
+        height: 240px;
+    }
+    .product-detail-info {
+        grid-template-columns: 1fr;
     }
 }

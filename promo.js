@@ -112,8 +112,9 @@ function openStore(id) {
             const productCard = document.createElement('div');
             productCard.className = 'product-card reveal';
             productCard.style.transitionDelay = `${(index % 4) * 0.1}s`;
+            const prodImg = (typeof window.getFirstProductImage === 'function') ? window.getFirstProductImage(product.image) : (product.image || '').split('|||')[0];
             productCard.innerHTML = `
-                <img src="${product.image}" alt="${product.name}" class="prod-img">
+                <img src="${prodImg}" alt="${product.name}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
                 <div class="prod-info">
                     <h3 class="prod-name">${product.name}</h3>
                     <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
@@ -310,10 +311,11 @@ function renderCartPage() {
         for (const prodId in store.items) {
             const item = store.items[prodId];
             const isChecked = checkedCartItems[storeId][prodId];
+            const itemImg = (typeof window.getFirstProductImage === 'function') ? window.getFirstProductImage(item.image) : (item.image || '').split('|||')[0];
             itemsHTML += `
                 <div class="cart-page-item">
                     <input type="checkbox" class="custom-checkbox item-checkbox" data-store="${storeId}" data-prod="${prodId}" ${isChecked ? 'checked' : ''} onchange="toggleCartItem('${storeId}', '${prodId}', this.checked)">
-                    <img src="${item.image}" alt="${item.name}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #eee;">
+                    <img src="${itemImg}" alt="${item.name}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #eee;" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=200'">
                     <div class="cart-item-details-full">
                         <div style="font-weight:600; font-size:1.1rem; margin-bottom:5px;">${item.name}</div>
                         <div style="font-weight:bold; color:var(--text-color); margin-bottom:15px;">Rp ${item.price.toLocaleString('id-ID')}</div>

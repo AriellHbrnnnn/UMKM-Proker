@@ -304,6 +304,20 @@ function getUserKey(baseKey) {
     return baseKey + '_guest';
 }
 
+// Global helper: Ambil gambar pertama dari string multi-gambar (dipisah '|||')
+window.getFirstProductImage = function(imageStr) {
+    const DEFAULT = "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=400";
+    if (!imageStr || typeof imageStr !== 'string') return DEFAULT;
+    const first = imageStr.split('|||')[0];
+    return first && first.trim() ? first : DEFAULT;
+};
+
+// Global helper: Hitung jumlah gambar produk
+window.getProductImageCount = function(imageStr) {
+    if (!imageStr || typeof imageStr !== 'string') return 0;
+    return imageStr.split('|||').filter(s => s && s.trim()).length;
+};
+
 function loadUserState() {
     try {
         wishlist = JSON.parse(localStorage.getItem(getUserKey('wishlist')) || '[]');

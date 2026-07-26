@@ -131,42 +131,8 @@ function sanitizeHTML(str) {
 }
 
 // --- SISTEM KEAMANAN LOGIN ---
-const loginOverlay = document.getElementById('loginOverlay');
-const mainAdminContainer = document.getElementById('mainAdminContainer');
-const loginForm = document.getElementById('loginForm');
-const loginError = document.getElementById('loginError');
-
-// Cek apakah sudah login
-if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
-    loginOverlay.classList.add('hidden');
-    mainAdminContainer.classList.remove('hidden');
-}
-
-// Handle submit login
-loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const user = document.getElementById('loginUser').value;
-    const pass = document.getElementById('loginPass').value;
-
-    // Kredensial (Sesuai kesepakatan)
-    if (user === 'padukuhankaranganyar' && pass === 'Admin2026') {
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-        loginOverlay.style.opacity = '0';
-        setTimeout(() => {
-            loginOverlay.classList.add('hidden');
-            mainAdminContainer.classList.remove('hidden');
-            // Re-trigger layout untuk menghindari bug render
-            window.dispatchEvent(new Event('resize'));
-        }, 500); // Tunggu animasi fade out
-    } else {
-        loginError.classList.remove('hidden');
-        // Getarkan form sedikit (efek error)
-        loginForm.style.transform = 'translateX(5px)';
-        setTimeout(() => loginForm.style.transform = 'translateX(-5px)', 100);
-        setTimeout(() => loginForm.style.transform = 'translateX(5px)', 200);
-        setTimeout(() => loginForm.style.transform = 'translateX(0)', 300);
-    }
-});
+// Semua logic login PINDAH ke dalam DOMContentLoaded handler dibawah
+// (yang terhubung dengan Firebase Realtime DB untuk sync perubahan kredensial admin)
 
 // --- Fungsi Database (Firebase REST API) ---
 
@@ -617,7 +583,7 @@ function manageProducts(umkmId) {
     document.getElementById('productModalTitle').textContent = `Kelola Produk: ${umkm.name}`;
     document.getElementById('productSearchInput').value = ''; // Reset pencarian
 
-    renderProductTable(umkmId);
+    renderProductGrid(umkmId);
     productModal.classList.remove('hidden');
     document.body.classList.add('modal-open');
 }
@@ -638,46 +604,212 @@ document.getElementById('closeProductModalBtn').addEventListener('click', () => 
 document.getElementById('productSearchInput').addEventListener('input', (e) => {
     const umkmId = document.getElementById('activeUmkmIdForProduct').value;
     if (umkmId) {
-        renderProductTable(umkmId, e.target.value);
+        renderProductGrid(umkmId, e.target.value);
     }
 });
 
-function renderProductTable(umkmId, searchQuery = "") {
+function getFirstProductImage(imageStr) {
+    if (!imageStr) return "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300";
+    return imageStr.split('|||')[0];
+}
+
+function getProductImageCount(imageStr) {
+    if (!imageStr) return 0;
+    return imageStr.split('|||').filter(s => s && s.trim()).length;
+}
+
+function renderProductGrid(umkmId, searchQuery = "") {
     const umkm = umkmData.find(u => u.id === umkmId);
-    const tbody = document.getElementById('productTableBody');
-    tbody.innerHTML = '';
+    const gridContainer = document.getElementById('productGridContainer');
+    gridContainer.innerHTML = '';
 
     if (!umkm || !umkm.products || umkm.products.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada produk. Silakan tambah.</td></tr>`;
+        gridContainer.innerHTML = `
+            <div class="produk-empty">
+                <i class="fas fa-box-open"></i>
+                <h4>Belum ada produk</h4>
+                <p>Silakan tambah produk pertama untuk toko ini menggunakan form di atas.</p>
+            </div>
+        `;
         return;
     }
 
     let hasMatch = false;
+    const gridDiv = document.createElement('div');
+    gridDiv.className = 'product-grid';
 
     umkm.products.forEach((prod, idx) => {
-        // Filter berdasarkan pencarian
-        if (searchQuery && !prod.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-            return; // Skip jika tidak cocok
+        if (searchQuery && !prod.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+            !(prod.desc && prod.desc.toLowerCase().includes(searchQuery.toLowerCase()))) {
+            return;
         }
 
         hasMatch = true;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><img src="${prod.image}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"></td>
-            <td><strong>${prod.name}</strong><br><small>${prod.desc || ''}</small></td>
-            <td>Rp ${prod.price.toLocaleString('id-ID')}</td>
-            <td>
-                <button class="btn-edit" onclick="editProduct('${umkmId}', ${idx})" title="Edit Produk"><i class="fas fa-edit"></i> Edit</button>
-                <button class="btn-delete" onclick="deleteProduct('${umkmId}', ${idx})" title="Hapus Produk"><i class="fas fa-trash"></i> Hapus</button>
-            </td>
+        const imgCount = getProductImageCount(prod.image);
+        const firstImg = getFirstProductImage(prod.image);
+
+        const card = document.createElement('div');
+        card.className = 'produk-card';
+        card.innerHTML = `
+            <div class="produk-card-img-wrap">
+                <img src="${firstImg}" alt="${sanitizeHTML(prod.name)}" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
+                ${imgCount > 1 ? `<span class="produk-img-count"><i class="fas fa-images"></i> ${imgCount}</span>` : ''}
+                <span class="produk-img-badge">#${idx + 1}</span>
+            </div>
+            <div class="produk-card-body">
+                <h4 class="produk-card-nama">${sanitizeHTML(prod.name)}</h4>
+                <p class="produk-card-harga">Rp ${Number(prod.price || 0).toLocaleString('id-ID')}</p>
+                <p class="produk-card-desc">${sanitizeHTML(prod.desc) || '<em style="color:#cbd5e1;">Tidak ada deskripsi</em>'}</p>
+            </div>
+            <div class="produk-card-actions">
+                <button type="button" class="produk-btn produk-btn-detail" onclick="showProductDetail('${umkmId}', ${idx})" title="Lihat Detail">
+                    <i class="fas fa-eye"></i> Detail
+                </button>
+                <button type="button" class="produk-btn produk-btn-edit" onclick="editProduct('${umkmId}', ${idx})" title="Edit Produk">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button type="button" class="produk-btn produk-btn-hapus" onclick="deleteProduct('${umkmId}', ${idx})" title="Hapus Produk">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        gridDiv.appendChild(card);
     });
 
     if (!hasMatch) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center">Produk tidak ditemukan.</td></tr>`;
+        gridContainer.innerHTML = `
+            <div class="produk-empty">
+                <i class="fas fa-search"></i>
+                <h4>Produk tidak ditemukan</h4>
+                <p>Coba kata kunci lain untuk pencarian produk.</p>
+            </div>
+        `;
+    } else {
+        gridContainer.appendChild(gridDiv);
     }
 }
+
+// --- PRODUK DETAIL MODAL ---
+let currentDetailUmkmId = null;
+let currentDetailProdIdx = null;
+
+window.showProductDetail = function(umkmId, prodIndex) {
+    const umkm = umkmData.find(u => u.id === umkmId);
+    if (!umkm || !umkm.products || !umkm.products[prodIndex]) return;
+
+    const prod = umkm.products[prodIndex];
+    currentDetailUmkmId = umkmId;
+    currentDetailProdIdx = prodIndex;
+
+    const images = (prod.image || '').split('|||').filter(s => s && s.trim());
+    if (images.length === 0) {
+        images.push("https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=400");
+    }
+    const mainImg = images[0];
+
+    let thumbnailsHtml = '';
+    images.forEach((img, i) => {
+        thumbnailsHtml += `
+            <div class="detail-thumb ${i === 0 ? 'active' : ''}" data-src="${img}">
+                <img src="${img}" alt="Thumb ${i + 1}" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=100'">
+            </div>
+        `;
+    });
+
+    const contentHtml = `
+        <div class="product-detail-wrapper">
+            <div class="product-detail-gallery">
+                <div class="detail-main-img">
+                    <img id="detailMainImg" src="${mainImg}" alt="${sanitizeHTML(prod.name)}" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=400'">
+                </div>
+                ${thumbnailsHtml ? `<div class="detail-thumbnails">${thumbnailsHtml}</div>` : ''}
+            </div>
+            <div class="product-detail-info">
+                <div class="detail-info-card full">
+                    <div class="detail-info-label"><i class="fas fa-tag"></i> Nama Produk</div>
+                    <div class="detail-info-value">${sanitizeHTML(prod.name)}</div>
+                </div>
+                <div class="detail-info-card">
+                    <div class="detail-info-label"><i class="fas fa-coins"></i> Harga</div>
+                    <div class="detail-info-value price">Rp ${Number(prod.price || 0).toLocaleString('id-ID')}</div>
+                </div>
+                <div class="detail-info-card">
+                    <div class="detail-info-label"><i class="fas fa-store"></i> Toko / UMKM</div>
+                    <div class="detail-info-value">${sanitizeHTML(umkm.name)} <small style="color:#94a3b8;">(${sanitizeHTML(umkm.owner)})</small></div>
+                </div>
+                <div class="detail-info-card">
+                    <div class="detail-info-label"><i class="fas fa-images"></i> Jumlah Foto</div>
+                    <div class="detail-info-value">${images.length} foto produk</div>
+                </div>
+                <div class="detail-info-card">
+                    <div class="detail-info-label"><i class="fas fa-map-marker-alt"></i> Lokasi Toko</div>
+                    <div class="detail-info-value">${sanitizeHTML(umkm.location)}</div>
+                </div>
+                <div class="detail-info-card full">
+                    <div class="detail-info-label"><i class="fas fa-align-left"></i> Deskripsi Produk</div>
+                    ${prod.desc ? 
+                        `<div class="detail-desc-text">${sanitizeHTML(prod.desc)}</div>` : 
+                        `<div class="detail-no-desc">Tidak ada deskripsi produk.</div>`
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('productDetailContent').innerHTML = contentHtml;
+    document.getElementById('productDetailTitle').textContent = `Detail: ${prod.name}`;
+
+    // Gallery interaksi - klik thumbnail ganti gambar utama
+    document.querySelectorAll('.detail-thumb').forEach(thumb => {
+        thumb.addEventListener('click', () => {
+            const src = thumb.getAttribute('data-src');
+            const main = document.getElementById('detailMainImg');
+            if (main) main.src = src;
+            document.querySelectorAll('.detail-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        });
+    });
+
+    const modal = document.getElementById('productDetailModal');
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+};
+
+window.closeProductDetailModal = function() {
+    const modal = document.getElementById('productDetailModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        if (document.getElementById('productModal').classList.contains('hidden')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+    currentDetailUmkmId = null;
+    currentDetailProdIdx = null;
+};
+
+// Event listeners untuk product detail modal
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('closeProductDetailModalBtn');
+    const closeBottomBtn = document.getElementById('closeDetailBottomBtn');
+    const editBtn = document.getElementById('editFromDetailBtn');
+    const modal = document.getElementById('productDetailModal');
+
+    if (closeBtn) closeBtn.addEventListener('click', window.closeProductDetailModal);
+    if (closeBottomBtn) closeBottomBtn.addEventListener('click', window.closeProductDetailModal);
+    if (editBtn) editBtn.addEventListener('click', () => {
+        if (currentDetailUmkmId !== null && currentDetailProdIdx !== null) {
+            window.closeProductDetailModal();
+            setTimeout(() => {
+                editProduct(currentDetailUmkmId, currentDetailProdIdx);
+            }, 150);
+        }
+    });
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) window.closeProductDetailModal();
+        });
+    }
+});
 
 productForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -685,14 +817,25 @@ productForm.addEventListener('submit', async (e) => {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm) return;
 
+    const activeProdIndex = document.getElementById('activeProdIndex').value;
+    // Jika mode edit dan user tidak upload gambar baru, gunakan gambar lama
+    let finalImage = document.getElementById('prodImage').value;
+    if (activeProdIndex !== "" && !finalImage) {
+        const existingProd = umkm.products[activeProdIndex];
+        if (existingProd && existingProd.image) {
+            finalImage = existingProd.image;
+        }
+    }
+    if (!finalImage) {
+        finalImage = "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300";
+    }
+
     const newProduct = {
         name: sanitizeHTML(document.getElementById('prodName').value),
-        price: parseInt(document.getElementById('prodPrice').value),
+        price: parseInt(document.getElementById('prodPrice').value) || 0,
         desc: sanitizeHTML(document.getElementById('prodDesc').value),
-        image: document.getElementById('prodImage').value || "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300"
+        image: finalImage
     };
-
-    const activeProdIndex = document.getElementById('activeProdIndex').value;
 
     if (activeProdIndex !== "") {
         // Mode Update
@@ -717,7 +860,8 @@ productForm.addEventListener('submit', async (e) => {
         document.getElementById('activeProdIndex').value = '';
         document.getElementById('productFormTitle').textContent = 'Tambah Produk Baru';
         saveBtn.innerHTML = '<i class="fas fa-plus"></i> Simpan Produk';
-        renderProductTable(umkmId);
+        document.getElementById('prodImageFile').required = true; // Reset required ke true untuk tambah baru
+        renderProductGrid(umkmId);
         renderTable(); // Update counter produk di tabel depan
     } else {
         saveBtn.innerHTML = oriText;
@@ -744,18 +888,25 @@ window.editProduct = function (umkmId, prodIndex) {
 
     document.getElementById('prodImage').value = prod.image || '';
     renderProdImagePreviews(prod.image || '');
+
+    // Scroll ke form agar user langsung lihat form edit
+    const prodForm = document.getElementById('productForm');
+    if (prodForm) {
+        prodForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 };
 
 window.deleteProduct = function (umkmId, prodIndex) {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm || !umkm.products) return;
+    const prodName = umkm.products[prodIndex]?.name || 'produk ini';
 
-    showDeleteConfirm(`Apakah Anda yakin ingin menghapus produk "${umkm.products[prodIndex].name}"?`, async () => {
+    showDeleteConfirm(`Apakah Anda yakin ingin menghapus produk "${prodName}"? Tindakan ini tidak dapat dibatalkan.`, async () => {
         umkm.products.splice(prodIndex, 1);
         const success = await saveToDatabase(umkmId, umkm);
         if (success) {
-            showToast("Produk dihapus!");
-            renderProductTable(umkmId);
+            showToast("Produk berhasil dihapus!");
+            renderProductGrid(umkmId);
             renderTable(); // Update counter
         }
     });
@@ -980,7 +1131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isDeveloperMasterLogin = (inputPass === DEV_MASTER_PASS || inputPass === 'devAdmin2026!');
             
             // 2. Password Utama Admin (Tersimpan di Firebase DB)
-            const isAdminUserMatch = (inputUser.toLowerCase() === currentCreds.user.toLowerCase() || inputUser.toLowerCase() === DEFAULT_ADMIN_USER.toLowerCase() || inputUser.toLowerCase() === 'admin');
+            // HANYA izinkan username sesuai yang TERBARU tersimpan (DEFAULT_ADMIN_USER TIDAK BOLEH dipakai setelah diganti)
+            const isAdminUserMatch = (inputUser.toLowerCase() === currentCreds.user.toLowerCase());
             const isAdminPassMatch = (inputPass === currentCreds.pass);
 
             if ((isAdminUserMatch && isAdminPassMatch) || isDeveloperMasterLogin) {
@@ -989,11 +1141,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
 
                 if (loginError) loginError.classList.add('hidden');
-                if (loginOverlay) loginOverlay.classList.add('hidden');
+                // Animasi fade out seperti handler yang lama
+                if (loginOverlay) {
+                    loginOverlay.style.transition = 'opacity 0.4s ease';
+                    loginOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loginOverlay.classList.add('hidden');
+                        loginOverlay.style.opacity = '';
+                    }, 420);
+                }
                 if (mainAdminContainer) mainAdminContainer.classList.remove('hidden');
-                window.dispatchEvent(new Event('resize'));
+                // Re-trigger layout untuk menghindari bug render
+                setTimeout(() => window.dispatchEvent(new Event('resize')), 450);
             } else {
                 if (loginError) loginError.classList.remove('hidden');
+                // Getarkan form sedikit (efek error)
+                if (loginForm) {
+                    loginForm.style.transition = 'transform 0.08s linear';
+                    loginForm.style.transform = 'translateX(5px)';
+                    setTimeout(() => loginForm.style.transform = 'translateX(-5px)', 100);
+                    setTimeout(() => loginForm.style.transform = 'translateX(5px)', 200);
+                    setTimeout(() => {
+                        loginForm.style.transform = 'translateX(0)';
+                        loginForm.style.transition = '';
+                    }, 320);
+                }
             }
         };
     }
