@@ -171,7 +171,33 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
         if (!userObj || !userObj.uid) return;
         const users = window.getRegisteredUsers();
         const idx = users.findIndex(u => u.uid === userObj.uid || (u.email && userObj.email && u.email.toLowerCase() === userObj.email.toLowerCase()));
-        
+
+        // === PRIORITAS PILIHAN FOTO PROFIL ===
+        // 1. Field yang di-passing via userObj.photoURL (misal dari Google OAuth, updateProfile, dll)
+        // 2. Hidden field selectedAvatarUrl (jika user baru saja pilih di avatar picker dalam sesi ini)
+        // 3. localStorage 'local_avatar_' + uid (sudah disimpan dari updateProfileAvatar sebelumnya)
+        // 4. Fallback Dicebear random by email / uid (pakai URL standar terpadu)
+        let finalPhotoUrl = userObj.photoURL || '';
+        if (!finalPhotoUrl) {
+            try {
+                const selField = document.getElementById('selectedAvatarUrl');
+                if (selField && selField.value && /https?:\/\//.test(selField.value)) {
+                    finalPhotoUrl = selField.value;
+                }
+            } catch(_) {}
+        }
+        if (!finalPhotoUrl) {
+            try { finalPhotoUrl = localStorage.getItem('local_avatar_' + userObj.uid) || ''; } catch(_) {}
+        }
+        if (!finalPhotoUrl) {
+            const fallbackSeed = (userObj.email || userObj.uid || 'user');
+            if (typeof window.buildDicebearAvatarUrl === 'function') {
+                finalPhotoUrl = window.buildDicebearAvatarUrl(fallbackSeed, 'b6e3f4');
+            } else {
+                finalPhotoUrl = `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(fallbackSeed)}&mouth=smile,laughing&backgroundColor=b6e3f4`;
+            }
+        }
+
         const payload = {
             uid: userObj.uid,
             email: userObj.email || '',
@@ -180,7 +206,7 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
             password: userObj.password || 'password_protected',
             dob: userObj.dob || '',
             gender: userObj.gender || 'Laki-laki',
-            photoURL: userObj.photoURL || `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(userObj.email || 'user')}`,
+            photoURL: finalPhotoUrl,
             isGoogle: !!userObj.isGoogle,
             providerId: userObj.providerId || (userObj.isGoogle ? 'google.com' : 'password'),
             createdAt: userObj.createdAt || new Date().toISOString(),
@@ -465,65 +491,273 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
         }
     };
 
+    // Helper: Cek apakah user sedang di perangkat mobile
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.innerWidth < 768;
+    }
+
+    // Helper: Proses hasil autentikasi Google (dipakai oleh popup DAN redirect flow)
+    function processGoogleAuthResult(gUser, modeFromStorage) {
+        const email = gUser.email;
+        const displayName = gUser.displayName || email.split('@')[0];
+        const photoURL = gUser.photoURL;
+
+        const newUser = {
+            uid: gUser.uid,
+            email: email,
+            username: displayName.toLowerCase().replace(/\s+/g, '_'),
+            displayName: displayName,
+            password: 'google_firebase_auth',
+            photoURL: photoURL,
+            isGoogle: true,
+            providerId: 'google.com'
+        };
+
+        const mode = modeFromStorage || 'login';
+        const existingUser = window.findUserByIdentifier(email);
+        if (mode === 'login') {
+            const userToLogin = existingUser
+                ? { ...existingUser, ...newUser, uid: gUser.uid }
+                : newUser;
+            window.saveRegisteredUser(userToLogin);
+            window.loginUserObject(userToLogin, true);
+            window.showAuthAlert(`Berhasil masuk dengan Google: ${email}`, 'success');
+        } else {
+            window.saveRegisteredUser(newUser);
+            window.loginUserObject(newUser, true);
+            window.showAuthAlert(`Berhasil mendaftar dengan Google: ${email}`, 'success');
+        }
+        sessionStorage.removeItem('google_auth_mode');
+        sessionStorage.removeItem('google_auth_flow');
+        sessionStorage.removeItem('google_auth_prompt_shown');
+    }
+
     // 6. REAL FIREBASE GOOGLE OAUTH WITH LOCAL FALLBACK
     window.handleRealFirebaseGoogleAuth = function (mode = 'login') {
         if (typeof firebase !== 'undefined' && firebase.auth) {
             const authInst = firebase.auth();
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            provider.addScope('profile');
             provider.setCustomParameters({ prompt: 'select_account' });
 
-            authInst.signInWithPopup(provider).then((result) => {
-                const gUser = result.user;
-                const email = gUser.email;
-                const displayName = gUser.displayName || email.split('@')[0];
-                const photoURL = gUser.photoURL;
+            // Simpan mode ke sessionStorage untuk dipakai setelah auth selesai
+            sessionStorage.setItem('google_auth_mode', mode);
+            sessionStorage.removeItem('google_auth_flow');
 
-                const newUser = {
-                    uid: gUser.uid,
-                    email: email,
-                    username: displayName.toLowerCase().replace(/\s+/g, '_'),
-                    displayName: displayName,
-                    password: 'google_firebase_auth',
-                    photoURL: photoURL,
-                    isGoogle: true,
-                    providerId: 'google.com'
-                };
-
-                const existingUser = window.findUserByIdentifier(email);
-                if (mode === 'login') {
-                    const userToLogin = existingUser
-                        ? { ...existingUser, ...newUser, uid: gUser.uid }
-                        : newUser;
-                    window.saveRegisteredUser(userToLogin);
-                    window.loginUserObject(userToLogin, true);
-                    window.showAuthAlert(`Berhasil masuk dengan Google: ${email}`, 'success');
-                } else {
-                    // Register Mode
-                    window.saveRegisteredUser(newUser);
-                    window.loginUserObject(newUser, true);
-                    window.showAuthAlert(`Berhasil mendaftar dengan Google: ${email}`, 'success');
-                }
-            }).catch((error) => {
-                console.error("Firebase Google Auth Error:", error);
-                if (error.code === 'auth/popup-blocked') {
-                    window.showAuthAlert('Pop-up Google diblokir browser Anda. Silakan izinkan pop-up di bilah alamat browser!');
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    window.showAuthAlert('Domain 127.0.0.1 belum diizinkan di Firebase Console -> Authentication -> Settings -> Authorized Domains. Membuka opsi pendaftaran...', 'error');
-                    setTimeout(() => {
-                        promptGoogleAccountInput(mode);
-                    }, 1200);
-                } else {
-                    if (error && error.code === 'auth/popup-closed-by-user') {
-                        window.showAuthAlert('Proses masuk Google dibatalkan.', 'info');
-                    } else if (error && error.message && !error.message.includes('style') && !error.message.includes('null')) {
-                        window.showAuthAlert('Gagal masuk Google: ' + error.message);
-                    }
-                }
+            // Untuk website biasa, popup adalah flow paling stabil.
+            // Redirect hanya dipakai sebagai fallback jika popup diblokir browser.
+            const useRedirect = false;
+            const authMethodLabel = useRedirect ? 'Redirect' : 'Popup';
+            console.log(`[Google Auth] Using ${authMethodLabel} flow for ${mode} mode`, {
+                origin: window.location.origin,
+                hostname: window.location.hostname,
+                authDomain: (firebase.apps && firebase.apps[0] && firebase.apps[0].options && firebase.apps[0].options.authDomain) || null,
+                projectId: (firebase.apps && firebase.apps[0] && firebase.apps[0].options && firebase.apps[0].options.projectId) || null
             });
+
+            if (useRedirect) {
+                // === REDIRECT FLOW (lebih stabil untuk mobile & deploy) ===
+                sessionStorage.setItem('google_auth_flow', 'redirect');
+                window.showAuthAlert('Mengalihkan ke halaman Google...', 'info');
+                authInst.signInWithRedirect(provider).catch((error) => {
+                    console.error('[Google Auth] Redirect Error object:', error);
+                    console.error('[Google Auth] Redirect Error code:', error && error.code);
+                    console.error('[Google Auth] Redirect Error message:', error && error.message);
+                    console.error('[Google Auth] Redirect Error customData:', error && error.customData);
+                    console.error('[Google Auth] Redirect Error stack:', error && error.stack);
+                    handleGoogleAuthError(error, mode);
+                });
+            } else {
+                // === POPUP FLOW (untuk desktop) ===
+                authInst.signInWithPopup(provider).then((result) => {
+                    processGoogleAuthResult(result.user, mode);
+                }).catch((error) => {
+                    console.error('[Google Auth] Popup Error object:', error);
+                    console.error('[Google Auth] Popup Error code:', error && error.code);
+                    console.error('[Google Auth] Popup Error message:', error && error.message);
+                    console.error('[Google Auth] Popup Error customData:', error && error.customData);
+                    console.error('[Google Auth] Popup Error stack:', error && error.stack);
+                    // Jika popup diblokir/gagal, fallback ke redirect
+                    if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+                        console.warn("[Google Auth] Popup failed, falling back to redirect...");
+                        sessionStorage.setItem('google_auth_flow', 'redirect');
+                        window.showAuthAlert('Pop-up diblokir, mengalihkan ke halaman Google...', 'info');
+                        authInst.signInWithRedirect(provider).catch((e) => {
+                            console.error('[Google Auth] Fallback Redirect Error object:', e);
+                            console.error('[Google Auth] Fallback Redirect Error code:', e && e.code);
+                            console.error('[Google Auth] Fallback Redirect Error message:', e && e.message);
+                            console.error('[Google Auth] Fallback Redirect Error customData:', e && e.customData);
+                            console.error('[Google Auth] Fallback Redirect Error stack:', e && e.stack);
+                            handleGoogleAuthError(e, mode);
+                        });
+                    } else {
+                        handleGoogleAuthError(error, mode);
+                    }
+                });
+            }
         } else {
             promptGoogleAccountInput(mode);
         }
     };
+
+    // Handler error Google Auth yang terpusat
+    function handleGoogleAuthError(error, mode) {
+        sessionStorage.removeItem('google_auth_mode');
+        sessionStorage.removeItem('google_auth_flow');
+        console.error('[Google Auth] Central handler error object:', error);
+        console.error('[Google Auth] Central handler error code:', error && error.code);
+        console.error('[Google Auth] Central handler error message:', error && error.message);
+        console.error('[Google Auth] Central handler error customData:', error && error.customData);
+        console.error('[Google Auth] Central handler current origin:', window.location.origin);
+        console.error('[Google Auth] Central handler mode:', mode);
+
+        const rawMessage = (error && (error.message || error.code)) || 'Terjadi kesalahan yang tidak diketahui saat autentikasi Google.';
+        if (error.code === 'auth/popup-blocked') {
+            window.showAuthAlert('Pop-up Google diblokir. Silakan izinkan pop-up (klik ikon pop-up di address bar) atau coba lagi. Detail: ' + rawMessage, 'error');
+        } else if (error.code === 'auth/unauthorized-domain') {
+            const currentDomain = window.location.hostname;
+            window.showAuthAlert(
+                `Domain "${currentDomain}" belum terdaftar di Firebase Console! Detail: ${rawMessage}`,
+                'error'
+            );
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            window.showAuthAlert('Proses masuk Google dibatalkan.', 'info');
+        } else if (error.code === 'auth/network-request-failed') {
+            var currentDomain = window.location.hostname || '';
+            var isLocal = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/i.test(currentDomain);
+            if (isLocal) {
+                window.showAuthAlert('Koneksi ke Google OAuth gagal (localhost). Detail Firebase: ' + rawMessage, 'error');
+            } else {
+                window.showAuthAlert(
+                    'Koneksi ke Google OAuth gagal di domain "' + currentDomain + '". Detail Firebase: ' + rawMessage,
+                    'error'
+                );
+            }
+            sessionStorage.removeItem('google_auth_mode');
+        } else if (error.code === 'auth/operation-not-allowed') {
+            window.showAuthAlert(
+                'Login Google belum diaktifkan di Firebase! Detail: ' + rawMessage,
+                'error'
+            );
+        } else if (error.code === 'auth/invalid-api-key') {
+            window.showAuthAlert('Firebase API Key tidak valid. Detail: ' + rawMessage, 'error');
+        } else if (error.code === 'auth/app-not-authorized') {
+            window.showAuthAlert(
+                'Aplikasi tidak diotorisasi untuk Google Sign-In! Detail: ' + rawMessage,
+                'error'
+            );
+        } else {
+            window.showAuthAlert('Gagal masuk Google: ' + rawMessage, 'error');
+        }
+    }
+
+    // === REDIRECT RESULT HANDLER ===
+    // PERINGATAN: SEKARANG observer onAuthStateChanged di auth.js = SINGLE SOURCE OF TRUTH.
+    // Fungsi ini HANYA sebagai FAILSAFE FALLBACK, TIDAK PERNAH memodifikasi UI langsung.
+    // SEMUA call dibungkus try/catch + typeof safety check agar TIDAK BISA merusak layout.
+    function setupGoogleRedirectResultHandler() {
+        if (typeof firebase === 'undefined' || !firebase.auth) return;
+        if (sessionStorage.getItem('google_auth_flow') !== 'redirect') return;
+        var authInst = firebase.auth();
+        var savedMode = sessionStorage.getItem('google_auth_mode') || 'login';
+
+        // === TIMEOUT WRAPPER: 15 detik maksimal tunggu getRedirectResult ===
+        var REDIRECT_TIMEOUT_MS = 15000;
+        var redirectPromise = authInst.getRedirectResult();
+        var timeoutPromise = new Promise(function(_, reject) {
+            setTimeout(function() {
+                var err = new Error('Redirect result timeout setelah ' + (REDIRECT_TIMEOUT_MS / 1000) + 's');
+                err.code = 'custom/redirect-timeout';
+                reject(err);
+            }, REDIRECT_TIMEOUT_MS);
+        });
+
+        Promise.race([redirectPromise, timeoutPromise])
+            .then(function(result) {
+                try {
+                    if (!(result && result.user)) return;
+
+                    console.log('[Google Auth] Redirect result (failsafe fallback):', result.user.email);
+
+                    // CEK LOCK: jika observer auth.js SUDAH MEMPROSES → LEWATKAN SAJA!
+                    if (window.__googleAuthProcessed) {
+                        sessionStorage.removeItem('google_auth_mode');
+                        sessionStorage.removeItem('google_auth_flow');
+                        return;
+                    }
+
+                    // TUNGGU 2 DETIK untuk observer (onAuthStateChanged) prioritas utama memproses duluan
+                    setTimeout(function() {
+                        try {
+                            if (!window.__googleAuthProcessed) {
+                                console.warn('[Google Auth] Observer auth.js belum memproses → fallback processGoogleAuthResult');
+                                if (typeof processGoogleAuthResult === 'function') {
+                                    processGoogleAuthResult(result.user, savedMode);
+                                }
+                            } else {
+                                sessionStorage.removeItem('google_auth_mode');
+                                sessionStorage.removeItem('google_auth_flow');
+                            }
+                        } catch (innerErr) {
+                            console.error('[Google Auth] Redirect fallback setTimeout error (diabaikan):', innerErr);
+                        }
+                    }, 2000);
+                } catch (thenErr) {
+                    console.error('[Google Auth] Redirect .then() error (diabaikan):', thenErr);
+                }
+            })
+            .catch(function(error) {
+                try {
+                    console.error('[Google Auth] Redirect result error (failsafe):', error && error.code, error && error.message);
+
+                    // Jika observer auth.js SUDAH berhasil memproses → abaikan error ini
+                    try {
+                        var alreadyUser = authInst.currentUser;
+                        if (alreadyUser && window.__googleAuthProcessed) {
+                            sessionStorage.removeItem('google_auth_mode');
+                            sessionStorage.removeItem('google_auth_flow');
+                            return;
+                        }
+                    } catch (_) {}
+
+                    if (error.code === 'auth/no-auth-event' || error.code === 'auth/user-cancelled') {
+                        sessionStorage.removeItem('google_auth_mode');
+                        sessionStorage.removeItem('google_auth_flow');
+                        return;
+                    }
+
+                    if (error.code === 'custom/redirect-timeout') {
+                        // HANYA TOAST, JANGAN PERNAH auto-open promptGoogleAccountInput!
+                        // Auto-open modal di mobile membuat kesan UI rusak dan menghalangi konten.
+                        var isNetlify = /netlify\.(app|com)$/i.test(window.location.hostname || '');
+                        if (typeof window.showAuthAlert === 'function') {
+                            if (isNetlify) {
+                                window.showAuthAlert(
+                                    '⚠️ Google Sign-In TIMEOUT! Hampir pasti karena domain "' + window.location.hostname + '" BELUM ditambahkan ke Authorized Domains di Firebase Console. Buka Console → Authentication → Settings → Authorized domains → Add "' + window.location.hostname + '". Tunggu 1-2 menit lalu coba lagi.',
+                                    'error'
+                                );
+                            } else {
+                                window.showAuthAlert(
+                                    'Waktu tunggu Google Sign-In habis. Coba lagi klik tombol Daftar/Masuk Google, atau gunakan form daftar email manual.',
+                                    'error'
+                                );
+                            }
+                        }
+                        sessionStorage.removeItem('google_auth_mode');
+                        sessionStorage.removeItem('google_auth_flow');
+                        return;
+                    }
+
+                    if (typeof handleGoogleAuthError === 'function') {
+                        handleGoogleAuthError(error, savedMode);
+                    }
+                } catch (catchErr) {
+                    console.error('[Google Auth] Redirect .catch() outer error (diabaikan):', catchErr);
+                }
+            });
+    }
 
     function promptGoogleAccountInput(mode) {
         const existingModal = document.getElementById('googleAccountPromptModal');
@@ -541,8 +775,8 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                 <button id="closeGooglePromptBtn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;">&times;</button>
                 
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" style="width: 42px; height: 42px; margin-bottom: 10px;">
-                    <h3 style="margin: 0 0 5px 0; color: #31353B; font-size: 1.2rem; font-weight: 700;">${mode === 'login' ? 'Masuk dengan Google' : 'Daftar dengan Google'}</h3>
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" style="width: 42px; height: 42px; margin-bottom: 10px;" alt="Logo Google">
+                    <h3 style="margin: 0 0 5px 0; color: #31353B; font-size: 1.2rem; font-weight: 700;">Lanjutkan dengan Google</h3>
                     <p style="margin: 0; color: #6D7588; font-size: 0.85rem;">Masukkan alamat e-mail akun Google yang Anda miliki</p>
                 </div>
 
@@ -573,6 +807,21 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
 
             modal.remove();
 
+            // Gunakan FOTO PROFIL SISTEM TERPADU (SAMA DENGAN observer auth.js)
+            let finalPhotoUrl = '';
+            try {
+                const selField = document.getElementById('selectedAvatarUrl');
+                if (selField && selField.value && /https?:\/\//.test(selField.value)) {
+                    finalPhotoUrl = selField.value;
+                }
+            } catch(_) {}
+            if (!finalPhotoUrl && typeof window.buildDicebearAvatarUrl === 'function') {
+                finalPhotoUrl = window.buildDicebearAvatarUrl(email, 'b6e3f4');
+            }
+            if (!finalPhotoUrl) {
+                finalPhotoUrl = `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(email)}&mouth=smile,laughing&backgroundColor=b6e3f4`;
+            }
+
             const existingUser = window.findUserByIdentifier(email);
             if (mode === 'login') {
                 if (!existingUser) {
@@ -593,7 +842,7 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
                         password: 'google_oauth_pass',
                         dob: '2000-01-01',
                         gender: 'Laki-laki',
-                        photoURL: `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(email)}&mouth=smile,laughing&backgroundColor=b6e3f4`
+                        photoURL: finalPhotoUrl
                     };
                     window.saveRegisteredUser(newUser);
                     window.loginUserObject(newUser, true);
@@ -603,14 +852,18 @@ window.syncUserToFirebaseDatabase = function (user, isGoogle = false) {
         };
     }
 
+    // Ekspose prompt manual agar watchdog di auth.js bisa memanggilnya
+    window.promptGoogleAccountInput = promptGoogleAccountInput;
+
     // 7. INITIALIZE DOM & FORM LISTENERS
     document.addEventListener('DOMContentLoaded', () => {
         // NOTE: Session restore is handled by Firebase onAuthStateChanged in auth.js
         // Do NOT restore from localStorage here to avoid conflicts with Firebase auth state
         // The Firebase onAuthStateChanged observer will call updateHeaderAuthUI automatically
 
-
-
+        // === KRITIS: Setup handler untuk menangkap hasil Google OAuth redirect ===
+        // Ini harus dijalankan SECEPATNYA saat DOM siap, agar tidak melewatkan callback redirect
+        setupGoogleRedirectResultHandler();
 
         // --- MODE TAMPILAN (THEME SELECTION CLICK LISTENERS) ---
         document.addEventListener('click', (e) => {

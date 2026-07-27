@@ -1,5 +1,48 @@
 // admin_loader.js - Isolated Admin CMS Loader
 (function() {
+    function hasActiveAdminSession() {
+        return sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
+    }
+
+    function sanitizeBasicHtml(rawHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = String(rawHtml || '');
+        const allowedTags = new Set(['BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN']);
+        const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT, null, false);
+        const toReplace = [];
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (!allowedTags.has(node.tagName)) {
+                toReplace.push(node);
+                continue;
+            }
+            Array.from(node.attributes).forEach(attr => node.removeAttribute(attr.name));
+        }
+        toReplace.forEach(node => {
+            const text = document.createTextNode(node.textContent || '');
+            node.parentNode && node.parentNode.replaceChild(text, node);
+        });
+        return template.innerHTML;
+    }
+
+    function sanitizeAssetUrl(rawUrl, type) {
+        try {
+            const value = String(rawUrl || '').trim();
+            if (!value) return '';
+            if (type === 'image' && value.startsWith('data:image/')) return value;
+            const parsed = new URL(value, window.location.origin);
+            if (type === 'iframe') {
+                const host = parsed.hostname.toLowerCase();
+                const isYoutube = host.includes('youtube.com') || host.includes('youtu.be') || host.includes('youtube-nocookie.com');
+                const isMaps = host.includes('google.com') || host.includes('googleusercontent.com') || host.includes('googleapis.com');
+                return (parsed.protocol === 'https:' && (isYoutube || isMaps)) ? parsed.href : '';
+            }
+            return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? parsed.href : '';
+        } catch (_) {
+            return '';
+        }
+    }
+
     // 1. Aplikasikan data CMS yang tersimpan di localStorage ke elemen DOM
     function applySavedCMSData() {
         const cmsMapping = [
@@ -59,24 +102,28 @@
                 const el = document.querySelector(item.selector);
                 if (el) {
                     if (item.type === 'text') el.innerText = savedVal;
-                    else if (item.type === 'html') el.innerHTML = savedVal;
+                    else if (item.type === 'html') el.innerHTML = sanitizeBasicHtml(savedVal);
                     else if (item.type === 'image' || item.type === 'iframe') {
                         if (item.key === 'cms_map_custom_image') {
                             const imgCustom = document.getElementById('mapCustomImage');
-                            if (imgCustom) imgCustom.src = savedVal;
+                            const safeMapUrl = sanitizeAssetUrl(savedVal, 'image');
+                            if (imgCustom) imgCustom.src = safeMapUrl;
                             
                             const ph = document.getElementById('mapImgPlaceholder');
                             if (ph) ph.style.display = 'none';
                         } else if (item.key === 'cms_peta_sumber_air') {
                             const imgWater = document.getElementById('petaSumberAirImg');
-                            if (imgWater) imgWater.src = savedVal;
+                            const safeWaterUrl = sanitizeAssetUrl(savedVal, 'image');
+                            if (imgWater) imgWater.src = safeWaterUrl;
                         } else if (item.type === 'iframe') {
                             const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
-                            if (iframe) iframe.src = savedVal;
+                            const safeFrameUrl = sanitizeAssetUrl(savedVal, 'iframe');
+                            if (iframe && safeFrameUrl) iframe.src = safeFrameUrl;
                         } else {
                             const targetImg = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
-                            if (targetImg) targetImg.src = savedVal;
-                            else el.src = savedVal;
+                            const safeImageUrl = sanitizeAssetUrl(savedVal, 'image');
+                            if (targetImg) targetImg.src = safeImageUrl;
+                            else el.src = safeImageUrl;
                         }
                     }
                     else if (item.type === 'number') {
@@ -96,7 +143,7 @@
 
     // 2. Deteksi parameter mode=admin di URL
     const urlParams = new URLSearchParams(window.location.search);
-    const isAdminMode = urlParams.get('mode') === 'admin';
+    const isAdminMode = urlParams.get('mode') === 'admin' && hasActiveAdminSession();
 
     if (isAdminMode) {
         console.log('Admin CMS Mode Activated');

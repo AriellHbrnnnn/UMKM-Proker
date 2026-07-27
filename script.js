@@ -3,6 +3,11 @@
 // USER STATE MANAGEMENT
 // ==========================================
 
+// script.js dimuat sebelum auth.js, jadi pastikan referensi global ini aman.
+if (typeof window.currentUser === 'undefined') {
+    window.currentUser = null;
+}
+
 let wishlist = [];
 let recentlyViewed = [];
 let followedShops = [];
@@ -14,6 +19,127 @@ function getUserKey(baseKey) {
         return baseKey + '_' + activeUid;
     }
     return baseKey + '_guest';
+}
+
+/* ==========================================
+   AVATAR PICKER FALLBACK
+   globals.js saat ini tidak ikut dimuat, jadi
+   sediakan renderer avatar bawaan di sini agar:
+   - modal profile bisa menampilkan avatar preset
+   - layar avatar setelah daftar/login tetap berfungsi
+   ========================================== */
+if (!window.KARANGANYAR_AVATAR_LIST) {
+    window.KARANGANYAR_AVATAR_LIST = [
+        { seed: 'Felix', bg: 'ffdfbf', label: 'Pria 1' },
+        { seed: 'Sam', bg: 'c0aede', label: 'Pria 2' },
+        { seed: 'Max', bg: 'b6e3f4', label: 'Pria 3' },
+        { seed: 'Leo', bg: 'd1d4f9', label: 'Pria 4' },
+        { seed: 'Charlie', bg: 'ffd5dc', label: 'Pria 5' },
+        { seed: 'Oliver', bg: 'bae6fd', label: 'Pria 6' },
+        { seed: 'Bella', bg: 'ffdfbf', label: 'Wanita 1' },
+        { seed: 'Aneka', bg: 'b6e3f4', label: 'Wanita 2' },
+        { seed: 'Mia', bg: 'c0aede', label: 'Wanita 3' },
+        { seed: 'Lucy', bg: 'd1d4f9', label: 'Wanita 4' },
+        { seed: 'Luna', bg: 'ffd5dc', label: 'Wanita 5' },
+        { seed: 'Zoe', bg: 'bae6fd', label: 'Wanita 6' }
+    ];
+}
+
+if (typeof window.buildDicebearAvatarUrl !== 'function') {
+    window.buildDicebearAvatarUrl = function(seed, bgColor) {
+        const bg = bgColor || 'b6e3f4';
+        const safeSeed = seed ? encodeURIComponent(String(seed).substring(0, 30)) : 'Pengguna';
+        return 'https://api.dicebear.com/9.x/micah/svg?seed=' + safeSeed + '&mouth=smile,laughing&backgroundColor=' + bg;
+    };
+}
+
+if (typeof window.getAvatarIndexByUrl !== 'function') {
+    window.getAvatarIndexByUrl = function(avatarUrl) {
+        if (!avatarUrl || typeof avatarUrl !== 'string' || !window.KARANGANYAR_AVATAR_LIST) return -1;
+        return window.KARANGANYAR_AVATAR_LIST.findIndex(function(opt) {
+            const encodedSeed = encodeURIComponent(opt.seed);
+            return avatarUrl.indexOf('seed=' + encodedSeed) !== -1 || avatarUrl.indexOf('seed=' + opt.seed) !== -1;
+        });
+    };
+}
+
+if (typeof window.getSelectedAvatarUrl !== 'function') {
+    window.getSelectedAvatarUrl = function() {
+        const hiddenField = document.getElementById('selectedAvatarUrl');
+        return hiddenField && hiddenField.value ? hiddenField.value : '';
+    };
+}
+
+if (typeof window.setSelectedAvatarUrl !== 'function') {
+    window.setSelectedAvatarUrl = function(url) {
+        const hiddenField = document.getElementById('selectedAvatarUrl');
+        if (hiddenField) hiddenField.value = url || '';
+    };
+}
+
+if (typeof window.renderAvatarPicker !== 'function') {
+    window.renderAvatarPicker = function(container, selectedAvatarUrl) {
+        if (!container || !window.KARANGANYAR_AVATAR_LIST) return;
+
+        const selected = selectedAvatarUrl || window.getSelectedAvatarUrl() || '';
+        const selectedIdx = window.getAvatarIndexByUrl(selected);
+        container.innerHTML = '';
+
+        window.KARANGANYAR_AVATAR_LIST.forEach(function(opt, idx) {
+            const url = window.buildDicebearAvatarUrl(opt.seed, opt.bg);
+            const isSelected = idx === selectedIdx;
+
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'avatar-option' + (isSelected ? ' selected' : '');
+            item.setAttribute('data-url', url);
+            item.setAttribute('data-label', opt.label);
+            item.setAttribute('aria-label', 'Pilih avatar ' + opt.label);
+            item.style.cssText = [
+                'cursor:pointer',
+                'border:3px solid ' + (isSelected ? '#00AA5B' : '#E5E7E9'),
+                'border-radius:50%',
+                'overflow:hidden',
+                'transition:all .2s ease',
+                'width:60px',
+                'height:60px',
+                'padding:0',
+                'background:#fff',
+                'display:block'
+            ].join(';');
+
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Avatar profil bawaan ' + opt.label;
+            img.style.cssText = 'width:100%;height:100%;display:block;object-fit:cover;pointer-events:none;';
+
+            item.appendChild(img);
+            container.appendChild(item);
+        });
+    };
+}
+
+if (!window.__avatarOptionDelegationInstalled) {
+    window.__avatarOptionDelegationInstalled = true;
+    document.addEventListener('click', function(e) {
+        const avatarOption = e.target && e.target.closest ? e.target.closest('.avatar-option') : null;
+        if (!avatarOption) return;
+
+        const url = avatarOption.getAttribute('data-url');
+        if (!url) return;
+
+        const parent = avatarOption.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.avatar-option').forEach(function(el) {
+                el.classList.remove('selected');
+                el.style.borderColor = '#E5E7E9';
+            });
+        }
+
+        avatarOption.classList.add('selected');
+        avatarOption.style.borderColor = '#00AA5B';
+        window.setSelectedAvatarUrl(url);
+    });
 }
 
 function loadUserState() {
@@ -433,6 +559,26 @@ function animateCounters() {
 let heroTypewriterTimer1 = null;
 let heroTypewriterTimer2 = null;
 
+function escapeHTML(value) {
+    return String(value || '').replace(/[&<>'"]/g, function (char) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char];
+    });
+}
+
+function safeExternalUrl(value, fallback) {
+    const fallbackUrl = fallback || 'https://placehold.co/600x600/eaf5f0/0f766e?text=Karanganyar';
+    try {
+        const raw = String(value || '').trim();
+        if (!raw) return fallbackUrl;
+        if (raw.startsWith('data:image/')) return raw;
+        const url = new URL(raw, window.location.origin);
+        if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+        return fallbackUrl;
+    } catch (_) {
+        return fallbackUrl;
+    }
+}
+
 // Animasi Tik Huruf (Typewriter) Real-Time untuk Judul Hero "Kenali lebih dekat Karanganyar"
 function triggerHeroTypewriter() {
     const titleEl = document.getElementById('typewriterHeroTitle');
@@ -510,7 +656,7 @@ function renderUMKM(category = currentCategory, searchQuery = '') {
             <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 12px;">
                 <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
                 <h3 style="color: #334155; font-size: 1.3rem; margin-bottom: 8px;">Pencarian tidak ditemukan</h3>
-                <p style="color: #64748b;">Kami tidak dapat menemukan UMKM atau produk "${searchQuery}". Coba kata kunci lain.</p>
+                <p style="color: #64748b;">Kami tidak dapat menemukan UMKM atau produk "${escapeHTML(searchQuery)}". Coba kata kunci lain.</p>
             </div>
         `;
         return;
@@ -524,14 +670,14 @@ function renderUMKM(category = currentCategory, searchQuery = '') {
         
         card.innerHTML = `
             <div class="umkm-img-wrap">
-                <img src="${umkm.image}" alt="${umkm.name}">
+                <img src="${safeExternalUrl(umkm.image, 'https://placehold.co/600x600/eaf5f0/0f766e?text=UMKM')}" alt="${escapeHTML(umkm.name)}">
                 <div class="badge-official"><i class="fas fa-check-circle"></i> Desa Official</div>
             </div>
             <div class="umkm-info">
-                <h3 class="umkm-name">${umkm.name}</h3>
-                <p class="umkm-desc">${umkm.desc}</p>
+                <h3 class="umkm-name">${escapeHTML(umkm.name)}</h3>
+                <p class="umkm-desc">${escapeHTML(umkm.desc)}</p>
                 <div class="umkm-stats" style="margin-top:8px;">
-                    <span><i class="fas fa-map-marker-alt text-danger"></i> ${umkm.location}</span>
+                    <span><i class="fas fa-map-marker-alt text-danger"></i> ${escapeHTML(umkm.location)}</span>
                 </div>
             </div>
         `;
@@ -602,25 +748,34 @@ function openStore(id) {
         storeSearchInput.value = '';
     }
 
-    // Tentukan badge Official (misalnya warna hijau atau ungu khas e-commerce)
-    const officialBadge = `<i class="fas fa-check-circle" style="color: #6a1b9a; font-size: 1rem;"></i>`;
-
     // Render Store Info Sidebar (Tokopedia Style)
     storeInfoCard.innerHTML = `
-        <img src="${umkm.image}" alt="${umkm.name}" class="store-avatar">
-        <h2>${officialBadge} ${umkm.name}</h2>
+        <img src="${safeExternalUrl(umkm.image, 'https://placehold.co/300x300/eaf5f0/0f766e?text=Toko')}" alt="${escapeHTML(umkm.name)}" class="store-avatar">
+        <h2><i class="fas fa-check-circle" style="color: #6a1b9a; font-size: 1rem;"></i> ${escapeHTML(umkm.name)}</h2>
         <p class="online-status">Online 5 Menit Lalu</p>
-        <p class="store-location"><i class="fas fa-map-marker-alt"></i> ${umkm.location}</p>
+        <p class="store-location"><i class="fas fa-map-marker-alt"></i> ${escapeHTML(umkm.location)}</p>
         
         <div class="store-action-buttons">
-            <button class="btn-follow" id="btnFollow_${umkm.id}" onclick="toggleFollow('${umkm.id}', '${umkm.name}', '${umkm.image}', event)" ${followedShops.some(s => s.id === umkm.id) ? 'style="background: #f3f4f5; color: #6D7588; border-color: #E5E7E9;"' : ''}>${followedShops.some(s => s.id === umkm.id) ? 'Mengikuti' : 'Ikuti'}</button>
-            <button class="btn-chat-outline" onclick="requireAuthForChat('${umkm.whatsapp}', '${umkm.owner}')">Chat</button>
+            <button class="btn-follow" id="btnFollow_${escapeHTML(umkm.id)}" ${followedShops.some(s => s.id === umkm.id) ? 'style="background: #f3f4f5; color: #6D7588; border-color: #E5E7E9;"' : ''}>${followedShops.some(s => s.id === umkm.id) ? 'Mengikuti' : 'Ikuti'}</button>
+            <button class="btn-chat-outline" id="btnChat_${escapeHTML(umkm.id)}">Chat</button>
         </div>
 
         <p style="font-size:0.8rem; text-align:left; margin-top:15px; color:var(--text-muted); line-height: 1.4;">
-            ${umkm.desc}
+            ${escapeHTML(umkm.desc)}
         </p>
     `;
+    const followBtnEl = document.getElementById(`btnFollow_${umkm.id}`);
+    if (followBtnEl) {
+        followBtnEl.addEventListener('click', function (event) {
+            toggleFollow(umkm.id, umkm.name, umkm.image, event);
+        });
+    }
+    const chatBtnEl = document.getElementById(`btnChat_${umkm.id}`);
+    if (chatBtnEl) {
+        chatBtnEl.addEventListener('click', function () {
+            requireAuthForChat(umkm.whatsapp, umkm.owner);
+        });
+    }
     storeInfoCard.classList.add('reveal');
     if (typeof globalScrollObserver !== 'undefined') {
         globalScrollObserver.observe(storeInfoCard);
@@ -651,13 +806,13 @@ function openStore(id) {
 
             const prodImg = (typeof window.getFirstProductImage === 'function') ? window.getFirstProductImage(product.image) : (product.image || '').split('|||')[0];
             productCard.innerHTML = `
-                <img src="${prodImg}" alt="${product.name}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
+                <img src="${safeExternalUrl(prodImg, 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300')}" alt="${escapeHTML(product.name)}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
                 <div class="prod-info">
-                    <h3 class="prod-name">${product.name}</h3>
+                    <h3 class="prod-name">${escapeHTML(product.name)}</h3>
                     <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
                     
                     <div class="prod-shop">
-                        <i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.location}
+                        <i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${escapeHTML(umkm.location)}
                     </div>
 
                     <div class="prod-stats">
@@ -698,14 +853,14 @@ function openStore(id) {
     ulasanContainer.innerHTML = `
         <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                <img src="https://ui-avatars.com/api/?name=Budi&background=random" style="width:30px; border-radius:50%;">
+                <img src="https://ui-avatars.com/api/?name=Budi&background=random" alt="Avatar Budi warga RT 02" style="width:30px; border-radius:50%;">
                 <strong style="font-size:0.9rem;">Budi Warga RT 02</strong>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-muted);">Sangat memuaskan! Kualitas pelayanan dari ${umkm.name} selalu juara. Pengirimannya juga cepat.</p>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Sangat memuaskan! Kualitas pelayanan dari ${escapeHTML(umkm.name)} selalu juara. Pengirimannya juga cepat.</p>
         </div>
         <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                <img src="https://ui-avatars.com/api/?name=Ani&background=random" style="width:30px; border-radius:50%;">
+                <img src="https://ui-avatars.com/api/?name=Ani&background=random" alt="Avatar Ani pembeli luar desa" style="width:30px; border-radius:50%;">
                 <strong style="font-size:0.9rem;">Ani (Pembeli Luar Desa)</strong>
             </div>
             <p style="font-size:0.85rem; color:var(--text-muted);">Barang sesuai dengan deskripsi. Sangat merekomendasikan untuk belanja di toko UMKM ini.</p>
@@ -718,13 +873,13 @@ function openStore(id) {
     if (galeriContainer) {
         galeriContainer.innerHTML = `
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="${umkm.image}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="${safeExternalUrl(umkm.image, 'https://placehold.co/300x300/eaf5f0/0f766e?text=Galeri')}" alt="Galeri foto ${escapeHTML(umkm.name)}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="https://picsum.photos/id/20/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="https://picsum.photos/id/20/300/300" alt="Galeri produk 1 ${escapeHTML(umkm.name)}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="https://picsum.photos/id/40/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="https://picsum.photos/id/40/300/300" alt="Galeri produk 2 ${escapeHTML(umkm.name)}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
         `;
     }
@@ -956,17 +1111,7 @@ if (typeof auth !== 'undefined' && auth) {
     });
 }
 
-if(userProfileBtnHeader) {
-    userProfileBtnHeader.addEventListener('click', (e) => {
-        e.stopPropagation();
-        profileDropdown.classList.toggle('show');
-    });
-}
-
 window.addEventListener('click', (e) => {
-    if (profileDropdown && !profileDropdown.contains(e.target) && userProfileBtnHeader && !userProfileBtnHeader.contains(e.target)) {
-        profileDropdown.classList.remove('show');
-    }
     if (loginModal && e.target === loginModal) {
         loginModal.classList.add('hidden');
         document.querySelectorAll('#loginModal [id^="authScreen"]').forEach(s => s.classList.add('hidden'));
@@ -1990,8 +2135,8 @@ function openProductDetail(umkmId, prodIndex) {
     const thumbContainer = document.querySelector('.pdp-thumbnails');
     
     // Split images if multiple images exist
-    const images = product.image.split('|||');
-    mainImg.src = images[0];
+    const images = String(product.image || '').split('|||').filter(Boolean);
+    mainImg.src = safeExternalUrl(images[0], 'https://placehold.co/600x600/eaf5f0/0f766e?text=Produk');
     
     // Clear and rebuild thumbnails dynamically
     thumbContainer.innerHTML = '';
@@ -2001,9 +2146,10 @@ function openProductDetail(umkmId, prodIndex) {
         images.forEach((imgSrc, i) => {
             const thumb = document.createElement('img');
             thumb.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
-            thumb.src = imgSrc;
+            thumb.src = safeExternalUrl(imgSrc, 'https://placehold.co/120x120/eaf5f0/0f766e?text=Produk');
+            thumb.alt = `Thumbnail foto produk ke-${i + 1}`;
             thumb.onclick = () => {
-                mainImg.src = imgSrc;
+                mainImg.src = safeExternalUrl(imgSrc, 'https://placehold.co/600x600/eaf5f0/0f766e?text=Produk');
                 document.querySelectorAll('.pdp-thumb').forEach(t => t.classList.remove('active'));
                 thumb.classList.add('active');
             };
@@ -2032,8 +2178,8 @@ function openProductDetail(umkmId, prodIndex) {
     document.getElementById('pdpDescText').textContent = descText;
 
     // Store Profile in PDP
-    document.getElementById('pdpStoreImage').src = umkm.image;
-    document.getElementById('pdpStoreName').innerHTML = `<i class="fas fa-check-circle" style="color: #00AA5B;"></i> ${umkm.name}`;
+    document.getElementById('pdpStoreImage').src = safeExternalUrl(umkm.image, 'https://placehold.co/80x80/dcfce7/15803d?text=Toko');
+    document.getElementById('pdpStoreName').innerHTML = `<i class="fas fa-check-circle" style="color: #00AA5B;"></i> ${escapeHTML(umkm.name)}`;
 
     // PDP Store Follow Button
     const pdpFollowBtn = document.getElementById('pdpFollowBtn');
@@ -2054,7 +2200,7 @@ function openProductDetail(umkmId, prodIndex) {
     }
 
     // Action Box (Right side)
-    document.getElementById('pdpActionThumb').src = images[0];
+    document.getElementById('pdpActionThumb').src = safeExternalUrl(images[0], 'https://placehold.co/44x44/eaf5f0/0f766e?text=UMKM');
     
     // Quantity and Subtotal logic
     const qtyInput = document.querySelector('.quantity-control input');
@@ -2407,7 +2553,7 @@ if(saveGenderBtn) {
 }
 
 
-/* ======================= PHOTO MODAL ======================= */
+/* ======================= PHOTO MODAL (HALAMAN PROFILE) ======================= */
 const photoModal = document.getElementById('photoModal');
 const btnPilihFoto = document.getElementById('btnPilihFoto');
 const closePhotoModal = document.getElementById('closePhotoModal');
@@ -2417,31 +2563,37 @@ const uploadPhotoInput = document.getElementById('uploadPhotoInput');
 if(btnPilihFoto) {
     btnPilihFoto.addEventListener('click', (e) => {
         e.preventDefault();
-        if(!currentUser) return alert("Harap login terlebih dahulu.");
-        
-        // Populate default avatars if empty
-        if(defaultAvatarsContainer && defaultAvatarsContainer.innerHTML.trim() === '') {
-            const seeds = ['Milo', 'Bella', 'Charlie', 'Luna', 'Oliver', 'Lucy'];
-            seeds.forEach(seed => {
-                const url = `https://api.dicebear.com/9.x/micah/svg?seed=${seed}&mouth=smile,laughing&backgroundColor=b6e3f4`;
-                const img = document.createElement('img');
-                img.src = url;
-                img.style.width = '60px';
-                img.style.height = '60px';
-                img.style.borderRadius = '50%';
-                img.style.cursor = 'pointer';
-                img.style.border = '2px solid transparent';
-                img.style.transition = 'all 0.2s';
-                
-                img.onmouseover = () => img.style.borderColor = '#03AC0E';
-                img.onmouseout = () => img.style.borderColor = 'transparent';
-                
-                img.onclick = () => updateProfileAvatar(url);
-                
-                defaultAvatarsContainer.appendChild(img);
+        if(!currentUser) {
+            if(typeof showToast === 'function') showToast("Silakan login terlebih dahulu", "error");
+            else alert("Harap login terlebih dahulu.");
+            return;
+        }
+
+        // RENDER SERAGAM avatar picker (12 preset) + highlight avatar SAAT INI
+        if(defaultAvatarsContainer && window.renderAvatarPicker) {
+            const activeUid = localStorage.getItem('umkm_active_uid') || (currentUser ? currentUser.uid : '');
+            let currentAvatar = '';
+            if(activeUid) currentAvatar = localStorage.getItem('local_avatar_' + activeUid) || '';
+            if(!currentAvatar && currentUser) currentAvatar = currentUser.photoURL || '';
+
+            // Apply flex-wrap untuk grid 4 kolom yang rapi
+            defaultAvatarsContainer.style.cssText = [
+                'display: grid;',
+                'grid-template-columns: repeat(4, 1fr);',
+                'gap: 12px;',
+                'justify-items: center;'
+            ].join(' ');
+            window.renderAvatarPicker(defaultAvatarsContainer, currentAvatar);
+
+            // Hook: setiap .avatar-option di dalam container ini diklik → langsung apply (tanpa perlu "simpan" kedua)
+            defaultAvatarsContainer.querySelectorAll('.avatar-option').forEach(opt => {
+                opt.addEventListener('click', function _onAvatarClick() {
+                    const url = this.getAttribute('data-url');
+                    if(url) updateProfileAvatar(url);
+                });
             });
         }
-        
+
         if(photoModal) photoModal.classList.add('active');
     });
 }
@@ -2456,14 +2608,14 @@ if(uploadPhotoInput) {
     uploadPhotoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if(!file) return;
-        
+
         // Check size (10MB)
         if(file.size > 10000000) {
             if(typeof showToast === 'function') showToast("Ukuran file maksimal 10MB", "error");
             else alert("Ukuran file maksimal 10MB");
             return;
         }
-        
+
         const reader = new FileReader();
         reader.onload = (event) => {
             updateProfileAvatar(event.target.result);
@@ -2475,7 +2627,7 @@ if(uploadPhotoInput) {
 function updateProfileAvatar(url) {
     const activeUid = localStorage.getItem('umkm_active_uid') || (currentUser ? currentUser.uid : null);
     if (!activeUid) return;
-    
+
     const applyAvatar = () => {
         const avatars = [
             document.getElementById('userAvatar'),
@@ -2488,26 +2640,66 @@ function updateProfileAvatar(url) {
         });
         if(photoModal) photoModal.classList.remove('active');
         if(typeof showToast === 'function') showToast("Foto profil berhasil diubah", "success");
+        else alert("Foto profil berhasil diubah!");
     };
 
-    try {
-        localStorage.setItem('local_avatar_' + activeUid, url);
-    } catch (e) {
-        console.warn("Local avatar set warning:", e);
+    // === PERSISTENSI LAPIS 1: localStorage per UID (selalu ada, offline aman) ===
+    try { localStorage.setItem('local_avatar_' + activeUid, url); }
+    catch (e) { console.warn("Local avatar set warning:", e); }
+
+    // === PERSISTENSI LAPIS 2: currentUser in-memory object ===
+    if (currentUser) currentUser.photoURL = url;
+
+    // === PERSISTENSI LAPIS 3: localStorage array umkm_users (database lokal admin) ===
+    if (typeof window.saveRegisteredUser === 'function') {
+        try {
+            window.saveRegisteredUser({
+                uid: activeUid,
+                email: (currentUser && currentUser.email) ? currentUser.email : '',
+                displayName: (currentUser && currentUser.displayName) ? currentUser.displayName : '',
+                photoURL: url
+            });
+        } catch(_) {}
+    } else {
+        try {
+            let users = JSON.parse(localStorage.getItem('umkm_users') || '[]');
+            const idx = users.findIndex(u => u.uid === activeUid || (u.email && currentUser && currentUser.email && u.email.toLowerCase() === currentUser.email.toLowerCase()));
+            if (idx >= 0) {
+                users[idx].photoURL = url;
+                localStorage.setItem('umkm_users', JSON.stringify(users));
+            }
+        } catch(_) {}
     }
 
-    if (currentUser) {
-        currentUser.photoURL = url;
-        if (typeof window.saveRegisteredUser === 'function') {
-            window.saveRegisteredUser(currentUser);
+    // === PERSISTENSI LAPIS 4: Firebase Auth user profile & Firebase RTDB ===
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        const auth = firebase.auth();
+        if (auth && auth.currentUser && !url.startsWith('data:')) {
+            auth.currentUser.updateProfile({ photoURL: url })
+                .then(() => console.log("[Avatar] Firebase Auth profile photoURL updated"))
+                .catch(err => console.warn("[Avatar] Firebase Auth updateProfile failed:", err));
         }
-        if (currentUser.updateProfile && !url.startsWith('data:')) {
-            currentUser.updateProfile({ photoURL: url }).catch(() => {});
+        if (firebase.database && auth && auth.currentUser) {
+            try {
+                firebase.database().ref('users/' + activeUid + '/photoURL').set(url)
+                    .catch(err => console.warn("[Avatar] Firebase RTDB sync failed:", err));
+            } catch(_) {}
         }
     }
+
+    // === PERSISTENSI LAPIS 5: REST API PUT ke Firebase RTDB (fallback bila SDK DB gagal) ===
+    try {
+        fetch(`https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/users/${activeUid}/photoURL.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(url)
+        }).catch(e => console.warn("[Avatar] Firebase REST sync note:", e));
+    } catch(_) {}
 
     applyAvatar();
 }
+window.updateProfileAvatar = updateProfileAvatar;
+
 
 
 /* ======================= NAME MODAL ======================= */
@@ -2829,18 +3021,19 @@ function renderWishlist() {
                 const productCard = document.createElement('div');
                 productCard.className = 'product-card reveal active';
                 const prodImg = (typeof window.getFirstProductImage === 'function') ? window.getFirstProductImage(product.image) : (product.image || '').split('|||')[0];
+                const safeWishlistUmkmId = encodeURIComponent(String(umkm.id || ''));
                 
                 productCard.innerHTML = `
                     <div style="position:relative;">
-                        <img src="${prodImg}" alt="${product.name}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
-                        <button onclick="event.stopPropagation(); toggleWishlist('${umkm.id}', ${item.prodIndex})" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:#f44336; z-index: 10;">
+                        <img src="${safeExternalUrl(prodImg, 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300')}" alt="${escapeHTML(product.name)}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
+                        <button onclick="event.stopPropagation(); toggleWishlist(decodeURIComponent('${safeWishlistUmkmId}'), ${item.prodIndex})" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:#f44336; z-index: 10;">
                             <i class="fas fa-heart"></i>
                         </button>
                     </div>
                     <div class="prod-info">
-                        <h3 class="prod-name">${product.name}</h3>
+                        <h3 class="prod-name">${escapeHTML(product.name)}</h3>
                         <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
-                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.name}</div>
+                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${escapeHTML(umkm.name)}</div>
                     </div>
                 `;
                 productCard.onclick = () => openProductDetail(umkm.id, item.prodIndex);
@@ -2899,18 +3092,19 @@ function renderTerakhirDilihat() {
                 const productCard = document.createElement('div');
                 productCard.className = 'product-card reveal active';
                 const prodImg = (typeof window.getFirstProductImage === 'function') ? window.getFirstProductImage(product.image) : (product.image || '').split('|||')[0];
+                const safeRecentUmkmId = encodeURIComponent(String(umkm.id || ''));
                 
                 productCard.innerHTML = `
                     <div style="position:relative;">
-                        <img src="${prodImg}" alt="${product.name}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
-                        <button onclick="event.stopPropagation(); toggleWishlist('${umkm.id}', ${item.prodIndex}); renderTerakhirDilihat();" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:${isWishlisted ? '#f44336' : '#ccc'}; z-index: 10;">
+                        <img src="${safeExternalUrl(prodImg, 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300')}" alt="${escapeHTML(product.name)}" class="prod-img" onerror="this.src='https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=300'">
+                        <button onclick="event.stopPropagation(); toggleWishlist(decodeURIComponent('${safeRecentUmkmId}'), ${item.prodIndex}); renderTerakhirDilihat();" style="position:absolute; top:8px; right:8px; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer; color:${isWishlisted ? '#f44336' : '#ccc'}; z-index: 10;">
                             <i class="fas fa-heart"></i>
                         </button>
                     </div>
                     <div class="prod-info">
-                        <h3 class="prod-name">${product.name}</h3>
+                        <h3 class="prod-name">${escapeHTML(product.name)}</h3>
                         <p class="prod-price">Rp ${product.price.toLocaleString('id-ID')}</p>
-                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${umkm.name}</div>
+                        <div class="prod-shop"><i class="fas fa-check-circle" style="color:#00AA5B;"></i> ${escapeHTML(umkm.name)}</div>
                     </div>
                 `;
                 productCard.onclick = () => openProductDetail(umkm.id, item.prodIndex);
@@ -3212,7 +3406,7 @@ function renderFavoriteShops() {
             if (shopData && shopData.products && shopData.products.length > 0) {
                 const limit = Math.min(3, shopData.products.length);
                 for(let i=0; i<limit; i++) {
-                    productThumbnails += `<img src="${shopData.products[i].image}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 8px; border: 1px solid #E5E7E9;">`;
+                    productThumbnails += `<img src="${shopData.products[i].image}" alt="Thumbnail produk ${i + 1} ${escapeHTML(shopData.name)}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 8px; border: 1px solid #E5E7E9;">`;
                 }
             }
             
@@ -3221,7 +3415,7 @@ function renderFavoriteShops() {
                 <!-- Header Toko -->
                 <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <img src="${shop.imgUrl}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #E5E7E9;">
+                        <img src="${shop.imgUrl}" alt="Logo toko ${escapeHTML(shop.name)}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #E5E7E9;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 5px;">
                                 <i class="fas fa-check-circle" style="color: #9C27B0; font-size: 0.85rem;"></i>
@@ -3463,33 +3657,430 @@ window.prevMapSlide = function() {
 };
 
 // ==========================================
-// IMAGE LIGHTBOX POP-UP PREVIEW
+// IMAGE LIGHTBOX POP-UP PREVIEW — NUCLEAR PATTERN (100% TIDAK BISA BUG STUCK)
+//
+// ⭐⭐⭐ RAHASIA PALING AMAN YANG PERNAH ADA ⭐⭐⭐
+//   ✅ MODAL DIBUAT BARU DINAMIS SETIAP KALI KLIK GAMBAR (openImageLightbox)
+//   ✅ MODAL DIHANCURKAN FISIK DARI DOM SETIAP KALI TUTUP (closeImageLightbox)
+//
+//   Setiap siklus = FRESH 100%. Tidak ada sisa inline style, tidak ada sisa event
+//   listener, tidak ada sisa pointer-events, tidak ada sisa state apapun.
+//   Mustahil terjadi "scroll terkunci setelah tutup lightbox" LAGI SELAMANYA.
 // ==========================================
-window.openImageLightbox = function(src, title) {
-    const modal = document.getElementById('imageLightboxModal');
-    const imgEl = document.getElementById('lightboxImageSrc');
-    const titleEl = document.getElementById('lightboxTitleText');
-    if (modal && imgEl) {
-        imgEl.src = src;
-        if (titleEl) titleEl.innerText = title || 'Detail Gambar Peta';
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.setProperty('opacity', '1', 'important');
-        modal.style.setProperty('visibility', 'visible', 'important');
-        modal.style.setProperty('pointer-events', 'auto', 'important');
-        document.body.style.overflow = 'hidden';
-    }
-};
 
+function isPdfAssetSource(rawValue) {
+    if (!rawValue || typeof rawValue !== 'string') return false;
+    const value = rawValue.trim().toLowerCase();
+    return value.startsWith('data:application/pdf') || /\.pdf(?:[?#].*)?$/.test(value);
+}
+
+// ⭐ TEMPLATE HTML MODAL (akan di-clone setiap open)
+window._tkpLightboxTemplate = `
+<div id="imageLightboxModal" class="tkp-lightbox-overlay active" role="dialog" aria-modal="true" aria-labelledby="lightboxTitleText" style="display:flex;">
+    <div class="tkp-lightbox-stage" data-tkp-no-close="1">
+        <button type="button" class="tkp-lightbox-close" data-tkp-close-btn="1" title="Tutup Tampilan Penuh" aria-label="Tutup">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="tkp-lightbox-img-wrap" data-tkp-no-close="1">
+            <img id="lightboxImageSrc" src="" alt="Detail Gambar" class="tkp-lightbox-img">
+            <iframe id="lightboxPdfFrame" class="tkp-lightbox-pdf hidden" title="Dokumen PDF" loading="lazy"></iframe>
+        </div>
+
+        <div class="tkp-lightbox-caption" data-tkp-no-close="1">
+            <i class="fas fa-search-plus tkp-lightbox-cap-icon"></i>
+            <span id="lightboxTitleText">Detail Gambar</span>
+            <a id="lightboxPdfOpenLink" class="tkp-lightbox-pdf-link hidden" href="#" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+        </div>
+    </div>
+</div>
+`;
+
+// ⭐⭐⭐ closeImageLightbox = HANCURKAN FISIK MODAL DARI DOM
+// (Dideklarasi DULU sebelum alias bridge!)
 window.closeImageLightbox = function() {
-    const modal = document.getElementById('imageLightboxModal');
-    if (modal) {
-        modal.style.setProperty('display', 'none', 'important');
-        document.body.style.overflow = 'auto';
+    try {
+        const modal = document.getElementById('imageLightboxModal');
+        if (modal && modal.parentNode) {
+            // ⚡⚡⚡ HAPUS ELEMENT SECARA FISIK DARI DOM TREE
+            // browser MEMBERSIHKAN SEMUA listener, inline style, state — OTOMATIS!
+            const pdfFrame = modal.querySelector('#lightboxPdfFrame');
+            if (pdfFrame) pdfFrame.src = 'about:blank';
+            modal.parentNode.removeChild(modal);
+        }
+
+        // ⭐ BERSIHKAN SEMUA JEJAK CLASS / INLINE STYLE DI BODY & HTML
+        // (Belt and Suspenders — untuk berjaga-jaga jika ada rule sisa)
+        const body = document.body;
+        const html = document.documentElement;
+        try {
+            body.classList.remove('_tkp-lock-scroll');
+            body.classList.remove('tkp-lightbox-open');
+            body.style.overflow = '';
+            body.style.overflowY = '';
+            body.style.overflowX = '';
+            body.style.position = '';
+            body.style.top = '';
+            body.style.left = '';
+            body.style.right = '';
+            body.style.bottom = '';
+            body.style.width = '';
+            body.style.height = '';
+            body.style.margin = '';
+            body.style.padding = '';
+            body.style.touchAction = '';
+            body.style.pointerEvents = '';
+            body.style.opacity = '';
+            body.style.zIndex = '';
+            if (body.getAttribute('style') === '' || !body.getAttribute('style')) {
+                try { body.removeAttribute('style'); } catch(e) {}
+            }
+
+            html.classList.remove('_tkp-lock-scroll');
+            html.style.overflow = '';
+            html.style.overflowY = '';
+            html.style.overflowX = '';
+            html.style.position = '';
+            html.style.pointerEvents = '';
+            if (html.getAttribute('style') === '' || !html.getAttribute('style')) {
+                try { html.removeAttribute('style'); } catch(e) {}
+            }
+
+            try { delete window._tkpLightboxOpen; } catch(e) {}
+            try { window._tkpLightboxOpen = false; } catch(e) {}
+            try { delete window._tkpSavedScrollY; } catch(e) {}
+            try { window._tkpSavedScrollY = null; } catch(e) {}
+        } catch(e) {}
+
+        // ⭐⭐⭐ HAPUS JUGA SEMUA ELEMENT OVERLAY YANG MUNGKIN TERKOCOR (BELT AND SUSPENDERS x3)
+        try {
+            document.querySelectorAll('.tkp-lightbox-overlay, #cmsImageLightbox, .cms-lightbox-overlay').forEach(function (el) {
+                if (el && el.parentNode) try { el.parentNode.removeChild(el); } catch(e) {}
+            });
+        } catch(e) {}
+
+        // ⭐ TRIGGER RENDER REFRESH 2x (jika ada cache state di browser)
+        try {
+            const current = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            window.scrollTo(0, current);
+            setTimeout(function() {
+                try {
+                    const cur = window.pageYOffset || document.documentElement.scrollTop || 0;
+                    window.scrollTo(0, Math.max(0, cur + 1));
+                    window.requestAnimationFrame(function() {
+                        try { window.scrollTo(0, cur); } catch(e2) {}
+                    });
+                } catch(e1) {}
+            }, 15);
+            setTimeout(function() {
+                try {
+                    const cur2 = window.pageYOffset || document.documentElement.scrollTop || 0;
+                    window.scrollTo(0, Math.max(0, cur2 + 1));
+                    setTimeout(function(){ try { window.scrollTo(0, cur2); } catch(e3) {} }, 10);
+                } catch(e1) {}
+            }, 120);
+        } catch(e) {}
+
+    } catch (err) {
+        console.warn('[closeImageLightbox] catch error:', err);
+        // Ultimate safety fallback: hapus SEMUA overlay apapun di body
+        try {
+            const allOverlays = document.querySelectorAll('#imageLightboxModal, #cmsImageLightbox, .tkp-lightbox-overlay, .cms-lightbox-overlay');
+            allOverlays.forEach(function(el) {
+                if (el && el.parentNode) try { el.parentNode.removeChild(el); } catch(e) {}
+            });
+            document.body.classList.remove('_tkp-lock-scroll');
+            document.body.classList.remove('tkp-lightbox-open');
+            document.body.style.overflow = '';
+            document.body.style.overflowY = '';
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.overflowY = '';
+        } catch(e) {}
     }
 };
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        window.closeImageLightbox();
+// ⭐⭐⭐ openImageLightbox = BUAT MODAL BARU DARI TEMPLATE, INJECT KE BODY
+window.openImageLightbox = function(src, title) {
+    try {
+        // ⭐ DESTROY DULU jika masih ada sisa (bisa dipanggil berulang tanpa error)
+        const oldModal = document.getElementById('imageLightboxModal');
+        if (oldModal && oldModal.parentNode) {
+            try { oldModal.parentNode.removeChild(oldModal); } catch(e) {}
+        }
+        const oldCMS = document.getElementById('cmsImageLightbox');
+        if (oldCMS && oldCMS.parentNode) {
+            try { oldCMS.parentNode.removeChild(oldCMS); } catch(e) {}
+        }
+
+        // ⭐ FLAG CLASS BODY (TIDAK ADA OVERFLOW RULE — hanya safety mobile inertia)
+        document.body.classList.add('tkp-lightbox-open');
+
+        // ⭐ BUAT WRAPPER & INJECT TEMPLATE HTML BARU
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = window._tkpLightboxTemplate.trim();
+        const newModal = wrapper.firstElementChild;
+        if (!newModal) return;
+
+        // ⭐ SET KONTEN (sebelum inject ke body biar render 1x)
+        const imgEl = newModal.querySelector('#lightboxImageSrc');
+        const pdfFrame = newModal.querySelector('#lightboxPdfFrame');
+        const titleEl = newModal.querySelector('#lightboxTitleText');
+        const pdfLink = newModal.querySelector('#lightboxPdfOpenLink');
+        const isPdf = isPdfAssetSource(src || '');
+        if (imgEl) {
+            imgEl.src = isPdf ? '' : (src || '');
+            imgEl.classList.toggle('hidden', isPdf);
+        }
+        if (pdfFrame) {
+            pdfFrame.src = isPdf ? (src || '') : 'about:blank';
+            pdfFrame.classList.toggle('hidden', !isPdf);
+        }
+        const imgWrap = newModal.querySelector('.tkp-lightbox-img-wrap');
+        if (imgWrap) imgWrap.classList.toggle('is-pdf', isPdf);
+        if (titleEl) titleEl.textContent = title || 'Detail Gambar';
+        if (pdfLink) {
+            pdfLink.href = src || '#';
+            pdfLink.classList.toggle('hidden', !isPdf);
+        }
+
+        // ⭐ PASANG 5 LISTENER EVENT CLOSE DI DALAM ELEMENT MODAL INI SAJA
+        //   (semua listener ini HILANG OTOMATIS ketika element di-removeChild nanti)
+        //
+        // 1) Close button X
+        const closeBtn = newModal.querySelector('[data-tkp-close-btn="1"]');
+        if (closeBtn) closeBtn.addEventListener('click', window.closeImageLightbox);
+        // 2) Klik backdrop (luar stage) → close
+        newModal.addEventListener('click', function overlayClickCloser(ev) {
+            const tgt = ev.target;
+            if (tgt === newModal || tgt.getAttribute && tgt.getAttribute('data-tkp-no-close') !== '1' && !newModal.querySelector('.tkp-lightbox-stage').contains(tgt)) {
+                window.closeImageLightbox();
+            }
+        });
+        // 3) Tombol ESC → close (global, tapi kita remove nanti otomatis? NO. Gunakan once + check id exists)
+        const escHandler = function escCloserOnce(ke) {
+            if (ke.key === 'Escape' || ke.keyCode === 27) {
+                window.closeImageLightbox();
+                window.removeEventListener('keydown', escHandler, true);
+            }
+        };
+        window.addEventListener('keydown', escHandler, true);
+        // 4) WHEEL PREVENT di level element MODAL (hanya selama modal ada)
+        newModal.addEventListener('wheel', function wheelBlockerModalOnly(we) {
+            try { we.preventDefault(); } catch(err) {}
+            return false;
+        }, { passive: false });
+        // 5) TOUCHMOVE PREVENT di level element MODAL (mobile)
+        newModal.addEventListener('touchmove', function touchBlockerModalOnly(te) {
+            try { te.preventDefault(); } catch(err) {}
+            return false;
+        }, { passive: false });
+
+        // ⭐⭐⭐ INJECT MODAL KE BODY (muncul di layar)
+        document.body.appendChild(newModal);
+
+    } catch (err) {
+        console.warn('[openImageLightbox] catch error:', err);
+        // Fallback lawas: alert? TIDAK. Cukup console error saja.
     }
+};
+
+// Alias bridge admin_cms ↔ script.js
+if (!window.openCMSImageLightbox) {
+    window.openCMSImageLightbox = window.openImageLightbox;
+}
+if (!window.closeCMSLightbox) {
+    window.closeCMSLightbox = window.closeImageLightbox;
+}
+
+// ================ AUTO-BIND CLICK -> LIGHTBOX KE SELURUH ELEMENT PETA & GALERI ================
+// Ini akan memastikan SEMUA gambar peta wilayah, peta sumber air, dan 6 galeri bisa di-klik untuk popup,
+// walau pun onclick inline-nya tidak ada / di-overwrite CMS edit.
+document.addEventListener('DOMContentLoaded', function() {
+    // ⭐ CATATAN: Modal #imageLightboxModal TIDAK ADA hardcoded di DOM awal.
+    // Setiap openImageLightbox buat BARU dari template, inject ke body.
+    // Setiap closeImageLightbox HAPUS FISIK modal dari DOM.
+    // Tidak perlu listener backdrop / ESC global di awal init (sudah di-pasang per-instance di open).
+
+    // ==========================================================
+    // ⭐⭐⭐ YOUTUBE AUTO-FIX MOBILE PLAYABILITY — BERJALAN DI SEMUA PAGE LOAD
+    // ==========================================================
+    // Jamin 100% YouTube iframe punya parameter playsinline=1 & controls=1
+    // (bahkan jika admin menyimpan URL YouTube tanpa parameter / tanpa playinline)
+    (function youtubeMobileAutoFix() {
+        function buildYoutubeEmbedUrl(rawUrl) {
+            if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+            let base = rawUrl.trim();
+            if (!base.includes('youtube.com/embed/')) return rawUrl;
+            base = base.split('?')[0].split('#')[0];
+            const params = [
+                'rel=0','modestbranding=1','playsinline=1','webkit-playsinline=1',
+                'controls=1','fs=1','hl=id','cc_load_policy=0'
+            ];
+            try {
+                const origin = encodeURIComponent(window.location.origin || 'https://umkm-karanganyar.web.id');
+                params.push('origin=' + origin);
+            } catch(e) {}
+            return base + '?' + params.join('&');
+        }
+
+        function fixOneIframe(iframe, attempt) {
+            try {
+                if (!iframe) return;
+                const cur = iframe.src || iframe.getAttribute('src') || '';
+                if (!cur || !cur.includes('youtube.com/embed/')) return;
+
+                // Cek apakah sudah punya playsinline & controls
+                const needFix = !cur.includes('playsinline=1') || !cur.includes('controls=1') || !cur.includes('fs=1');
+                if (needFix) {
+                    const fixed = buildYoutubeEmbedUrl(cur);
+                    if (fixed && fixed !== cur) {
+                        iframe.src = fixed;
+                        // Juga set attribute agar inline HTML ter-update
+                        iframe.setAttribute('src', fixed);
+                    }
+                }
+
+                // ⭐ Pastikan beberapa attribute penting SELALU ADA
+                const ensureAttr = (attr, val) => {
+                    if (iframe.getAttribute(attr) !== val) {
+                        try { iframe.setAttribute(attr, val); } catch(e) {}
+                    }
+                };
+                ensureAttr('playsinline', '1');
+                ensureAttr('webkit-playsinline', 'true');
+                ensureAttr('moz-playsinline', 'true');
+                ensureAttr('ms-playsinline', 'true');
+                ensureAttr('x5-playsinline', 'true');
+                ensureAttr('x5-video-player-type', 'h5');
+                ensureAttr('x5-video-player-fullscreen', 'true');
+                ensureAttr('allowfullscreen', 'true');
+                ensureAttr('webkitallowfullscreen', 'true');
+                ensureAttr('mozallowfullscreen', 'true');
+                ensureAttr('msallowfullscreen', 'true');
+                ensureAttr('loading', 'eager');
+                // allow attribute
+                const reqAllow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen; xr-spatial-tracking; presentation';
+                const curAllow = iframe.getAttribute('allow') || '';
+                if (!curAllow.includes('fullscreen') || curAllow.length < 20) {
+                    iframe.setAttribute('allow', reqAllow);
+                }
+                // sandbox
+                const reqSandbox = 'allow-same-origin allow-scripts allow-popups allow-forms allow-presentation allow-modals allow-top-navigation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox';
+                const curSandbox = iframe.getAttribute('sandbox') || '';
+                if (!curSandbox.includes('allow-top-navigation-by-user-activation') || curSandbox.length < 30) {
+                    iframe.setAttribute('sandbox', reqSandbox);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        const iframes = document.querySelectorAll('#cmsYoutubeIframe, .tkp-video-wrapper iframe, #cmsVideoWrapper iframe, .cms-video-responsive-wrap iframe');
+        if (iframes && iframes.length) {
+            iframes.forEach((f) => {
+                fixOneIframe(f, 0);
+                // Jalankan 2x lagi setelah 100ms dan 800ms (jika CMS applySavedCMSData mengganti src)
+                setTimeout(() => fixOneIframe(f, 1), 120);
+                setTimeout(() => fixOneIframe(f, 2), 850);
+                setTimeout(() => fixOneIframe(f, 3), 2200);
+            });
+        } else {
+            // Fallback: query ulang nanti
+            setTimeout(() => {
+                document.querySelectorAll('#cmsYoutubeIframe, .tkp-video-wrapper iframe, #cmsVideoWrapper iframe')
+                    .forEach(f => {
+                        fixOneIframe(f, 0);
+                        setTimeout(() => fixOneIframe(f, 1), 120);
+                        setTimeout(() => fixOneIframe(f, 2), 850);
+                    });
+            }, 400);
+        }
+    })();
+
+    function safeBindLightbox(querySelector, fallbackCaption, altAttrPrefix) {
+        try {
+            const nodes = document.querySelectorAll(querySelector);
+            nodes.forEach((el, i) => {
+                if (el.getAttribute('data-tkp-lightbox-bound')) return;
+                el.setAttribute('data-tkp-lightbox-bound', '1');
+
+                // Cari tag img (bisa jadi element img langsung / wrapper yang contain img)
+                let img = (el.tagName && el.tagName.toLowerCase() === 'img') ? el : (el.querySelector ? el.querySelector('img') : null);
+
+                // Special ID references
+                if (altAttrPrefix === 'mapCustomImage') {
+                    const custom = document.getElementById('mapCustomImage');
+                    if (custom) img = custom;
+                } else if (altAttrPrefix === 'petaSumberAir') {
+                    const water = document.getElementById('petaSumberAirImg');
+                    if (water) img = water;
+                }
+                if (!img) return;
+
+                // Tambah kursor zoom-in
+                img.style.cursor = 'zoom-in';
+                img.style.transition = 'transform 0.4s ease, box-shadow 0.4s ease';
+
+                // Hover effect (khusus galeri)
+                if (altAttrPrefix && altAttrPrefix.indexOf('galeri') !== -1) {
+                    el.style.overflow = el.style.overflow || 'hidden';
+                    el.style.position = el.style.position || 'relative';
+                    img.style.transformOrigin = 'center center';
+                    img.addEventListener('mouseenter', function() {
+                        img.style.transform = 'scale(1.06)';
+                    });
+                    img.addEventListener('mouseleave', function() {
+                        img.style.transform = 'scale(1)';
+                    });
+                }
+
+                // Bind click event (bubble safe)
+                const handler = function(e) {
+                    // Skip jika sedang di mode admin edit (iframe)
+                    const isAdmin = (window.self !== window.top) || window.location.search.includes('mode=admin');
+                    if (isAdmin) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const src = img.dataset.tkpAssetSrc
+                        || (img.parentElement && img.parentElement.dataset ? img.parentElement.dataset.tkpAssetSrc : '')
+                        || img.src
+                        || img.getAttribute('src')
+                        || '';
+                    let caption = fallbackCaption;
+                    if (altAttrPrefix) {
+                        caption = fallbackCaption + ((nodes.length > 1) ? ' ' + (i+1) : '');
+                    }
+                    window.openImageLightbox(src, caption);
+                };
+
+                img.addEventListener('click', handler);
+                // Jika elemen wrapper yang diklik, tetap diarahkan
+                if (img !== el) {
+                    el.addEventListener('click', handler);
+                }
+            });
+        } catch (err) {
+            console.warn('Bind lightbox gagal untuk:', querySelector, err);
+        }
+    }
+
+    // PETA WILAYAH (id mapCustomImage)
+    safeBindLightbox('#mapSlideImgmap, .tkp-map-img-container, #mapCustomImage',
+        'Peta Wilayah Padukuhan Karanganyar', 'mapCustomImage');
+
+    // PETA SUMBER DAYA AIR (id petaSumberAirImg)
+    safeBindLightbox('.water-map-img-wrapper, #petaSumberAirImg',
+        'Peta Sebaran & Sumber Daya Air Karanganyar', 'petaSumberAir');
+
+    // 6 GALERI KAMI (Ruang Kerja & Kegiatan)
+    safeBindLightbox('.tkp-gal-1', 'Galeri Ruang Kerja & Kegiatan', 'galeri-1');
+    safeBindLightbox('.tkp-gal-2', 'Galeri Ruang Kerja & Kegiatan', 'galeri-2');
+    safeBindLightbox('.tkp-gal-3', 'Galeri Ruang Kerja & Kegiatan', 'galeri-3');
+    safeBindLightbox('.tkp-gal-4', 'Galeri Ruang Kerja & Kegiatan', 'galeri-4');
+    safeBindLightbox('.tkp-gal-5', 'Galeri Ruang Kerja & Kegiatan', 'galeri-5');
+    safeBindLightbox('.tkp-gal-6', 'Galeri Ruang Kerja & Kegiatan', 'galeri-6');
 });
+
+// ⭐ CATATAN: Global ESC listener TIDAK PERLU LAGI (karena openImageLightbox
+//    sudah memasang per-instance ESC handler dengan auto-remove).
+//    Juga: closeImageLightbox bekerja dengan removeChild modal secara fisik.

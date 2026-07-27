@@ -318,6 +318,113 @@ window.getProductImageCount = function(imageStr) {
     return imageStr.split('|||').filter(s => s && s.trim()).length;
 };
 
+/* ========================================================================
+   SISTEM AVATAR PICKER TERPADU (SINGLE SOURCE OF TRUTH)
+   - 12 preset avatar seragam untuk SEMUA modal (registrasi & edit profil)
+   - Event delegation → tidak hilang listener walau elemen dinamis
+   - Persistensi 4 lapis: localStorage + Firebase Auth Profile + RTDB + umkm_users
+   ======================================================================== */
+window.KARANGANYAR_AVATAR_LIST = [
+    { seed: 'Felix',  bg: 'ffdfbf', label: 'Pria 1' },
+    { seed: 'Sam',    bg: 'c0aede', label: 'Pria 2' },
+    { seed: 'Max',    bg: 'b6e3f4', label: 'Pria 3' },
+    { seed: 'Leo',    bg: 'd1d4f9', label: 'Pria 4' },
+    { seed: 'Charlie',bg: 'ffd5dc', label: 'Pria 5' },
+    { seed: 'Oliver', bg: 'bae6fd', label: 'Pria 6' },
+    { seed: 'Bella',  bg: 'ffdfbf', label: 'Wanita 1' },
+    { seed: 'Aneka',  bg: 'b6e3f4', label: 'Wanita 2' },
+    { seed: 'Mia',    bg: 'c0aede', label: 'Wanita 3' },
+    { seed: 'Lucy',   bg: 'd1d4f9', label: 'Wanita 4' },
+    { seed: 'Luna',   bg: 'ffd5dc', label: 'Wanita 5' },
+    { seed: 'Zoe',    bg: 'bae6fd', label: 'Wanita 6' }
+];
+
+window.buildDicebearAvatarUrl = function(seed, bgColor) {
+    const bg = bgColor || 'b6e3f4';
+    const s = seed ? encodeURIComponent(String(seed).substring(0, 30)) : 'Pengguna';
+    return `https://api.dicebear.com/9.x/micah/svg?seed=${s}&mouth=smile,laughing&backgroundColor=${bg}`;
+};
+
+window.getAvatarIndexByUrl = function(avatarUrl) {
+    if (!avatarUrl || typeof avatarUrl !== 'string') return -1;
+    return window.KARANGANYAR_AVATAR_LIST.findIndex(opt => {
+        const optUrl = window.buildDicebearAvatarUrl(opt.seed, opt.bg);
+        return avatarUrl.includes('seed=' + encodeURIComponent(opt.seed)) ||
+               avatarUrl.includes('seed=' + opt.seed);
+    });
+};
+
+window.getSelectedAvatarUrl = function() {
+    const hiddenField = document.getElementById('selectedAvatarUrl');
+    if (hiddenField && hiddenField.value) return hiddenField.value;
+    return '';
+};
+
+window.setSelectedAvatarUrl = function(url) {
+    const hiddenField = document.getElementById('selectedAvatarUrl');
+    if (hiddenField && url) hiddenField.value = url;
+};
+
+window.renderAvatarPicker = function(container, selectedAvatarUrl) {
+    if (!container) return;
+    const selected = selectedAvatarUrl || window.getSelectedAvatarUrl() || '';
+    const selectedIdx = window.getAvatarIndexByUrl(selected);
+
+    container.innerHTML = '';
+    window.KARANGANYAR_AVATAR_LIST.forEach((opt, idx) => {
+        const url = window.buildDicebearAvatarUrl(opt.seed, opt.bg);
+        const div = document.createElement('div');
+        const isSelected = idx === selectedIdx;
+        div.className = 'avatar-option' + (isSelected ? ' selected' : '');
+        div.setAttribute('data-url', url);
+        div.setAttribute('data-label', opt.label);
+        div.style.cssText = [
+            'cursor: pointer;',
+            'border: 3px solid ' + (isSelected ? '#00AA5B' : 'transparent') + ';',
+            'border-radius: 50%;',
+            'overflow: hidden;',
+            'transition: all 0.2s ease;',
+            'flex-shrink: 0;',
+            'width: 60px;',
+            'height: 60px;',
+            'aspect-ratio: 1 / 1;'
+        ].join(' ');
+
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Pilihan avatar profil ' + opt.label;
+        img.style.cssText = 'width: 100%; height: 100%; display: block; object-fit: cover; pointer-events: none;';
+
+        div.appendChild(img);
+        container.appendChild(div);
+    });
+};
+
+// EVENT DELEGATION (global) — listener SELALU aktif, tidak hilang
+document.addEventListener('click', function __globalAvatarOptionHandler(e) {
+    const avatarOpt = e.target && e.target.closest ? e.target.closest('.avatar-option') : null;
+    if (!avatarOpt) return;
+
+    const url = avatarOpt.getAttribute('data-url');
+    if (!url) return;
+
+    // Highlight UI di SEMUA .avatar-option dalam container yang sama
+    const parent = avatarOpt.parentElement;
+    if (parent) {
+        parent.querySelectorAll('.avatar-option').forEach(el => {
+            el.classList.remove('selected');
+            try {
+                el.style.borderColor = 'transparent';
+            } catch (_) {}
+        });
+        avatarOpt.classList.add('selected');
+        try { avatarOpt.style.borderColor = '#00AA5B'; } catch (_) {}
+    }
+
+    // Simpan ke hidden field global
+    window.setSelectedAvatarUrl(url);
+});
+
 function loadUserState() {
     try {
         wishlist = JSON.parse(localStorage.getItem(getUserKey('wishlist')) || '[]');

@@ -3,11 +3,143 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pasar Desa Karanganyar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#00AA5B">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' mailto:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' https: data: blob: https://*.googleusercontent.com https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://accounts.google.com https://www.google.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com https://accounts.google.com https://*.firebaseapp.com https://*.web.app; upgrade-insecure-requests">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=(), usb=()">
+
+    <!-- ========== SEO META TAGS UTAMA ========== -->
+    <title>Padukuhan Karanganyar - Website Resmi Profil & UMKM Desa</title>
+    <meta name="description"
+        content="Website resmi Padukuhan Karanganyar. Informasi profil padukuhan, data kependudukan, peta wilayah & sumber daya air, berita desa terkini, serta pusat promosi produk UMKM warga Karanganyar.">
+    <meta name="keywords"
+        content="Padukuhan Karanganyar, Profil Padukuhan Karanganyar, Website Resmi Desa, Berita Desa Karanganyar, UMKM Karanganyar, Peta Sumber Air Karanganyar, Data Penduduk Karanganyar, Pasar Desa Karanganyar, Promo UMKM Desa, Kuliner Desa Karanganyar, Kerajinan Tangan Desa, Karanganyar Nglegi">
+    <meta name="author" content="Pemerintah Padukuhan Karanganyar">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="language" content="Indonesian">
+    <meta name="geo.region" content="ID-YO">
+    <meta name="geo.placename" content="Padukuhan Karanganyar, Ds. Nglegi">
+    <meta name="geo.position" content="-7.8012;110.3819">
+    <meta name="ICBM" content="-7.8012, 110.3819">
+    <link rel="canonical" href="https://padukuhan-karanganyar.netlify.app/">
+
+    <!-- ========== OPEN GRAPH (Facebook, LinkedIn, WhatsApp Preview) ========== -->
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Padukuhan Karanganyar">
+    <meta property="og:title" content="Padukuhan Karanganyar - Website Resmi Profil & UMKM Desa">
+    <meta property="og:description"
+        content="Website resmi Padukuhan Karanganyar: Profil desa, peta sumber daya air, data wilayah, berita terkini, dan promosi produk UMKM lokal warga Karanganyar.">
+    <meta property="og:url" content="https://padukuhan-karanganyar.netlify.app/">
+    <meta property="og:image"
+        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
+    <meta property="og:image:secure_url"
+        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Panorama Padukuhan Karanganyar dengan sawah terasering dan keramaian pasar desa">
+
+    <!-- ========== TWITTER CARD ========== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@karanganyar_desa">
+    <meta name="twitter:creator" content="@karanganyar_desa">
+    <meta name="twitter:title" content="Padukuhan Karanganyar - Website Resmi Profil & UMKM Desa">
+    <meta name="twitter:description"
+        content="Website resmi Padukuhan Karanganyar: Informasi profil desa, peta sumber daya air, berita, dan pusat promosi UMKM lokal warga.">
+    <meta name="twitter:image"
+        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
+    <meta name="twitter:image:alt" content="Panorama Padukuhan Karanganyar">
+
+    <!-- ========== STRUCTURED DATA / JSON-LD (Google Rich Snippet) ========== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "GovernmentOffice",
+      "@id": "https://padukuhan-karanganyar.netlify.app/#government",
+      "name": "Padukuhan Karanganyar",
+      "alternateName": "Karanganyar Nglegi",
+      "url": "https://padukuhan-karanganyar.netlify.app/",
+      "image": "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80",
+      "logo": "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=600&auto=format&fit=crop&q=80",
+      "description": "Website resmi Padukuhan Karanganyar: informasi profil desa, data kependudukan, peta wilayah & sumber daya air, berita desa terkini, serta pusat promosi produk UMKM warga Karanganyar.",
+      "areaServed": {
+        "@type": "Place",
+        "name": "Padukuhan Karanganyar",
+        "containedIn": {
+          "@type": "Place",
+          "name": "Desa Nglegi, Kecamatan Panggang, Kabupaten Gunung Kidul, Daerah Istimewa Yogyakarta"
+        }
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Padukuhan Karanganyar RT 01 - RT 05 / RW 01",
+        "addressLocality": "Nglegi, Panggang",
+        "addressRegion": "Daerah Istimewa Yogyakarta",
+        "postalCode": "55872",
+        "addressCountry": "ID"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "-7.8012",
+        "longitude": "110.3819"
+      },
+      "hasMap": "https://www.google.com/maps/place/Karanganyar,+Kec.+Panggang,+Kabupaten+Gunung+Kidul,+Daerah+Istimewa+Yogyakarta/",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "padukuhankaranganyar@outlook.com",
+        "availableLanguage": ["Indonesian", "English"]
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday"
+        ],
+        "opens": "07:00",
+        "closes": "15:00"
+      },
+      "sameAs": [
+        "https://www.google.com/maps/place/Karanganyar,+Kec.+Panggang,+Kabupaten+Gunung+Kidul,+Daerah+Istimewa+Yogyakarta/"
+      ],
+      "inLanguage": "id-ID"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://padukuhan-karanganyar.netlify.app/#website",
+      "name": "Padukuhan Karanganyar - Website Resmi Profil & UMKM Desa",
+      "alternateName": "Pasar Desa Karanganyar",
+      "url": "https://padukuhan-karanganyar.netlify.app/",
+      "inLanguage": "id-ID",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://padukuhan-karanganyar.netlify.app/?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "publisher": {
+        "@id": "https://padukuhan-karanganyar.netlify.app/#government"
+      }
+    }
+    </script>
+
     <!-- Favicon (Ikon Tab Browser) -->
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='42' y='10' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='50' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='90' width='16' height='10' rx='4' fill='%232e7d32'/><path d='M58 50 Q 85 30 90 45 Q 70 65 58 50' fill='%234caf50'/><path d='M42 90 Q 15 70 10 85 Q 30 105 42 90' fill='%234caf50'/></svg>">
+    <link rel="apple-touch-icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='42' y='10' width='16' height='35' rx='4' fill='%232e7d32'/><rect x='42' y='50' width='16' height='35' rx='4' fill='%232e7d32'/><path d='M58 50 Q 85 30 90 45 Q 70 65 58 50' fill='%234caf50'/><path d='M42 90 Q 15 70 10 85 Q 30 105 42 90' fill='%234caf50'/></svg>">
+    <link rel="manifest" href="data:application/manifest+json,{ %22name%22:%22Padukuhan%20Karanganyar%22,%22short_name%22:%22Karanganyar%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%2300AA5B%22 }">
+
     <!-- Google Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap"
@@ -53,7 +185,7 @@
                     <rect x="42" y="90" width="16" height="10" rx="4" fill="#2e7d32" />
                     <path d="M58 50 Q 85 30 90 45 Q 70 65 58 50" fill="#4caf50" />
                     <path d="M42 90 Q 15 70 10 85 Q 30 105 42 90" fill="#4caf50" />
-                </svg> Pasar<span>Karanganyar</span>
+                </svg> Padukuhan<span>Karanganyar</span>
             </a>
             <div class="search-container">
                 <div class="search-wrapper">
@@ -143,7 +275,7 @@
                             <div style="display: flex; align-items: center; gap: 12px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 12px; cursor: pointer;"
                                 id="dropdownProfileMenu">
                                 <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                    id="dropdownAvatar" style="width: 40px; height: 40px; border-radius: 50%;">
+                                    id="dropdownAvatar" alt="Foto profil pengguna" style="width: 40px; height: 40px; border-radius: 50%;">
                                 <div style="font-weight: 700; color: #31353B; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;"
                                     id="dropdownName">Akun Saya</div>
                             </div>
@@ -222,6 +354,10 @@
     <main id="homePage">
         <!-- Hero Banner Slider -->
         <section class="hero-banner">
+            <!-- H1 UTAMA HALAMAN PROMO DESA (aksesibel + SEO) -->
+            <h1 class="visually-hidden-seo" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-label="Pasar Desa Karanganyar - Pusat Promosi Produk UMKM Lokal Warga">
+                Pasar Desa Karanganyar - Pusat Promosi Produk UMKM Lokal Warga
+            </h1>
             <div class="slider-container">
                 <!-- 5 Gambar Latar Bertema Desa Karanganyar -->
                 <div class="slide active"
@@ -297,7 +433,7 @@
         <div class="container">
             <!-- Kategori -->
             <section class="categories-section">
-                <h3 class="section-title">Kategori Pilihan</h3>
+                <h2 class="section-title">Kategori Pilihan</h2>
                 <div class="category-grid">
                     <div class="category-item" data-filter="makanan">
                         <div class="cat-icon"><i class="fas fa-utensils"></i></div>
@@ -327,9 +463,9 @@
             </section>
 
             <!-- Daftar UMKM -->
-            <section class="umkm-section">
+            <section class="umkm-section" aria-labelledby="umkmSectionTitle">
                 <div class="section-header">
-                    <h3 class="section-title">Official Store Desa (UMKM)</h3>
+                    <h2 id="umkmSectionTitle" class="section-title">Official Store Desa (UMKM)</h2>
                 </div>
                 <div class="umkm-grid" id="umkmGrid">
                     <!-- Diisi oleh JS -->
@@ -433,10 +569,10 @@
             <div class="pdp-layout">
                 <!-- Kiri: Galeri Gambar -->
                 <div class="pdp-gallery">
-                    <img id="pdpMainImage" src="images/default.jpg" alt="Produk" class="pdp-main-img">
+                    <img id="pdpMainImage" src="https://placehold.co/600x600/eaf5f0/0f766e?text=Produk+UMKM+Karanganyar" alt="Foto produk UMKM Padukuhan Karanganyar" class="pdp-main-img">
                     <div class="pdp-thumbnails">
-                        <img id="pdpThumb1" src="images/default.jpg" class="pdp-thumb active">
-                        <img id="pdpThumb2" src="images/default.jpg" class="pdp-thumb">
+                        <img id="pdpThumb1" src="https://placehold.co/120x120/eaf5f0/0f766e?text=1" alt="Thumbnail foto produk 1" class="pdp-thumb active">
+                        <img id="pdpThumb2" src="https://placehold.co/120x120/eaf5f0/0f766e?text=2" alt="Thumbnail foto produk 2" class="pdp-thumb">
                     </div>
                 </div>
 
@@ -460,8 +596,8 @@
                                 class="fas fa-sliders-h" style="color:var(--primary);"></i> Atur jumlah</h3>
 
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                            <img id="pdpActionThumb" src="images/default.jpg"
-                                style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #e2e8f0;">
+                            <img id="pdpActionThumb" src="https://placehold.co/44x44/eaf5f0/0f766e?text=UMKM"
+                                alt="Thumbnail toko UMKM" style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid #e2e8f0;">
                             <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);"></span>
                         </div>
 
@@ -503,7 +639,7 @@
                     <!-- Profil Toko Penjual -->
                     <div class="pdp-store-profile">
                         <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px;">
-                            <img id="pdpStoreImage" src="images/default.jpg" class="pdp-store-img">
+                            <img id="pdpStoreImage" src="https://placehold.co/80x80/dcfce7/15803d?text=Toko" alt="Logo toko UMKM Padukuhan Karanganyar" class="pdp-store-img">
                             <div>
                                 <h3 id="pdpStoreName"
                                     style="font-size:1.1rem; display:flex; align-items:center; gap:5px;"><i
@@ -546,13 +682,13 @@
 
             <div class="help-container">
                 <div class="help-header">
-                    <h2>Halo, ada yang bisa kami bantu?</h2>
+                    <h1>Halo, ada yang bisa kami bantu?</h1>
                     <p style="color:var(--text-muted); margin-bottom:20px;">Temukan solusi untuk masalah Anda di bawah
                         ini.</p>
                 </div>
 
                 <div class="faq-section">
-                    <h3 style="margin-bottom: 20px; font-size: 1.2rem;">Pertanyaan Populer (FAQ)</h3>
+                    <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: 700;">Pertanyaan Populer (FAQ)</h2>
 
                     <div class="faq-item">
                         <button class="faq-question">Bagaimana cara memesan produk UMKM? <i
@@ -594,14 +730,82 @@
                     </div>
                 </div>
 
-                <div class="contact-admin"
-                    style="text-align: center; margin-top: 40px; padding: 30px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm);">
-                    <h3 style="margin-bottom: 10px;">Masih belum menemukan jawaban?</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Hubungi tim Admin Desa untuk bantuan lebih
-                        lanjut.</p>
-                    <a href="https://wa.me/6280000000000?text=Halo%20Admin,%20saya%20butuh%20bantuan%20terkait%20website%20UMKM."
-                        target="_blank" class="btn-primary" style="display:inline-block;"><i
-                            class="fab fa-whatsapp"></i> Hubungi Admin (WhatsApp)</a>
+                <div class="contact-admin" id="emailContactAdminBox"
+                    style="text-align: left; margin-top: 40px; padding: 32px; background: var(--surface); border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid var(--border);">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #00AA5B, #4cca78); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                            <i class="fas fa-envelope" style="color: white; font-size: 1.4rem;"></i>
+                        </div>
+                        <h2 style="margin-bottom: 6px; color: var(--text-color); font-size: 1.3rem; font-weight: 700;">Masih belum menemukan jawaban?</h2>
+                        <p style="color: var(--text-muted); margin: 0;">Kirim pesan langsung ke tim Admin Desa via email. Kami akan merespons secepatnya.</p>
+                    </div>
+
+                    <form id="emailContactForm" onsubmit="return handleAdminEmailSubmit(event);"
+                        style="display: grid; gap: 18px; max-width: 600px; margin: 0 auto;">
+                        <div>
+                            <label for="contactUserName" style="display: block; font-size: 0.88rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                                Nama Lengkap Anda
+                            </label>
+                            <input type="text" id="contactUserName" required
+                                placeholder="Contoh: Budi Santoso"
+                                style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.95rem; outline: none; background: var(--bg-input, #fff); color: var(--text-color); transition: border-color 0.2s, box-shadow 0.2s;"
+                                onfocus="this.style.borderColor='#00AA5B'; this.style.boxShadow='0 0 0 3px rgba(0,170,91,0.12)';"
+                                onblur="this.style.borderColor=''; this.style.boxShadow='';">
+                        </div>
+
+                        <div>
+                            <label for="contactUserEmail" style="display: block; font-size: 0.88rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                                Alamat Email Anda
+                            </label>
+                            <input type="email" id="contactUserEmail" required
+                                placeholder="nama@email.com"
+                                style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.95rem; outline: none; background: var(--bg-input, #fff); color: var(--text-color); transition: border-color 0.2s, box-shadow 0.2s;"
+                                onfocus="this.style.borderColor='#00AA5B'; this.style.boxShadow='0 0 0 3px rgba(0,170,91,0.12)';"
+                                onblur="this.style.borderColor=''; this.style.boxShadow='';">
+                        </div>
+
+                        <div>
+                            <label for="contactSubject" style="display: block; font-size: 0.88rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                                Subjek / Kebutuhan
+                            </label>
+                            <select id="contactSubject" required
+                                style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.95rem; outline: none; background: var(--bg-input, #fff); color: var(--text-color); transition: border-color 0.2s, box-shadow 0.2s;"
+                                onfocus="this.style.borderColor='#00AA5B'; this.style.boxShadow='0 0 0 3px rgba(0,170,91,0.12)';"
+                                onblur="this.style.borderColor=''; this.style.boxShadow='';">
+                                <option value="">-- Pilih jenis kebutuhan --</option>
+                                <option value="Bantuan Login / Akun">Bantuan Login & Akun Pengguna</option>
+                                <option value="Pendaftaran Toko UMKM">Pendaftaran Toko UMKM Baru</option>
+                                <option value="Laporan Pesanan / Penjual">Laporan Pesanan & Penjual</option>
+                                <option value="Saran & Masukan Website">Saran & Masukan untuk Website</option>
+                                <option value="Lainnya">Kebutuhan Lainnya</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="contactMessage" style="display: block; font-size: 0.88rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                                Pesan Anda
+                            </label>
+                            <textarea id="contactMessage" required rows="5"
+                                placeholder="Jelaskan secara detail kebutuhan atau kendala Anda..."
+                                style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.95rem; outline: none; background: var(--bg-input, #fff); color: var(--text-color); resize: vertical; transition: border-color 0.2s, box-shadow 0.2s;"
+                                onfocus="this.style.borderColor='#00AA5B'; this.style.boxShadow='0 0 0 3px rgba(0,170,91,0.12)';"
+                                onblur="this.style.borderColor=''; this.style.boxShadow='';"></textarea>
+                        </div>
+
+                        <button type="submit"
+                            style="width: 100%; padding: 13px; background: linear-gradient(135deg, #00AA5B, #03ac0e); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.15s, box-shadow 0.2s;"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 20px rgba(0,170,91,0.35)';"
+                            onmouseout="this.style.transform=''; this.style.boxShadow='';"
+                            onmousedown="this.style.transform='translateY(0px)';">
+                            <i class="fas fa-paper-plane"></i>
+                            Kirim Pesan ke Admin via Email
+                        </button>
+
+                        <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 0;">
+                            <i class="fas fa-info-circle" style="margin-right: 4px;"></i>
+                            Setelah menekan tombol di atas, aplikasi email Anda (Gmail, Outlook, dll.) akan terbuka otomatis dengan pesan yang sudah diisi.
+                        </p>
+                    </form>
                 </div>
             </div>
         </div>
@@ -661,7 +865,6 @@
                         <img id="mapCustomImage"
                             src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&auto=format&fit=crop&q=80"
                             alt="Peta Gambar Wilayah Karanganyar"
-                            onclick="openImageLightbox(this.src, 'Peta Wilayah Padukuhan Karanganyar')"
                             title="Klik untuk melihat detail gambar Peta Wilayah"
                             style="width: 100%; height: 450px; object-fit: cover; display: block; cursor: pointer; transition: transform 0.4s ease;">
                         <div
@@ -690,11 +893,11 @@
                     <!-- Left: Collage -->
                     <div class="tkp-collage reveal-left">
                         <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80"
-                            class="tkp-collage-img1" alt="Sejarah 1">
+                            class="tkp-collage-img1" alt="Pemandangan alam pegunungan hijau kawasan Padukuhan Karanganyar dengan pepohonan rindang">
                         <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80"
-                            class="tkp-collage-img2" alt="Sejarah 2">
+                            class="tkp-collage-img2" alt="Jalur setapak hutan pinus di wilayah Karanganyar yang asri dan sejuk">
                         <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80"
-                            class="tkp-collage-img3" alt="Sejarah 3">
+                            class="tkp-collage-img3" alt="Sawah terasering hijau milik warga Padukuhan Karanganyar pada musim tanam padi">
                     </div>
                     <!-- Right: Text -->
                     <div class="tkp-mission-text reveal-right">
@@ -835,7 +1038,6 @@
                             <img id="petaSumberAirImg"
                                 src="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80"
                                 alt="Peta Sebaran Air Karanganyar"
-                                onclick="openImageLightbox(this.src, 'Peta Sebaran & Potensi Sumber Air Desa')"
                                 title="Klik untuk melihat detail Peta Sebaran Air"
                                 style="cursor: pointer; transition: transform 0.4s ease;">
                             <div class="water-map-overlay-tag" style="pointer-events: none;">
@@ -843,24 +1045,96 @@
                             </div>
                         </div>
 
-                        <div class="water-map-legend">
-                            <div class="legend-item"
-                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
-                                <span
-                                    style="width: 12px; height: 12px; border-radius: 50%; background: #0284c7; display: inline-block;"></span>
-                                Mata Air Utama
+                        <div class="water-map-legend" id="waterMapLegendBox"
+                            style="padding: 22px 20px; background: #f8fafc; border-radius: 14px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px; min-width: 260px;">
+                            <div class="water-map-legend-title" style="font-size: 0.82rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 2px;">
+                                <i class="fas fa-list-ul" style="color: #0f766e; margin-right: 6px;"></i>LEGENDA PETA
                             </div>
-                            <div class="legend-item"
-                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
-                                <span
-                                    style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                Sumur Bor / Pompa Warga
+
+                            <!-- KATEGORI 1: TITIK LOKASI (Point Symbol) -->
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px;">
+                                    <i class="fas fa-map-marker-alt" style="margin-right: 4px;"></i>Titik Lokasi
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 16px; height: 16px; border-radius: 50%; background: #ef4444; display: inline-block; border: 2px solid #991b1b; flex-shrink: 0; box-shadow: 0 0 0 2px #fecaca;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>PDAM</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Titik layanan air bersih PDAM</span>
+                                    </div>
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; display: inline-block; border: 2px solid #1e40af; flex-shrink: 0; box-shadow: 0 0 0 2px #bfdbfe;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>SUMUR</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Sumur bor / pompa warga</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="legend-item"
-                                style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569;">
-                                <span
-                                    style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-                                Saluran Irigasi Sawah
+
+                            <!-- KATEGORI 2: JARINGAN (Line Symbol) -->
+                            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+                                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+                                    <i class="fas fa-project-diagram" style="margin-right: 4px;"></i>Jaringan & Batas
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 24px; height: 8px; border-radius: 3px; background: linear-gradient(90deg, #facc15 0%, #eab308 100%); display: inline-block; flex-shrink: 0; border: 1px solid #a16207; box-shadow: inset 0 1px 0 #fef08a;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>JALAN UTAMA</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Jalan akses utama desa</span>
+                                    </div>
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 24px; height: 3px; border-radius: 2px; background: #f1f5f9; display: inline-block; flex-shrink: 0; border: 1px solid #94a3b8;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>JALAN LINGKUNGAN</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Jalan gang & lingkungan RT</span>
+                                    </div>
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 24px; height: 4px; display: inline-block; flex-shrink: 0; background: repeating-linear-gradient(90deg, #dc2626 0 5px, transparent 5px 9px); border-radius: 2px;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>BATAS ADMINISTRASI</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Garis batas Padukuhan Karanganyar</span>
+                                    </div>
+                                </div>
+
+                                <div class="legend-item"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.88rem; font-weight: 600; color: #1e293b; transition: transform 0.15s, box-shadow 0.2s;"
+                                    onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                    <span
+                                        style="width: 24px; height: 6px; border-radius: 4px; background: linear-gradient(180deg, #93c5fd 0%, #60a5fa 100%); display: inline-block; flex-shrink: 0; border: 1px solid #2563eb;"></span>
+                                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                        <span>SUNGAI</span>
+                                        <span style="font-size: 0.72rem; font-weight: 500; color: #64748b; margin-top: 2px;">Aliran sungai & saluran irigasi</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -992,15 +1266,27 @@
             <div class="container reveal" style="text-align: center;">
                 <h4 class="tkp-section-label reveal">PROFIL PADUKUHAN</h4>
                 <h2 class="tkp-section-title reveal">Video Profil Karanganyar</h2>
-                <div class="tkp-video-wrapper reveal" id="cmsVideoWrapper"
-                    style="max-width: 1000px; margin: 40px auto 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); background: #000; position: relative;">
-                    <iframe id="cmsYoutubeIframe" width="100%" height="550"
-                        src="https://www.youtube.com/embed/LXb3EKWsInQ?rel=0&modestbranding=1&playsinline=1"
-                        title="Video Profil" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                        allowfullscreen webkitallowfullscreen mozallowfullscreen loading="lazy"
+                <div class="tkp-video-wrapper reveal cms-video-responsive-wrap" id="cmsVideoWrapper"
+                    style="max-width: 1000px; margin: 40px auto 0;">
+                    <iframe id="cmsYoutubeIframe"
+                        src="https://www.youtube.com/embed/LXb3EKWsInQ?rel=0&modestbranding=1&playsinline=1&mute=0&controls=1&fs=1&origin=https%3A%2F%2Fumkm-karanganyar.web.id"
+                        title="Video Profil Padukuhan Karanganyar" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen; xr-spatial-tracking; presentation"
+                        allowfullscreen
+                        webkitallowfullscreen
+                        mozallowfullscreen
+                        msallowfullscreen
+                        loading="eager"
                         referrerpolicy="no-referrer-when-downgrade"
-                        style="display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; min-height: 280px; border: none; position: relative; z-index: 10;"></iframe>
+                        playsinline
+                        webkit-playsinline
+                        moz-playsinline
+                        ms-playsinline
+                        x5-playsinline
+                        x5-video-player-type="h5"
+                        x5-video-player-fullscreen="true"
+                        x5-video-orientation="landscape|portrait"
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation allow-modals allow-top-navigation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"></iframe>
                 </div>
             </div>
         </section>
@@ -1016,27 +1302,27 @@
                 <div class="tkp-gallery-masonry">
                     <div class="tkp-gal-item reveal tkp-gal-1" style="transition-delay: 0.1s">
                         <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 1">
+                            alt="Kegiatan kerja bakti warga Padukuhan Karanganyar membersihkan lingkungan desa">
                     </div>
                     <div class="tkp-gal-item reveal tkp-gal-2" style="transition-delay: 0.2s">
                         <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 2">
+                            alt="Panen raya padi warga Karanganyar di sawah terasering desa">
                     </div>
                     <div class="tkp-gal-item reveal tkp-gal-3" style="transition-delay: 0.3s">
                         <img src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 3">
+                            alt="Ibu-ibu PKK Karanganyar sedang berlatih membuat kerajinan tangan khas desa">
                     </div>
                     <div class="tkp-gal-item reveal tkp-gal-4" style="transition-delay: 0.4s">
                         <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 4">
+                            alt="Acara perayaan kemerdekaan RI di lapangan desa Padukuhan Karanganyar">
                     </div>
                     <div class="tkp-gal-item reveal tkp-gal-5" style="transition-delay: 0.5s">
                         <img src="https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=600&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 5">
+                            alt="Kegiatan posyandu balita dan lansia di Padukuhan Karanganyar oleh kader kesehatan">
                     </div>
                     <div class="tkp-gal-item reveal tkp-gal-6" style="transition-delay: 0.6s">
                         <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80"
-                            alt="Galeri Karanganyar 6">
+                            alt="Dokumentasi festival budaya tradisional Jawa di Karanganyar dengan wayang dan gamelan">
                     </div>
                 </div>
             </div>
@@ -1107,7 +1393,7 @@
                     <div class="profile-card">
                         <div style="display:flex; gap: 15px; align-items:center; margin-bottom: 20px;">
                             <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="profilePageAvatar"
-                                alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+                                alt="Foto profil akun pengguna Padukuhan Karanganyar" style="width: 50px; height: 50px; border-radius: 50%;">
                             <div>
                                 <h3 style="font-size: 1.1rem; margin: 0; color: var(--text-color);"
                                     id="profilePageName">...</h3>
@@ -1485,7 +1771,7 @@
                     style="width: 100%; padding: 12px; background: white; color: #31353B; font-weight: 700; font-size: 1rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                         alt="Google" style="width: 20px; height: 20px;">
-                    Google
+                    Lanjutkan dengan Google
                 </button>
             </div>
 
@@ -1532,7 +1818,7 @@
                     style="width: 100%; padding: 12px; background: white; color: #31353B; font-weight: 700; font-size: 1rem; border: 1px solid #E5E7E9; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px;">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                         alt="Google" style="width: 20px; height: 20px;">
-                    Google
+                    Lanjutkan dengan Google
                 </button>
 
                 <div
@@ -1629,6 +1915,7 @@
                 </p>
             </div>
             <!-- Layar 6: Pilih Akun (Account Picker) -->
+            <!-- Layar 6: Pilih Akun Untuk Masuk (MULTI ACCOUNT - dinamis dari localStorage per device) -->
             <div id="authScreen6" class="hidden" style="padding: 24px;">
                 <button class="close-modal" id="closeModal6"
                     style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
@@ -1636,20 +1923,21 @@
                     style="font-size: 1.25rem; font-weight: 800; color: #31353B; margin-bottom: 24px; margin-top: 10px;">
                     Pilih Akun Untuk Masuk</h3>
 
-                <div id="savedAccountCard"
-                    style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #E5E7E9; margin-bottom: 24px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <img id="savedAccountAvatar" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                            style="width: 40px; height: 40px; border-radius: 50%;">
-                        <div>
-                            <div id="dropdownName" style="font-weight: 700; color: var(--text-color);">
-                                ...</div>
-                            <div id="savedAccountEmail" style="color: #6D7588; font-size: 0.85rem;">e***l@gmail.com
+                <!-- Container List Akun Tersimpan (dirender DINAMIS oleh auth.js, bisa 1+ akun) -->
+                <div id="savedAccountsListContainer"
+                    style="margin-bottom: 24px; border-top: 1px solid #E5E7E9;">
+                    <!-- ISI DINAMIS:
+                    <div class="saved-account-item" data-uid="xyz" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:12px 0; border-bottom:1px solid #E5E7E9;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img src="..." style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <div>
+                                <div style="font-weight:700; color:#31353B;">Nama Lengkap</div>
+                                <div style="color:#6D7588; font-size:0.85rem;">e***l@gmail.com</div>
                             </div>
                         </div>
+                        <i class="fas fa-trash-alt saved-account-delete-btn" data-uid="xyz" style="color:#B3B9C1; font-size:1.2rem; padding:10px; cursor:pointer;"></i>
                     </div>
-                    <i class="fas fa-trash-alt" id="deleteSavedAccountBtn"
-                        style="color: #B3B9C1; font-size: 1.2rem; padding: 10px; cursor: pointer;"></i>
+                    -->
                 </div>
 
                 <div style="text-align: center; display: flex; flex-direction: column; gap: 8px;">
@@ -1667,7 +1955,7 @@
                 <button class="close-modal" id="closeModal7"
                     style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
                 <img src="https://api.iconify.design/fluent-emoji-flat/mobile-phone.svg?width=120"
-                    style="width: 120px; margin: 20px auto 10px auto; display: block;" alt="Keamanan">
+                    style="width: 120px; margin: 20px auto 10px auto; display: block;" alt="Ilustrasi keamanan ponsel untuk verifikasi dua langkah">
                 <h3 style="font-size: 1.15rem; font-weight: 800; color: #31353B; margin-bottom: 12px;">Tambah nomor HP
                     untuk<br>keamanan akunmu</h3>
                 <p style="font-size: 0.85rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Demi keamanan
@@ -1705,7 +1993,7 @@
                 <button class="close-modal" id="closeModal9"
                     style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; color: #888; cursor: pointer; line-height: 1;">&times;</button>
                 <img src="https://api.iconify.design/fluent-emoji-flat/locked.svg?width=120"
-                    style="width: 120px; margin: 10px auto; display: block;" alt="Simpan Info">
+                    style="width: 120px; margin: 10px auto; display: block;" alt="Ilustrasi gembok aman untuk menyimpan info login">
                 <h3 style="font-size: 1.15rem; font-weight: 800; color: #31353B; margin-bottom: 12px;">Simpan info
                     login?</h3>
                 <p style="font-size: 0.85rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Cukup satu klik
@@ -1731,62 +2019,13 @@
                 <p style="font-size: 0.9rem; color: #6D7588; margin-bottom: 24px; line-height: 1.5;">Pilih salah satu
                     avatar di bawah ini untuk melengkapi profil Anda.</p>
 
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px;"
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;"
                     id="avatarSelectionGrid">
-                    <!-- Male Avatars -->
-                    <div class="avatar-option selected"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Milo&mouth=smile,laughing&backgroundColor=b6e3f4"
-                        style="cursor: pointer; border: 3px solid #00AA5B; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Milo&mouth=smile,laughing&backgroundColor=b6e3f4"
-                            style="width: 100%; display: block;" alt="Pria 1">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Oliver&mouth=smile,laughing&backgroundColor=c0aede"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Oliver&mouth=smile,laughing&backgroundColor=c0aede"
-                            style="width: 100%; display: block;" alt="Pria 2">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Felix&mouth=smile,laughing&backgroundColor=ffdfbf"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Felix&mouth=smile,laughing&backgroundColor=ffdfbf"
-                            style="width: 100%; display: block;" alt="Pria 3">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Leo&mouth=smile,laughing&backgroundColor=d1d4f9"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Leo&mouth=smile,laughing&backgroundColor=d1d4f9"
-                            style="width: 100%; display: block;" alt="Pria 4">
-                    </div>
-                    <!-- Female Avatars -->
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Bella&mouth=smile,laughing&backgroundColor=ffdfbf"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Bella&mouth=smile,laughing&backgroundColor=ffdfbf"
-                            style="width: 100%; display: block;" alt="Wanita 1">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Aneka&mouth=smile,laughing&backgroundColor=b6e3f4"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Aneka&mouth=smile,laughing&backgroundColor=b6e3f4"
-                            style="width: 100%; display: block;" alt="Wanita 2">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Mia&mouth=smile,laughing&backgroundColor=c0aede"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Mia&mouth=smile,laughing&backgroundColor=c0aede"
-                            style="width: 100%; display: block;" alt="Wanita 3">
-                    </div>
-                    <div class="avatar-option"
-                        data-url="https://api.dicebear.com/9.x/micah/svg?seed=Lucy&mouth=smile,laughing&backgroundColor=d1d4f9"
-                        style="cursor: pointer; border: 3px solid transparent; border-radius: 50%; overflow: hidden; transition: 0.2s;">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Lucy&mouth=smile,laughing&backgroundColor=d1d4f9"
-                            style="width: 100%; display: block;" alt="Wanita 4">
-                    </div>
+                    <!-- Avatar akan di-RENDER DINAMIS oleh globals.js: window.renderAvatarPicker() -->
                 </div>
 
                 <input type="hidden" id="selectedAvatarUrl"
-                    value="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4">
+                    value="">
 
                 <button id="authBtnSaveAvatar"
                     style="width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer;">Simpan
@@ -2535,41 +2774,16 @@
                 </div>
             </div>
 
-            <!-- Image Lightbox Modal Preview -->
-            <div id="imageLightboxModal" onclick="closeImageLightbox()"
-                style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 99999999 !important; background: rgba(15, 23, 42, 0.9) !important; backdrop-filter: blur(12px) !important; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; cursor: pointer; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;">
-
-                <div style="position: relative; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; align-items: center; cursor: default;"
-                    onclick="event.stopPropagation()">
-                    <!-- Wrapper Gambar dengan tombol X di dalam -->
-                    <div
-                        style="position: relative; display: inline-block; max-width: 100%; max-height: 75vh; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.6); border: 3px solid #ffffff;">
-                        <!-- Close Button Inside Wrapper -->
-                        <button onclick="closeImageLightbox()" title="Tutup Preview"
-                            style="position: absolute; top: 12px; right: 12px; z-index: 10; background: rgba(15, 23, 42, 0.8); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); width: 38px; height: 38px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s;"
-                            onmouseover="this.style.transform='scale(1.1)'"
-                            onmouseout="this.style.transform='scale(1)'">
-                            <i class="fas fa-times"></i>
-                        </button>
-
-                        <!-- Lightbox Image -->
-                        <img id="lightboxImageSrc" src="" alt="Detail Gambar Peta"
-                            style="max-width: 100%; max-height: 75vh; object-fit: contain; background: #0f172a; display: block;">
-                    </div>
-
-                    <!-- Badge Caption -->
-                    <div id="lightboxCaptionTitle"
-                        style="margin-top: 16px; color: #ffffff; font-weight: 700; font-size: 1rem; font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.2); padding: 8px 24px; border-radius: 24px; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.3);">
-                        <i class="fas fa-search-plus" style="color: #00AA5B;"></i>
-                        <span id="lightboxTitleText">Detail Gambar</span>
-                    </div>
-                </div>
-            </div>
-
             <div id="pageTransitionOverlay"></div>
 
+            <!-- CATATAN: #imageLightboxModal TIDAK ADA HARDCODED DI SINI.
+                 Sekarang modal DIBUAT DINAMIS SETIAP KALI DIBUTUHKAN oleh openImageLightbox() di script.js
+                 dan DIHAPUS TOTAL FISIK DARI DOM saat closeImageLightbox().
+                 Ini menjamin 100% TIDAK ADA sisa state / inline style / listener / overlay tertinggal.
+                 Pattern = Nuclear Destroy & Recreate (paling aman di dunia)! -->
+
             <!-- SCRIPT LOADING ORDER (PENTING: URUTAN INI HARUS TEPAT) -->
-            <!-- 1. Core UI, Navigation, Global Vars, UMKM Data Fetch -->
+            <!-- 1. Core UI, Navigation, Global Vars, UMKM Data Fetch (SUDAH include globals & state) -->
             <script src="script.js"></script>
             <!-- 2. UMKM Grid Renderer & Store Detail -->
             <script src="promo.js"></script>
@@ -2577,7 +2791,13 @@
             <script src="auth.js"></script>
             <!-- 4. Auth Engine (Login/Register Modal UI, Google OAuth) -->
             <script src="auth_engine.js"></script>
-            <!-- 5. Admin CMS (hanya untuk fitur admin) -->
+            <!-- 5. Halaman Tentang (Profil Desa) - Animasi statistik & tipografi hero -->
+            <script src="tentang.js"></script>
+            <!-- 6. Halaman Pusat Bantuan - FAQ toggle & Form Email Admin -->
+            <script src="bantuan.js"></script>
+            <!-- 7. Admin CMS Loader - Load saved CMS data dari Firebase/LocalStorage -->
+            <script src="admin_loader.js"></script>
+            <!-- 8. Admin CMS (hanya untuk fitur admin) - harus setelah loader -->
             <script src="admin_cms.js"></script>
 </body>
 

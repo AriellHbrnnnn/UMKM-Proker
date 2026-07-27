@@ -95,6 +95,7 @@ document.addEventListener('click', function (e) {
 const DATABASE_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/umkmData.json";
 // Listener untuk menerima data dari iframe editor (jika file:/// memblokir localStorage)
 window.addEventListener('message', (e) => {
+    if (e.origin !== window.location.origin) return;
     if (e.data && e.data.type === 'cms_save') {
         localStorage.setItem(e.data.key, e.data.value);
     }
@@ -456,6 +457,7 @@ function renderProdImagePreviews(joinedImages) {
 
         const img = document.createElement('img');
         img.src = imgBase64;
+        img.alt = 'Preview gambar produk';
         img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:6px; border:1px solid #ddd;';
 
         const delBtn = document.createElement('button');
@@ -1155,35 +1157,84 @@ function updateDashboardStats() {
     });
 })();
 
-// --- ADMIN SECURITY & ENCRYPTED CREDENTIALS ENGINE (REALTIME FIREBASE SYNC) ---
+// --- ADMIN SECURITY & HASHED CREDENTIALS ENGINE (REALTIME FIREBASE SYNC) ---
 const DEFAULT_ADMIN_USER = "padukuhankaranganyar";
-const DEFAULT_ADMIN_PASS = "Admin2026";
-const DEV_MASTER_PASS = "devKaranganyar2026#"; // Kata Sandi Pengembang (Developer Master Key)
+const DEFAULT_ADMIN_EMAIL = "admin.karanganyar@gmail.com";
+const DEFAULT_ADMIN_PASS_HASH = "f18fef9fd23a8d4381ce117562d867f69d16df93d2d2404cc1db0a39f73dd26f"; // SHA-256("Admin2026")
 const ADMIN_CREDENTIALS_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/admin_credentials.json";
 
-async function getStoredAdminCredentials() {
-    let creds = { user: DEFAULT_ADMIN_USER, pass: DEFAULT_ADMIN_PASS, email: "admin.karanganyar@gmail.com" };
-    const stored = localStorage.getItem('umkm_admin_creds');
-    if (stored) {
-        try { creds = JSON.parse(stored); } catch (e) { }
-    }
-
-    try {
-        const response = await fetch(ADMIN_CREDENTIALS_URL);
-        const data = await response.json();
-        if (data && data.user && data.pass) {
-            creds = data;
-            localStorage.setItem('umkm_admin_creds', JSON.stringify(creds));
-        }
-    } catch (e) {
-        console.warn("Menggunakan kredensial lokal admin:", e);
-    }
-    return creds;
+async function sha256Hex(value) {
+    const data = new TextEncoder().encode(String(value || ''));
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function saveAdminCredentials(user, pass, email) {
-    const creds = { user, pass, email: email || "admin.karanganyar@gmail.com", updatedAt: new Date().toISOString() };
-    localStorage.setItem('umkm_admin_creds', JSON.stringify(creds));
+async function normalizeAdminCredentials(rawData) {
+    const fallback = {
+        user: DEFAULT_ADMIN_USER,
+        passHash: DEFAULT_ADMIN_PASS_HASH,
+        email: DEFAULT_ADMIN_EMAIL,
+        updatedAt: null,
+        version: 2
+    };
+
+    if (!rawData || typeof rawData !== 'object') return fallback;
+
+    const normalized = {
+        user: String(rawData.user || fallback.user),
+        passHash: '',
+        email: String(rawData.email || fallback.email),
+        updatedAt: rawData.updatedAt || null,
+        version: rawData.version || 2
+    };
+
+    if (rawData.passHash) {
+        normalized.passHash = String(rawData.passHash);
+        return normalized;
+    }
+
+    // Migrasi otomatis dari password plaintext lama ke hash
+    if (rawData.pass) {
+        normalized.passHash = await sha256Hex(String(rawData.pass));
+        return normalized;
+    }
+
+    return fallback;
+}
+
+async function getStoredAdminCredentials() {
+    try {
+        const response = await fetch(ADMIN_CREDENTIALS_URL, { cache: 'no-store' });
+        const data = await response.json();
+        const creds = await normalizeAdminCredentials(data);
+
+        // Upgrade record lama yang masih plaintext menjadi hash
+        if (data && data.pass && !data.passHash) {
+            await saveAdminCredentials(creds.user, null, creds.email, creds.passHash);
+        }
+
+        return creds;
+    } catch (e) {
+        console.warn("Gagal memuat kredensial admin dari Firebase, gunakan fallback aman:", e);
+        return {
+            user: DEFAULT_ADMIN_USER,
+            passHash: DEFAULT_ADMIN_PASS_HASH,
+            email: DEFAULT_ADMIN_EMAIL,
+            updatedAt: null,
+            version: 2
+        };
+    }
+}
+
+async function saveAdminCredentials(user, plainPass, email, passHashOverride) {
+    const nextPassHash = passHashOverride || await sha256Hex(plainPass);
+    const creds = {
+        user: String(user || DEFAULT_ADMIN_USER).trim(),
+        passHash: nextPassHash,
+        email: email || DEFAULT_ADMIN_EMAIL,
+        updatedAt: new Date().toISOString(),
+        version: 2
+    };
     try {
         await fetch(ADMIN_CREDENTIALS_URL, {
             method: 'PUT',
@@ -1196,13 +1247,24 @@ async function saveAdminCredentials(user, pass, email) {
 }
 
 function isSessionLocked() {
-    const token = localStorage.getItem('umkm_admin_session_token');
+    const token = sessionStorage.getItem('umkm_admin_session_token');
     const sessionLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
     return !token || !sessionLoggedIn;
 }
 
+window.refreshProfilDesaEditorIframe = function () {
+    const ok = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
+    if (!ok) return;
+    const aboutIframe = document.querySelector('#tentangTab iframe');
+    if (!aboutIframe) return;
+    try {
+        const baseSrc = '../index.html?mode=admin';
+        aboutIframe.src = baseSrc + '&ts=' + Date.now();
+    } catch (_) { }
+};
+
 window.handleLogoutAdmin = function () {
-    localStorage.removeItem('umkm_admin_session_token');
+    sessionStorage.removeItem('umkm_admin_session_token');
     sessionStorage.removeItem('isAdminLoggedIn');
     window.location.replace('../index.html#tentang');
 };
@@ -1226,6 +1288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         if (loginOverlay) loginOverlay.classList.add('hidden');
         if (mainAdminContainer) mainAdminContainer.classList.remove('hidden');
+        if (typeof window.refreshProfilDesaEditorIframe === 'function') window.refreshProfilDesaEditorIframe();
     }
 
     // Pre-fetch live admin credentials from Firebase
@@ -1238,18 +1301,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const inputUser = document.getElementById('loginUser').value.trim();
             const inputPass = document.getElementById('loginPass').value.trim();
             const currentCreds = await getStoredAdminCredentials();
+            const inputPassHash = await sha256Hex(inputPass);
 
-            // 1. Password Pengembang (Developer Master Key) -> Berhasil Login Otomatis
-            const isDeveloperMasterLogin = (inputPass === DEV_MASTER_PASS || inputPass === 'devAdmin2026!');
-            
-            // 2. Password Utama Admin (Tersimpan di Firebase DB)
-            // HANYA izinkan username sesuai yang TERBARU tersimpan (DEFAULT_ADMIN_USER TIDAK BOLEH dipakai setelah diganti)
+            // HANYA izinkan username sesuai yang tersimpan terbaru di Firebase
             const isAdminUserMatch = (inputUser.toLowerCase() === currentCreds.user.toLowerCase());
-            const isAdminPassMatch = (inputPass === currentCreds.pass);
+            const isAdminPassMatch = (inputPassHash === currentCreds.passHash);
 
-            if ((isAdminUserMatch && isAdminPassMatch) || isDeveloperMasterLogin) {
+            if (isAdminUserMatch && isAdminPassMatch) {
                 const token = 'admin_token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('umkm_admin_session_token', token);
+                sessionStorage.setItem('umkm_admin_session_token', token);
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
 
                 if (loginError) loginError.classList.add('hidden');
@@ -1263,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }, 420);
                 }
                 if (mainAdminContainer) mainAdminContainer.classList.remove('hidden');
+                if (typeof window.refreshProfilDesaEditorIframe === 'function') window.refreshProfilDesaEditorIframe();
                 // Re-trigger layout untuk menghindari bug render
                 setTimeout(() => window.dispatchEvent(new Event('resize')), 450);
             } else {
@@ -1303,9 +1364,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const oldPassVal = document.getElementById('settingOldPass').value.trim();
             const newPassVal = document.getElementById('settingNewPass').value.trim();
             const confirmPassVal = document.getElementById('settingConfirmPass').value.trim();
+            const oldPassHash = await sha256Hex(oldPassVal);
 
-            // Memverifikasi password lama (Bisa Password Admin Saat Ini ATAU Password Master Pengembang)
-            if (oldPassVal !== currentCreds.pass && oldPassVal !== DEV_MASTER_PASS && oldPassVal !== 'devAdmin2026!') {
+            // Verifikasi password lama terhadap hash yang tersimpan
+            if (oldPassHash !== currentCreds.passHash) {
                 await showAdminNotification({
                     type: 'error',
                     title: 'Password Lama Salah',
@@ -1333,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const submitBtn = adminCredsForm.querySelector('button[type="submit"]');
             if (submitBtn) submitBtn.disabled = true;
 
-            await saveAdminCredentials(userVal, newPassVal, currentCreds.email || "admin.karanganyar@gmail.com");
+            await saveAdminCredentials(userVal, newPassVal, currentCreds.email || DEFAULT_ADMIN_EMAIL);
             await showAdminNotification({
                 type: 'success',
                 title: 'Kredensial Berhasil Diperbarui!',
@@ -1429,20 +1491,21 @@ window.renderUserManagementTable = async function (searchQuery = '') {
         const tr = document.createElement('tr');
         const isGoogleUser = u.isGoogle === true || u.providerId === 'google.com' || u.email === 'kelsinkipors@gmail.com' || u.email === 'arielhebronjuntak@gmail.com';
         const avatarUrl = u.photoURL || ('https://api.dicebear.com/7.x/micah/svg?seed=' + encodeURIComponent(u.email || u.uid));
+        const safeAvatarUrl = /^https?:\/\//i.test(String(avatarUrl || '')) ? avatarUrl : ('https://api.dicebear.com/7.x/micah/svg?seed=' + encodeURIComponent(u.email || u.uid));
 
         const methodBadge = isGoogleUser ?
             '<span style="background:#fef3c7; color:#d97706; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;"><i class="fab fa-google"></i> Google</span>' :
             '<span style="background:#f0fdf4; color:#16a34a; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;"><i class="fas fa-envelope"></i> Manual</span>';
 
         tr.innerHTML = `
-            <td><img src="${avatarUrl}" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1px solid #e2e8f0;"></td>
-            <td><b>${u.displayName || u.username || 'Pengguna'}</b></td>
-            <td>${u.email || '-'}</td>
+            <td><img src="${safeAvatarUrl}" alt="Foto pengguna ${sanitizeHTML(u.displayName || u.username || 'Pengguna')}" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1px solid #e2e8f0;"></td>
+            <td><b>${sanitizeHTML(u.displayName || u.username || 'Pengguna')}</b></td>
+            <td>${sanitizeHTML(u.email || '-')}</td>
             <td>${methodBadge}</td>
             <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID') : 'Terdaftar'}</td>
             <td><span style="color:#16a34a; font-weight:700; font-size:0.85rem;"><i class="fas fa-check-circle"></i> Aktif</span></td>
             <td>
-                <button type="button" class="btn-show-detail" data-userid="${u.uid || u.email}" style="background:#e0f2fe; color:#0284c7; border:1px solid #7dd3fc; padding:6px 16px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.82rem; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s ease;">
+                <button type="button" class="btn-show-detail" data-userid="${sanitizeHTML(u.uid || u.email)}" style="background:#e0f2fe; color:#0284c7; border:1px solid #7dd3fc; padding:6px 16px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.82rem; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s ease;">
                     <i class="fas fa-eye"></i> Detail
                 </button>
             </td>
@@ -1526,6 +1589,10 @@ window.switchAdminTab = function(tabId) {
     const activeNav = document.getElementById('nav' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
     if (activePane) activePane.classList.remove('hidden');
     if (activeNav) activeNav.classList.add('active');
+
+    if (tabId === 'tentang' && typeof window.refreshProfilDesaEditorIframe === 'function') {
+        window.refreshProfilDesaEditorIframe();
+    }
 
     // Trigger tab specific fetches
     if (tabId === 'berita' && typeof window.fetchBeritaData === 'function') {
@@ -1836,4 +1903,3 @@ document.addEventListener('DOMContentLoaded', () => {
         window.fetchBeritaData();
     }
 });
-

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================
+     SITEMAP.XML - Padukuhan Karanganyar Website Resmi
+     Untuk di-submit ke Google Search Console
+     Format: Sitemap protocol 0.9 sesuai standar sitemaps.org
+     ============================================================ -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ================ HALAMAN UTAMA / PRIORITAS TINGGI ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#tentang</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.00</priority>
+    <xhtml:link rel="alternate" hreflang="id-ID" href="https://padukuhan-karanganyar.netlify.app/#tentang"/>
+  </url>
+
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- ================ PROMO DESA & UMKM ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#promo</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- ================ BERITA DESA ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#berita</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- ================ PUSAT BANTUAN ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#bantuan</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#faq</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+  </url>
+
+  <!-- ================ HALAMAN HUKUM ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#terms</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#privacy</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+
+  <!-- ================ HALAMAN PENGGUNA TERDAFTAR ================ -->
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#profil</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.50</priority>
+  </url>
+
+  <url>
+    <loc>https://padukuhan-karanganyar.netlify.app/#keranjang</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.30</priority>
+  </url>
+
+</urlset>

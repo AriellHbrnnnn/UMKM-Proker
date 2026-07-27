@@ -1,0 +1,29 @@
+# ============================================================
+# ROBOTS.TXT - Padukuhan Karanganyar Website Resmi
+# Memandu crawler Google, Bing, dan search engine lain
+# ============================================================
+
+# Izinkan SEMUA User-Agent (bot search engine)
+User-agent: *
+
+# Izinkan SEMUA halaman di-crawl (tidak ada yang disembunyikan)
+Allow: /
+
+# ============================================================
+# Kotak pasir / halaman yang TIDAK perlu diindex (opsional)
+# ============================================================
+# Biasanya admin panel di folder /admin/ - jangan di-index Google
+Disallow: /admin/
+
+# Halaman autentikasi tidak perlu diindeks
+# (komentari jika website Anda adalah SPA tanpa folder ini)
+# Disallow: /auth.html
+
+# ============================================================
+# LOKASI SITEMAP.XML
+# Ganti domain jika domain deploy Anda berbeda!
+# ============================================================
+Sitemap: https://padukuhan-karanganyar.netlify.app/sitemap.xml
+# Alternatif domain jika Anda pakai domain lain:
+# Sitemap: https://desakaranganyar.id/sitemap.xml
+# Sitemap: https://karanganyar-umkm.vercel.app/sitemap.xml

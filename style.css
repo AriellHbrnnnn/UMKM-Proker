@@ -2788,6 +2788,10 @@ body.hide-auth-buttons #userProfileContainer {
 /* Disable background dark overlay on desktop */
 .profile-dropdown-overlay {
     display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    background: transparent !important;
 }
 
 .header, .main-header, #userProfileContainer {
@@ -2846,17 +2850,77 @@ body.hide-auth-buttons #userProfileContainer {
         right: 15px !important;
         left: 15px !important;
         width: auto !important;
-        max-width: 350px !important;
+        max-width: min(380px, calc(100vw - 30px)) !important;
         margin: 0 auto !important;
         flex-direction: column !important;
         gap: 12px !important;
         padding: 16px !important;
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
         border-radius: 16px !important;
+        max-height: calc(100vh - 90px) !important;
+        overflow-y: auto !important;
     }
     #profileDropdown > div {
         width: 100% !important;
         flex: none !important;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+    #userProfileBtnHeader {
+        min-height: 40px;
+        padding: 6px 8px;
+        border-radius: 999px;
+        position: relative;
+        z-index: 100002;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    #userProfileBtnHeader #userNameDisplay {
+        max-width: 72px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+    }
+
+    .profile-dropdown-container,
+    #profileDropdown {
+        position: fixed !important;
+        top: 72px !important;
+        right: 16px !important;
+        left: auto !important;
+        width: min(420px, calc(100vw - 32px)) !important;
+        max-width: calc(100vw - 32px) !important;
+        max-height: calc(100vh - 96px) !important;
+        overflow-y: auto !important;
+        flex-direction: row !important;
+        align-items: stretch !important;
+        gap: 16px !important;
+        padding: 16px !important;
+        border-radius: 16px !important;
+        transform: translateY(8px) scale(0.98) !important;
+    }
+
+    #userProfileContainer:hover #profileDropdown,
+    #profileDropdown:hover {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateY(8px) scale(0.98) !important;
+    }
+
+    #profileDropdown.show {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateY(0) scale(1) !important;
+    }
+
+    #profileDropdown > div {
+        width: auto !important;
+        flex: 1 1 0 !important;
     }
 }
 
@@ -6011,6 +6075,184 @@ body[data-theme="dark"] .km-row-content p {
     }
 }
 
+@media (max-width: 480px) {
+    html,
+    body,
+    main,
+    #homePage,
+    #tentangPage {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .container {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+
+    .main-header {
+        padding: 10px 12px !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        min-width: 0;
+    }
+
+    .logo {
+        min-width: 0;
+        flex: 1 1 auto;
+        gap: 4px;
+        font-size: 0.95rem !important;
+        overflow: hidden;
+    }
+
+    .logo span {
+        display: inline-block;
+        max-width: 170px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .header-actions {
+        gap: 8px !important;
+        margin-left: auto !important;
+        flex-shrink: 0;
+    }
+
+    #userNameDisplay,
+    #userProfileBtnHeader i {
+        display: none !important;
+    }
+
+    #userProfileBtnHeader {
+        gap: 0 !important;
+        padding: 0 !important;
+        min-height: auto !important;
+    }
+
+    .auth-buttons {
+        gap: 4px !important;
+    }
+
+    .btn-masuk,
+    .btn-daftar {
+        padding: 6px 8px !important;
+        font-size: 0.72rem !important;
+    }
+
+    .hero-banner {
+        margin-bottom: 20px;
+    }
+
+    .slider-container {
+        height: min(68vh, 560px);
+    }
+
+    .slide {
+        padding: 24px 16px !important;
+        padding-top: 110px !important;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .banner-content {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .banner-content h2 {
+        font-size: clamp(2rem, 10vw, 2.6rem);
+        line-height: 1.08;
+        margin-bottom: 12px;
+    }
+
+    .banner-content p {
+        font-size: 0.92rem;
+        max-width: 100%;
+        margin: 0 auto 18px;
+    }
+
+    .slider-arrow {
+        display: none !important;
+    }
+
+    .slider-dots {
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+    }
+
+    .categories-section {
+        padding: 16px;
+    }
+
+    .section-title {
+        font-size: 1.05rem;
+    }
+
+    .category-grid {
+        justify-content: space-between;
+        gap: 12px 8px;
+    }
+
+    .category-item {
+        width: calc(33.333% - 8px);
+        min-width: 92px;
+    }
+
+    .cat-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.25rem;
+    }
+
+    .category-item span {
+        font-size: 0.78rem;
+    }
+
+    .umkm-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .umkm-name {
+        font-size: 0.92rem;
+    }
+
+    .umkm-desc {
+        font-size: 0.76rem;
+    }
+
+    #profileDropdown {
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: calc(100vw - 20px) !important;
+        top: 62px !important;
+    }
+
+    footer {
+        padding-top: 28px;
+        padding-bottom: 28px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .footer-col h4 {
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+    }
+
+    .footer-col a {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+    }
+}
+
 /* --- CMS WATER MAP & GALLERY PRECISE LAYOUT --- */
 .water-map-card {
     background: #ffffff;
@@ -6332,4 +6574,823 @@ body.berita-mode.berita-detail-open .berita-detail {
     margin: 0 auto 28px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
+
+/* ============================================================
+   CMS IMAGE LIGHTBOX POPUP (Peta Wilayah / Peta Sumber Air / Galeri)
+   - Responsive: Desktop center full-size, Mobile full-screen
+   ============================================================ */
+body.cms-lightbox-open {
+    overflow: hidden !important;
+}
+
+.cms-lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(3, 7, 18, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 16px;
+    box-sizing: border-box;
+    animation: lbxFadeIn 0.22s ease-out;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.cms-lightbox-overlay.hidden {
+    display: none !important;
+}
+
+@keyframes lbxFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes lbxFadeScale {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.cms-lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: 300;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+}
+.cms-lightbox-close:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    transform: rotate(90deg) scale(1.05);
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+}
+
+.cms-lightbox-stage {
+    max-width: min(96vw, 1280px);
+    max-height: 90vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    animation: lbxFadeScale 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cms-lightbox-img {
+    max-width: 100%;
+    max-height: calc(90vh - 90px);
+    width: auto;
+    height: auto;
+    border-radius: 14px;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+    object-fit: contain;
+    background: rgba(255,255,255,0.03);
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.cms-lightbox-caption {
+    color: #f1f5f9;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.2px;
+    padding: 10px 22px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 999px;
+    text-align: center;
+    max-width: 92vw;
+    box-sizing: border-box;
+}
+
+/* ---- Mobile Lightbox (Fullscreen no gap, close top kiri atas) ---- */
+@media (max-width: 640px) {
+    .cms-lightbox-overlay {
+        padding: 0;
+    }
+    .cms-lightbox-close {
+        top: 14px;
+        right: 14px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+        background: rgba(0,0,0,0.4);
+    }
+    .cms-lightbox-stage {
+        max-width: 100%;
+        max-height: 100vh;
+        gap: 10px;
+    }
+    .cms-lightbox-img {
+        max-height: calc(100vh - 120px);
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .cms-lightbox-caption {
+        font-size: 0.85rem;
+        padding: 8px 16px;
+        border-radius: 14px;
+        margin-bottom: 14px;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE YOUTUBE / IFRAME WRAPPER (16:9 aspect ratio)
+   Fix Video Profil tidak bisa diputar / tampil salah di mobile
+   ============================================================ */
+.tkp-video-wrapper,
+#cmsVideoWrapper,
+.cms-video-responsive-wrap {
+    position: relative !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 auto;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    background: #0f172a;
+    /* ⭐⭐⭐ PENTING UNTUK MOBILE: Pastikan wrapper tidak menghalangi event tap ke iframe */
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    isolation: isolate;
+    z-index: 1;
+}
+
+.tkp-video-wrapper iframe,
+#cmsVideoWrapper iframe,
+#cmsYoutubeIframe,
+.cms-video-responsive-wrap iframe {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    display: block !important;
+    aspect-ratio: unset !important;
+    min-height: unset !important;
+    max-width: 100% !important;
+    /* ⭐⭐⭐ PENTING UNTUK MOBILE CLICK-ABILITY:
+       iframe harus PALING ATAS, pointer events aktif, touch-action biarkan browser
+       handle native pinch & scroll. */
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    z-index: 2 !important;
+    background: #000 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Mobile kecil: height minimal 220px agar mudah tap play */
+@media (max-width: 480px) {
+    .tkp-video-wrapper,
+    #cmsVideoWrapper,
+    .cms-video-responsive-wrap {
+        min-height: 220px !important;
+        border-radius: 14px;
+        /* ⭐ Di mobile, tambahkan sedikit padding-top virtual agar iframe
+           tidak overlap dengan safe area notch iOS */
+        padding-top: 0 !important;
+    }
+
+    .tkp-video-wrapper iframe,
+    #cmsVideoWrapper iframe,
+    #cmsYoutubeIframe,
+    .cms-video-responsive-wrap iframe {
+        /* iOS Safari membutuhkan min-height pada iframe agar bisa menerima tap */
+        min-height: 220px !important;
+        height: 100% !important;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+}
+
+/* ⭐ Safety: Mobile landscape / iPad: overflow visible tambahan untuk iframe tap */
+@media (max-width: 900px) and (orientation: landscape) {
+    #cmsVideoWrapper,
+    .tkp-video-wrapper {
+        min-height: 260px !important;
+    }
+}
+
+/* ============================================================
+   TKP MAIN IMAGE LIGHTBOX (#imageLightboxModal)
+   (Peta Wilayah, Peta Sumber Air, 6 Galeri Ruang Kerja & Kegiatan)
+   - Responsive: Desktop center with card, Mobile fullscreen
+   ============================================================ */
+/* ✅ Pattern TERAKHIR: TIDAK ADA LOCK OVERFLOW SAMA SEKALI!
+   Modal lightbox position:fixed + z-index tinggi menutupi layar penuh.
+   Tidak perlu overflow hidden sama sekali → RISIKO STUCK = 0%.
+   Tidak ada preventDefault di window level → scroll normal 100% setiap saat. */
+body.tkp-lightbox-open {
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tkp-lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: radial-gradient(circle at center,
+                rgba(3, 7, 18, 0.88) 0%,
+                rgba(3, 7, 18, 0.97) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 22px;
+    box-sizing: border-box;
+    animation: tkpLbxFade 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tkp-lightbox-overlay.hidden {
+    display: none !important;
+}
+
+@keyframes tkpLbxFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes tkpLbxPop {
+    0%   { opacity: 0; transform: translateY(18px) scale(0.94); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tkp-lightbox-stage {
+    position: relative;
+    max-width: min(96vw, 1400px);
+    max-height: 92vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: tkpLbxPop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tkp-lightbox-close {
+    position: absolute;
+    top: -12px;
+    right: -6px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(239, 68, 68, 0.92);
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.35);
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.2s ease,
+                border-color 0.2s ease;
+    backdrop-filter: blur(6px);
+}
+.tkp-lightbox-close:hover {
+    transform: rotate(90deg) scale(1.1);
+    background: #dc2626;
+    border-color: #fff;
+}
+
+.tkp-lightbox-img-wrap {
+    width: 100%;
+    max-height: calc(92vh - 110px);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow:
+        0 40px 100px -20px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tkp-lightbox-img {
+    max-width: 100%;
+    max-height: calc(92vh - 110px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    background:
+        linear-gradient(45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e293b 75%),
+        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, 10px 0px;
+    background-color: #0f172a;
+}
+
+.tkp-lightbox-pdf {
+    width: min(92vw, 1100px);
+    height: calc(92vh - 110px);
+    border: none;
+    border-radius: 22px;
+    background: #ffffff;
+    display: block;
+}
+
+.tkp-lightbox-img-wrap.is-pdf {
+    padding: 0;
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.tkp-lightbox-caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    color: #f8fafc;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 0.98rem;
+    letter-spacing: 0.15px;
+    background: rgba(46, 125, 50, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 25px rgba(46, 125, 50, 0.35),
+                0 0 0 1px rgba(255,255,255,0.06);
+    max-width: 95vw;
+    box-sizing: border-box;
+    text-align: center;
+    line-height: 1.4;
+}
+.tkp-lightbox-cap-icon {
+    font-size: 1rem;
+    opacity: 0.95;
+}
+
+.tkp-lightbox-pdf-link {
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.tkp-lightbox-pdf-link:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* ==================== MOBILE (max 640px): Fullscreen immersive ==================== */
+@media (max-width: 640px) {
+    .tkp-lightbox-overlay {
+        padding: 0;
+        flex-direction: column;
+    }
+
+    .tkp-lightbox-stage {
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        justify-content: space-between;
+        gap: 0;
+    }
+
+    .tkp-lightbox-close {
+        top: 12px;
+        right: 12px;
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+        position: fixed;
+        background: rgba(0,0,0,0.55);
+        border-color: rgba(255,255,255,0.3);
+    }
+    .tkp-lightbox-close:hover {
+        transform: none;
+        background: rgba(239, 68, 68, 0.9);
+    }
+
+    .tkp-lightbox-img-wrap {
+        border-radius: 0;
+        max-height: calc(100vh - 90px);
+        height: calc(100vh - 90px);
+        width: 100vw;
+        box-shadow: none;
+        border: none;
+    }
+    .tkp-lightbox-img {
+        max-height: calc(100vh - 90px);
+        max-width: 100vw;
+        border-radius: 0;
+    }
+
+    .tkp-lightbox-pdf {
+        width: 100vw;
+        height: calc(100vh - 90px);
+        border-radius: 0;
+    }
+
+    .tkp-lightbox-caption {
+        position: fixed;
+        bottom: 18px;
+        left: 10px;
+        right: 10px;
+        margin: 0 auto;
+        max-width: calc(100vw - 20px);
+        font-size: 0.88rem;
+        padding: 10px 16px;
+        border-radius: 14px;
+    }
+}
+
+/* =========================================================
+   DARK MODE OVERHAUL - FIX HEADER TRANSPARENCY + TENTANG PAGE
+   ========================================================= */
+
+/* === KRITIS: Header transparan di Dark Mode (saat scrollY <= 30) ===
+   Specificity tinggi agar menang melawan `body[data-theme="dark"] header`
+   yang sebelumnya selalu memaksa background hitam solid. */
+body[data-theme="dark"] .header.transparent-mode,
+body[data-theme="device"] .header.transparent-mode {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: none !important;
+}
+body[data-theme="dark"] .header.transparent-mode .topbar,
+body[data-theme="device"] .header.transparent-mode .topbar {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+body[data-theme="dark"] .header.transparent-mode .topbar-links a,
+body[data-theme="device"] .header.transparent-mode .topbar-links a {
+    color: rgba(255,255,255,0.92) !important;
+}
+body[data-theme="dark"] .header.transparent-mode .nav-links a,
+body[data-theme="device"] .header.transparent-mode .nav-links a {
+    color: rgba(255,255,255,0.92) !important;
+}
+
+/* Header SOLID (setelah di-scroll >= 50px) di Dark Mode */
+body[data-theme="dark"] .header:not(.transparent-mode),
+body[data-theme="dark"] .header:not(.transparent-mode) .header-main,
+body[data-theme="dark"] .header:not(.transparent-mode) .header-top {
+    background: #151515 !important;
+    border-bottom: 1px solid #2a2a2a !important;
+}
+body[data-theme="dark"] .header:not(.transparent-mode) .topbar {
+    background: #151515 !important;
+    border-bottom: 1px solid #2a2a2a !important;
+    color: #bbb !important;
+}
+body[data-theme="dark"] .header:not(.transparent-mode) .topbar-links a,
+body[data-theme="dark"] .header:not(.transparent-mode) .nav-links a {
+    color: #bbb !important;
+}
+body[data-theme="dark"] .header:not(.transparent-mode) .topbar-links a:hover,
+body[data-theme="dark"] .header:not(.transparent-mode) .nav-links a:hover {
+    color: #4cca78 !important;
+}
+body[data-theme="dark"] .header:not(.transparent-mode) .header-logo,
+body[data-theme="dark"] .header:not(.transparent-mode) .logo {
+    color: #4cca78 !important;
+}
+body[data-theme="dark"] .header:not(.transparent-mode) .logo span {
+    color: #e0e0e0 !important;
+}
+
+/* === TENTANG PAGE: Section backgrounds === */
+body[data-theme="dark"] .tkp-section {
+    background: #151515 !important;
+    color: #e0e0e0;
+}
+body[data-theme="dark"] .tkp-section:nth-child(even),
+body[data-theme="dark"] .tkp-section[style*="background: white"],
+body[data-theme="dark"] .tkp-section[style*="background: #fff"],
+body[data-theme="dark"] .tkp-section[style*="background: var(--surface)"] {
+    background: #1a1a1a !important;
+}
+
+/* === Hero Section Overlay === */
+body[data-theme="dark"] .tkp-hero-overlay {
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.65) 100%) !important;
+}
+body[data-theme="dark"] .typewriter-title,
+body[data-theme="dark"] .tkp-hero-content h1 {
+    color: #4cca78 !important;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.75) !important;
+}
+
+/* === Challenge / Tantangan Section === */
+body[data-theme="dark"] .tkp-challenge {
+    background: #1a1a1a !important;
+}
+body[data-theme="dark"] .tkp-section-title {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .tkp-section-desc,
+body[data-theme="dark"] .tkp-section-sub {
+    color: #b5b5b5 !important;
+}
+
+/* === Map Card (Peta Wilayah) === */
+body[data-theme="dark"] .tkp-map-card,
+body[data-theme="dark"] .tkp-map-container,
+body[data-theme="dark"] .tkp-map-inner {
+    background: #222 !important;
+    border-color: #333 !important;
+}
+body[data-theme="dark"] .tkp-map-switcher {
+    background: #2a2a2a !important;
+    border-color: #3a3a3a !important;
+}
+body[data-theme="dark"] .tkp-map-switch {
+    color: #aaa !important;
+}
+body[data-theme="dark"] .tkp-map-switch.active {
+    background: #1a3a2a !important;
+    color: #4cca78 !important;
+}
+body[data-theme="dark"] .tkp-map-side {
+    background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+}
+body[data-theme="dark"] .tkp-map-side-label {
+    color: #94a3b8 !important;
+}
+
+/* === Sejarah / Misi Split Layout === */
+body[data-theme="dark"] .tkp-split-layout {
+    background: transparent !important;
+}
+body[data-theme="dark"] .tkp-mission-text,
+body[data-theme="dark"] .tkp-mission-text h2 {
+    color: #f0f0f0 !important;
+}
+body[data-theme="dark"] .tkp-mission-text p,
+body[data-theme="dark"] .tkp-collage-caption {
+    color: #b5b5b5 !important;
+}
+body[data-theme="dark"] .tkp-collage-img1,
+body[data-theme="dark"] .tkp-collage-img2,
+body[data-theme="dark"] .tkp-collage-img3,
+body[data-theme="dark"] .tkp-collage img {
+    border: 3px solid #333 !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.5) !important;
+}
+
+/* === Statistik Wilayah Card === */
+body[data-theme="dark"] .tkp-stats,
+body[data-theme="dark"] .tkp-stats-box {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important;
+}
+body[data-theme="dark"] .tkp-stats-left h2,
+body[data-theme="dark"] .tkp-stats-left .tkp-section-title {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .tkp-stats-left p,
+body[data-theme="dark"] .tkp-stats-desc {
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] .tkp-stat-card {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+body[data-theme="dark"] .tkp-stat-card .count-up,
+body[data-theme="dark"] .tkp-stat-card h3 {
+    color: #4cca78 !important;
+}
+body[data-theme="dark"] .tkp-stat-card p {
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] .tkp-stat-card:nth-child(even) {
+    background: #1e293b !important;
+}
+body[data-theme="dark"] .tkp-stat-accent-label {
+    color: #4cca78 !important;
+}
+body[data-theme="dark"] .tkp-stat-icon {
+    background: #1a3a2a !important;
+    color: #4cca78 !important;
+}
+
+/* === Batas / Wilayah Card === */
+body[data-theme="dark"] .batas-card,
+body[data-theme="dark"] .tkp-batas-box {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+body[data-theme="dark"] .batas-card h3,
+body[data-theme="dark"] .tkp-batas-box h3 {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .batas-direction {
+    color: #4cca78 !important;
+    background: #1a3a2a !important;
+}
+
+/* === PETA SEBARAN AIR CARD === */
+body[data-theme="dark"] .water-map-card {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
+}
+body[data-theme="dark"] .water-map-badge {
+    background: #1a3a3a !important;
+    color: #38bdf8 !important;
+    border: 1px solid #0e7490 !important;
+}
+body[data-theme="dark"] .water-map-title {
+    color: #f8fafc !important;
+}
+body[data-theme="dark"] .water-map-sub {
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] .water-map-container {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+}
+body[data-theme="dark"] .water-map-img-wrapper {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+body[data-theme="dark"] .water-map-legend {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+body[data-theme="dark"] .water-map-legend h4 {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .water-map-legend .legend-item {
+    color: #cbd5e1 !important;
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+body[data-theme="dark"] .water-map-legend-title {
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] .water-map-overlay-tag {
+    background: rgba(15, 23, 42, 0.92) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #334155 !important;
+}
+
+/* === TKP Features (Ekosistem Potensi) === */
+body[data-theme="dark"] .tkp-features {
+    background: #151515 !important;
+}
+body[data-theme="dark"] .tkp-features .tkp-section-title {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .tkp-feature-card {
+    background: #1e1e1e !important;
+    border-color: #333 !important;
+    color: #e0e0e0 !important;
+}
+body[data-theme="dark"] .tkp-feature-card h3 {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .tkp-feature-card p {
+    color: #aaa !important;
+}
+body[data-theme="dark"] .tkp-feature-icon {
+    background: #1a3a2a !important;
+    color: #4cca78 !important;
+    border-color: #2a5a3a !important;
+}
+
+/* === GALERI / DOKUMENTASI === */
+body[data-theme="dark"] .tkp-gallery,
+body[data-theme="dark"] .tkp-gallery .tkp-section {
+    background: #1a1a1a !important;
+}
+body[data-theme="dark"] .gallery-grid img,
+body[data-theme="dark"] .tkp-gallery-img-wrapper img {
+    border: 3px solid #333 !important;
+}
+body[data-theme="dark"] .gallery-caption {
+    color: #e0e0e0 !important;
+    background: rgba(0,0,0,0.7) !important;
+}
+
+/* === PUSAT BANTUAN (HELP PAGE) === */
+body[data-theme="dark"] .help-container,
+body[data-theme="dark"] .help-header h2,
+body[data-theme="dark"] .faq-section h3 {
+    color: #ffffff !important;
+}
+body[data-theme="dark"] .help-header p {
+    color: #aaa !important;
+}
+body[data-theme="dark"] .faq-item,
+body[data-theme="dark"] .faq-question {
+    background: #222 !important;
+    border-color: #333 !important;
+    color: #e0e0e0 !important;
+}
+body[data-theme="dark"] .faq-question {
+    background: #2a2a2a !important;
+}
+body[data-theme="dark"] .faq-question:hover {
+    background: #333 !important;
+}
+body[data-theme="dark"] .faq-answer {
+    background: #1e1e1e !important;
+    color: #bbb !important;
+    border-color: #333 !important;
+}
+body[data-theme="dark"] #emailContactAdminBox {
+    background: #1e1e1e !important;
+    border-color: #333 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+body[data-theme="dark"] #emailContactAdminBox h3,
+body[data-theme="dark"] #emailContactAdminBox label {
+    color: #f0f0f0 !important;
+}
+body[data-theme="dark"] #emailContactAdminBox input,
+body[data-theme="dark"] #emailContactAdminBox select,
+body[data-theme="dark"] #emailContactAdminBox textarea {
+    background: #2a2a2a !important;
+    border-color: #444 !important;
+    color: #e0e0e0 !important;
+}
+body[data-theme="dark"] #emailContactAdminBox input::placeholder,
+body[data-theme="dark"] #emailContactAdminBox textarea::placeholder {
+    color: #777 !important;
+}
+body[data-theme="dark"] #emailContactAdminBox p {
+    color: #999 !important;
+}
+body[data-theme="dark"] .contact-admin h3 {
+    color: #ffffff !important;
+}
+
+/* === DEVICE THEME (auto follow OS dark) — sinkronkan rule sama dark explicit === */
+@media (prefers-color-scheme: dark) {
+    body[data-theme="device"] .tkp-section { background: #151515 !important; color: #e0e0e0; }
+    body[data-theme="device"] .tkp-section:nth-child(even) { background: #1a1a1a !important; }
+    body[data-theme="device"] .water-map-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        border: 1px solid #334155 !important;
+    }
+    body[data-theme="device"] .water-map-legend { background: #0f172a !important; border: 1px solid #334155 !important; }
+    body[data-theme="device"] .water-map-legend .legend-item { color: #cbd5e1 !important; }
+    body[data-theme="device"] .tkp-stats-box { background: #1e293b !important; border-color: #334155 !important; }
+    body[data-theme="device"] .tkp-stat-card { background: #0f172a !important; border-color: #334155 !important; }
+    body[data-theme="device"] .tkp-section-title,
+    body[data-theme="device"] .tkp-section-desc { color: inherit !important; }
+    body[data-theme="device"] .typewriter-title { color: #4cca78 !important; }
+    body[data-theme="device"] .faq-item { background: #222 !important; border-color: #333 !important; color: #e0e0e0 !important; }
+    body[data-theme="device"] .faq-question { background: #2a2a2a !important; }
+    body[data-theme="device"] .faq-answer { background: #1e1e1e !important; color: #bbb !important; }
+    body[data-theme="device"] .tkp-mission-text h2,
+    body[data-theme="device"] .tkp-mission-text { color: #f0f0f0 !important; }
+    body[data-theme="device"] .tkp-mission-text p { color: #b5b5b5 !important; }
+    body[data-theme="device"] #emailContactAdminBox { background: #1e1e1e !important; border-color: #333 !important; }
+    body[data-theme="device"] #emailContactAdminBox input,
+    body[data-theme="device"] #emailContactAdminBox select,
+    body[data-theme="device"] #emailContactAdminBox textarea { background: #2a2a2a !important; border-color: #444 !important; color: #e0e0e0 !important; }
+}
+
 

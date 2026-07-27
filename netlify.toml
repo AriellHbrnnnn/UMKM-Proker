@@ -1,0 +1,98 @@
+
+# ==========================================================
+# NETLIFY DEPLOY KONFIGURASI WEBSITE PADUKUHAN KARANGANYAR
+# ==========================================================
+# File ini MENGONTROL bagaimana Netlify menyajikan website
+# JANGAN dihapus. Isi HANYA SECURITY HEADERS HTTP.
+# INI ADALAH STATIC WEBSITE (bukan React/Vue SPA), JANGAN
+# pakai redirect rule catch-all /* -> index.html! Itu akan
+# merusak file CSS/JS/assets yang ada di subfolder!
+# ==========================================================
+
+[build]
+  # Static website - tidak ada build step. Publish = root directory
+  publish = "."
+
+# ----------------------------------------------------------
+# SECURITY HEADERS HTTP (KRITIS UNTUK GOOGLE SIGN-IN!)
+# Semua response HTTP dari Netlify akan menyertakan header ini.
+# Menambah (bukan mengganti) meta tag CSP di index.html baris 9.
+# ----------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # --------------- Content-Security-Policy (EXPANDED!) ---------------
+    # accounts.google.com WAJIB ADA di connect-src & frame-src
+    # agar handshake Google OAuth (popup/redirect) TIDAK DIBLOKIR.
+    # *.googleusercontent.com di img-src: agar foto profil Google bisa dimuat.
+    Content-Security-Policy = "default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' mailto:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' https: data: blob: https://*.googleusercontent.com https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://accounts.google.com https://www.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net wss:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com https://accounts.google.com https://*.firebaseapp.com; media-src 'self' https: data: blob:; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+
+    # --------------- Standard Security Headers ---------------
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# ----------------------------------------------------------
+# HEADER CACHE CONTROL untuk file statis (cache jangka panjang)
+# ----------------------------------------------------------
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpeg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

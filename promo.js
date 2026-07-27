@@ -152,7 +152,7 @@ function openStore(id) {
     if (ulasanContainer) { ulasanContainer.innerHTML = `
         <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                <img src="https://ui-avatars.com/api/?name=Budi&background=random" style="width:30px; border-radius:50%;">
+                <img src="https://ui-avatars.com/api/?name=Budi&background=random" alt="Avatar Budi warga RT 02" style="width:30px; border-radius:50%;">
                 <strong style="font-size:0.9rem;">Budi Warga RT 02</strong>
                 <span class="rating" style="font-size:0.8rem;"><i class="fas fa-star"></i> 5.0</span>
             </div>
@@ -160,7 +160,7 @@ function openStore(id) {
         </div>
         <div style="border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                <img src="https://ui-avatars.com/api/?name=Ani&background=random" style="width:30px; border-radius:50%;">
+                <img src="https://ui-avatars.com/api/?name=Ani&background=random" alt="Avatar Ani pembeli luar desa" style="width:30px; border-radius:50%;">
                 <strong style="font-size:0.9rem;">Ani (Pembeli Luar Desa)</strong>
                 <span class="rating" style="font-size:0.8rem;"><i class="fas fa-star"></i> ${umkm.rating}</span>
             </div>
@@ -168,18 +168,17 @@ function openStore(id) {
         </div>
     `; } // end if(ulasanContainer)
 
-
     // Render Galeri (Dummy)
     if (galeriContainer) {
         galeriContainer.innerHTML = `
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="${umkm.image}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="${umkm.image}" alt="Galeri foto ${umkm.name}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="https://picsum.photos/id/20/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="https://picsum.photos/id/20/300/300" alt="Galeri produk 1 ${umkm.name}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
             <div class="product-card" style="border:none; box-shadow:none;">
-                <img src="https://picsum.photos/id/40/300/300" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
+                <img src="https://picsum.photos/id/40/300/300" alt="Galeri produk 2 ${umkm.name}" class="prod-img" style="border-radius:var(--radius-sm); cursor:pointer;">
             </div>
         `;
     }
