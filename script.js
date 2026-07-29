@@ -4078,6 +4078,61 @@ document.addEventListener('DOMContentLoaded', function() {
     safeBindLightbox('.tkp-gal-6', 'Galeri Ruang Kerja & Kegiatan', 'galeri-6');
 });
 
+// --- FOOTER SOCIAL MEDIA INTEGRATION ---
+function formatFooterSocialUrl(input, platform) {
+    if (!input || !input.trim()) {
+        return platform === 'instagram' ? 'https://instagram.com' : 'https://tiktok.com';
+    }
+    let val = input.trim();
+    if (val.startsWith('http://') || val.startsWith('https://')) return val;
+    val = val.replace(/^@/, '');
+    if (platform === 'instagram') return `https://instagram.com/${val}`;
+    if (platform === 'tiktok') return `https://tiktok.com/@${val}`;
+    return val;
+}
+
+window.applyFooterSocialLinks = async function () {
+    const igLinkEl = document.getElementById('footerInstagramLink');
+    const tiktokLinkEl = document.getElementById('footerTiktokLink');
+    if (!igLinkEl && !tiktokLinkEl) return;
+
+    let igUrl = localStorage.getItem('cms_social_instagram') || '';
+    let tiktokUrl = localStorage.getItem('cms_social_tiktok') || '';
+
+    try {
+        const res = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/cms_social.json");
+        const data = await res.json();
+        if (data) {
+            if (data.instagram != null) {
+                igUrl = data.instagram;
+                localStorage.setItem('cms_social_instagram', igUrl);
+            }
+            if (data.tiktok != null) {
+                tiktokUrl = data.tiktok;
+                localStorage.setItem('cms_social_tiktok', tiktokUrl);
+            }
+        }
+    } catch (_) {}
+
+    if (igLinkEl) {
+        const finalIg = formatFooterSocialUrl(igUrl, 'instagram');
+        igLinkEl.href = finalIg;
+        igLinkEl.title = `Instagram Padukuhan Karanganyar: ${finalIg}`;
+    }
+
+    if (tiktokLinkEl) {
+        const finalTiktok = formatFooterSocialUrl(tiktokUrl, 'tiktok');
+        tiktokLinkEl.href = finalTiktok;
+        tiktokLinkEl.title = `TikTok Padukuhan Karanganyar: ${finalTiktok}`;
+    }
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.applyFooterSocialLinks);
+} else {
+    window.applyFooterSocialLinks();
+}
+
 // ⭐ CATATAN: Global ESC listener TIDAK PERLU LAGI (karena openImageLightbox
 //    sudah memasang per-instance ESC handler dengan auto-remove).
 //    Juga: closeImageLightbox bekerja dengan removeChild modal secara fisik.

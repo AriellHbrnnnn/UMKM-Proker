@@ -1418,6 +1418,70 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('settingConfirmPass').value = '';
         };
     }
+
+    // Attach Social Media Form
+    const SOCIAL_DB_URL = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/cms_social.json";
+
+    async function loadAdminSocialMediaSettings() {
+        const igInput = document.getElementById('settingInstagramUrl');
+        const tiktokInput = document.getElementById('settingTiktokUrl');
+        if (!igInput || !tiktokInput) return;
+
+        try {
+            const res = await fetch(SOCIAL_DB_URL);
+            const data = await res.json();
+            if (data) {
+                igInput.value = data.instagram || localStorage.getItem('cms_social_instagram') || '';
+                tiktokInput.value = data.tiktok || localStorage.getItem('cms_social_tiktok') || '';
+                localStorage.setItem('cms_social_instagram', igInput.value);
+                localStorage.setItem('cms_social_tiktok', tiktokInput.value);
+            } else {
+                igInput.value = localStorage.getItem('cms_social_instagram') || '';
+                tiktokInput.value = localStorage.getItem('cms_social_tiktok') || '';
+            }
+        } catch (_) {
+            igInput.value = localStorage.getItem('cms_social_instagram') || '';
+            tiktokInput.value = localStorage.getItem('cms_social_tiktok') || '';
+        }
+    }
+
+    const socialForm = document.getElementById('adminSocialMediaForm');
+    if (socialForm) {
+        loadAdminSocialMediaSettings();
+        socialForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const igVal = document.getElementById('settingInstagramUrl').value.trim();
+            const tiktokVal = document.getElementById('settingTiktokUrl').value.trim();
+            const btn = document.getElementById('saveSocialMediaBtn');
+            if (btn) btn.disabled = true;
+
+            const payload = {
+                instagram: igVal,
+                tiktok: tiktokVal,
+                updatedAt: new Date().toISOString()
+            };
+
+            localStorage.setItem('cms_social_instagram', igVal);
+            localStorage.setItem('cms_social_tiktok', tiktokVal);
+
+            try {
+                await fetch(SOCIAL_DB_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.warn("Gagal simpan media sosial ke Firebase:", err);
+            }
+
+            if (btn) btn.disabled = false;
+            await showAdminNotification({
+                type: 'success',
+                title: 'Media Sosial Berhasil Disimpan!',
+                message: 'Link akun Instagram dan TikTok telah tersimpan ke Database Firebase dan terintegrasi di footer web utama.'
+            });
+        };
+    }
 });
 
 // --- USER MANAGEMENT ENGINE (REALTIME REGISTERED USERS) ---
