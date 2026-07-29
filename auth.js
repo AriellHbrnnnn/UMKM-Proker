@@ -116,6 +116,142 @@ if (auth) {
 }
 
 /* ===============================================================
+   FORCE-SYNC HEADER AUTH UI (SINGLE SOURCE OF TRUTH)
+   - Semua perubahan UI header (auth buttons ↔ profile dropdown)
+     HARUS melalui fungsi ini saja.
+   - Selalu pakai setProperty('...', '...', 'important') agar
+     MENGALAHKAN inline style dari script lain / race condition.
+   =============================================================== */
+window.__forceSyncHeaderAuthUI = function __forceSyncHeaderAuthUI(user) {
+    try {
+        const abc = document.getElementById('authButtonsContainer');
+        const upc = document.getElementById('userProfileContainer');
+        const cartBtn = document.getElementById('cartIconBtn');
+        const nameDisp = document.getElementById('userNameDisplay');
+        const uAvatar = document.getElementById('userAvatar');
+
+        if (user) {
+            // ===== MODE LOGGED-IN =====
+            // 1. Sembunyikan total tombol Masuk/Daftar
+            if (abc) {
+                abc.classList.add('hidden');
+                try { abc.style.setProperty('display', 'none', 'important'); } catch(_){}
+                try { abc.style.setProperty('visibility', 'hidden', 'important'); } catch(_){}
+            }
+            // 2. Tampilkan profile container dengan display:flex (penting!)
+            if (upc) {
+                upc.classList.remove('hidden');
+                try { upc.style.setProperty('display', 'flex', 'important'); } catch(_){}
+                try { upc.style.setProperty('visibility', 'visible', 'important'); } catch(_){}
+            }
+            // 3. Keranjang
+            if (cartBtn) cartBtn.classList.remove('hidden');
+
+            // 4. Nama & avatar
+            const email = user.email || '';
+            const rawName = user.displayName || (email ? email.split('@')[0] : 'Pengguna');
+            const firstName = String(rawName).split(' ')[0];
+            if (nameDisp) { nameDisp.textContent = firstName; }
+            const dropdownName = document.getElementById('dropdownName');
+            if (dropdownName) dropdownName.textContent = rawName;
+
+            // Cari avatar URL dengan fallback 5 lapis
+            let avatarUrl = '';
+            try { avatarUrl = localStorage.getItem('local_avatar_' + user.uid) || ''; } catch(_){}
+            if (!avatarUrl) avatarUrl = user.photoURL || '';
+            if (!avatarUrl && typeof window.buildDicebearAvatarUrl === 'function') {
+                try { avatarUrl = window.buildDicebearAvatarUrl(email || user.uid, 'b6e3f4'); } catch(_){}
+            }
+            if (!avatarUrl && typeof getRandomAvatar === 'function') {
+                try { avatarUrl = getRandomAvatar(email || user.uid); } catch(_){}
+            }
+            if (!avatarUrl) {
+                avatarUrl = 'https://api.dicebear.com/9.x/micah/svg?seed=' + encodeURIComponent(email || user.uid) + '&mouth=smile,laughing&backgroundColor=b6e3f4';
+            }
+            // Perbaiki typo dicebear (kadang sisa laugh bukan laughing)
+            if (/dicebear\.com/i.test(avatarUrl) && /mouth=smile,laugh&/.test(avatarUrl)) {
+                avatarUrl = avatarUrl.replace('mouth=smile,laugh&', 'mouth=smile,laughing&');
+                try { user.updateProfile({ photoURL: avatarUrl }).catch(function(){}); } catch(_){}
+            }
+            // Terapkan ke 4 lokasi avatar
+            if (uAvatar) uAvatar.src = avatarUrl;
+            const dA = document.getElementById('dropdownAvatar'); if (dA) dA.src = avatarUrl;
+            const pPA = document.getElementById('profilePageAvatar'); if (pPA) pPA.src = avatarUrl;
+            const pEA = document.getElementById('profileEditAvatar'); if (pEA) pEA.src = avatarUrl;
+
+            // Profile page nama & email
+            const pPN = document.getElementById('profilePageName'); if (pPN) pPN.textContent = rawName;
+            const dEN = document.getElementById('displayEditName'); if (dEN) dEN.textContent = rawName;
+            const pEN = document.getElementById('profileEditName'); if (pEN) pEN.value = rawName;
+            const dEE = document.getElementById('displayEditEmail'); if (dEE) dEE.textContent = email || '';
+            const pEE = document.getElementById('profileEditEmail'); if (pEE) pEE.value = email || '';
+
+            // 5. Jangan biarkan dropdown terbuka saat baru login (opsional: tutup)
+            const pD = document.getElementById('profileDropdown');
+            if (pD) pD.classList.remove('show');
+
+            // 6. Setup listener dropdown profile (idempoten)
+            if (typeof setupMobileProfileDropdown === 'function') {
+                try { setupMobileProfileDropdown(); } catch(_){}
+            }
+
+            if (typeof loadBiodataExtras === 'function') { try { loadBiodataExtras(); } catch(_){} }
+            if (typeof updateCartBadge === 'function') { try { updateCartBadge(); } catch(_){} }
+            if (loginModal) loginModal.classList.add('hidden');
+
+        } else {
+            // ===== MODE GUEST (LOGGED OUT / BELUM MASUK) =====
+            if (abc) {
+                abc.classList.remove('hidden');
+                try { abc.style.setProperty('display', 'flex', 'important'); } catch(_){}
+                try { abc.style.setProperty('visibility', 'visible', 'important'); } catch(_){}
+            }
+            if (upc) {
+                upc.classList.add('hidden');
+                try { upc.style.setProperty('display', 'none', 'important'); } catch(_){}
+            }
+            if (cartBtn) cartBtn.classList.add('hidden');
+            const pD = document.getElementById('profileDropdown');
+            if (pD) {
+                pD.classList.remove('show');
+                pD.classList.add('hidden');
+            }
+            const ov = document.querySelector('.profile-dropdown-overlay');
+            if (ov) {
+                try { ov.style.setProperty('display', 'none', 'important'); } catch(_){}
+            }
+        }
+    } catch (e) {
+        console.warn('[__forceSyncHeaderAuthUI] Silent error:', e);
+    }
+};
+
+/* ===============================================================
+   ANTI-RACE WATCHDOG: Force-sync berulang selama 5 detik setelah
+   auth state berubah, berjaga-jaga jika auth_engine.js / observer
+   lain "merusak" lagi UI header kita.
+   =============================================================== */
+window.__scheduleAuthUIWatchdog = function __scheduleAuthUIWatchdog(expectedUser) {
+    const delays = [0, 200, 500, 1000, 2000, 3500, 5000];
+    delays.forEach(function(ms, idx) {
+        const key = '__authWatchdog_' + Date.now() + '_' + idx;
+        window[key] = setTimeout(function() {
+            try {
+                // Pakai actual user di firebase (jika ada) atau pakai expectedUser
+                let actual = null;
+                try {
+                    if (auth && auth.currentUser) actual = auth.currentUser;
+                } catch(_){}
+                if (!actual) actual = expectedUser || null;
+                window.__forceSyncHeaderAuthUI(actual);
+            } catch(_){} finally {
+                try { delete window[key]; } catch(_){}
+            }
+        }, ms);
+    });
+};
+
+/* ===============================================================
    SINGLE SOURCE OF TRUTH: FIREBASE AUTH STATE OBSERVER
    - Semua login (email/password, Google popup, Google redirect)
      diproses DISINI SAJA (auth_engine.js TIDAK usah memproses
@@ -133,7 +269,11 @@ if (auth) {
 
             if (user) {
                 // ====== USER MASUK (Google / Email/Pwd / Refresh) ======
-                const savedGoogleMode = sessionStorage.getItem('google_auth_mode');
+                let savedGoogleMode = null;
+                try { savedGoogleMode = sessionStorage.getItem('google_auth_mode'); } catch (_) {}
+                if (!savedGoogleMode) {
+                    try { savedGoogleMode = localStorage.getItem('google_auth_mode'); } catch (_) {}
+                }
                 const isGoogleUser = !!(user.providerData &&
                     user.providerData.some(function(p) { return p && p.providerId === 'google.com'; }));
 
@@ -141,7 +281,7 @@ if (auth) {
                 // Cek dulu apakah fungsi dari auth_engine.js SUDAH TERSEDIA.
                 // Jika BELUM tersedia → JANGAN ambil path ini. Fallback ke update UI biasa.
                 var googleProcessedExternally = false;
-                    if (isGoogleUser && savedGoogleMode && !window.__googleAuthProcessed) {
+                if (isGoogleUser && savedGoogleMode && !window.__googleAuthProcessed) {
                     var hasLoginUserObject = typeof window.loginUserObject === 'function';
                     var hasSaveRegistered = typeof window.saveRegisteredUser === 'function';
                     var hasSyncFirebase = typeof window.syncUserToFirebaseDatabase === 'function';
@@ -195,9 +335,12 @@ if (auth) {
                         if (typeof window.showAuthAlert === 'function') {
                             window.showAuthAlert('Berhasil ' + toastMode + ' dengan Google: ' + email, 'success');
                         }
-                        sessionStorage.removeItem('google_auth_mode');
-                        sessionStorage.removeItem('google_auth_flow');
-                        sessionStorage.removeItem('google_auth_prompt_shown');
+                        try { sessionStorage.removeItem('google_auth_mode'); } catch (_) {}
+                        try { sessionStorage.removeItem('google_auth_flow'); } catch (_) {}
+                        try { sessionStorage.removeItem('google_auth_prompt_shown'); } catch (_) {}
+                        try { localStorage.removeItem('google_auth_mode'); } catch (_) {}
+                        try { localStorage.removeItem('google_auth_flow'); } catch (_) {}
+                        try { localStorage.removeItem('google_auth_prompt_shown'); } catch (_) {}
 
                         if (window.__googleAuthWatchdogTimer) {
                             clearTimeout(window.__googleAuthWatchdogTimer);
@@ -208,7 +351,7 @@ if (auth) {
                     } // end: hasLoginUserObject && hasSaveRegistered && hasSyncFirebase
                 }
 
-                // ----- UI UPDATE LANGSUNG (bypass loginUserObject jika belum dipanggil) -----
+                // ----- STATE PERSISTENCE LANGSUNG (non-UI) -----
                 if (!googleProcessedExternally) {
                     currentUser = user;
                     try {
@@ -220,95 +363,63 @@ if (auth) {
                             photoURL: user.photoURL
                         }));
                     } catch (_) {}
-
                     if (typeof loadUserState === 'function') loadUserState();
-                    if (authButtonsContainer) {
-                        authButtonsContainer.classList.add('hidden');
-                        authButtonsContainer.style.display = 'none';
-                        authButtonsContainer.style.visibility = 'hidden';
-                    }
-                    if (userProfileContainer) {
-                        userProfileContainer.classList.remove('hidden');
-                        userProfileContainer.style.visibility = 'visible';
-                    }
-                    if (cartIconBtn) cartIconBtn.classList.remove('hidden');
-
-                    var fallbackName = user.email ? user.email.split('@')[0] : 'Pengguna';
-                    var firstName = user.displayName ? user.displayName.split(' ')[0] : fallbackName;
-                    if (userNameDisplay) userNameDisplay.textContent = firstName;
-
-                    var dropdownName = document.getElementById('dropdownName');
-                    if (dropdownName) dropdownName.textContent = user.displayName || fallbackName;
-
-                    var avatarUrl = '';
-                    try { avatarUrl = localStorage.getItem('local_avatar_' + user.uid) || ''; } catch (_) {}
-                    if (!avatarUrl) avatarUrl = user.photoURL || '';
-                    if (!avatarUrl && typeof window.buildDicebearAvatarUrl === 'function') {
-                        avatarUrl = window.buildDicebearAvatarUrl(user.email || user.uid, 'b6e3f4');
-                    }
-                    if (!avatarUrl && typeof getRandomAvatar === 'function') {
-                        avatarUrl = getRandomAvatar(user.email || user.uid);
-                    }
-                    if (!avatarUrl) {
-                        avatarUrl = 'https://api.dicebear.com/9.x/micah/svg?seed=' + encodeURIComponent(user.email || user.uid) + '&mouth=smile,laughing&backgroundColor=b6e3f4';
-                    }
-
-                    if (avatarUrl.indexOf('dicebear.com') !== -1 && avatarUrl.indexOf('mouth=smile,laugh&') !== -1) {
-                        avatarUrl = avatarUrl.replace('mouth=smile,laugh&', 'mouth=smile,laughing&');
-                        try { user.updateProfile({ photoURL: avatarUrl }).catch(function() {}); } catch (_) {}
-                    }
-
-                    if (userAvatar) userAvatar.src = avatarUrl;
-                    var dropdownAvatar = document.getElementById('dropdownAvatar');
-                    if (dropdownAvatar) dropdownAvatar.src = avatarUrl;
-                    var profilePageAvatar = document.getElementById('profilePageAvatar');
-                    if (profilePageAvatar) profilePageAvatar.src = avatarUrl;
-                    var profileEditAvatar = document.getElementById('profileEditAvatar');
-                    if (profileEditAvatar) profileEditAvatar.src = avatarUrl;
-
-                    var profilePageName = document.getElementById('profilePageName');
-                    if (profilePageName) profilePageName.textContent = user.displayName || fallbackName;
-                    var displayEditName = document.getElementById('displayEditName');
-                    if (displayEditName) displayEditName.textContent = user.displayName || fallbackName;
-                    var profileEditName = document.getElementById('profileEditName');
-                    if (profileEditName) profileEditName.value = user.displayName || fallbackName;
-                    var displayEditEmail = document.getElementById('displayEditEmail');
-                    if (displayEditEmail) displayEditEmail.textContent = user.email || '';
-                    var profileEditEmail = document.getElementById('profileEditEmail');
-                    if (profileEditEmail) profileEditEmail.value = user.email || '';
-
-                    if (typeof loadBiodataExtras === 'function') loadBiodataExtras();
-                    if (loginModal) loginModal.classList.add('hidden');
-                    if (typeof updateCartBadge === 'function') updateCartBadge();
-
                     if (typeof window.syncUserToFirebaseDatabase === 'function') {
                         try { window.syncUserToFirebaseDatabase(user, isGoogleUser || !!user.isGoogle); } catch (_) {}
                     }
+                } else {
+                    currentUser = user;
+                    try {
+                        localStorage.setItem('umkm_active_uid', user.uid);
+                    } catch (_) {}
                 }
+
+                // ====== SELALU: Force-sync UI header + watchdog (lebih penting dari apapun!) ======
+                window.__forceSyncHeaderAuthUI(user);
+                window.__scheduleAuthUIWatchdog(user);
+
             } else {
                 // ====== USER KELUAR / BELUM MASUK (GUEST) ======
                 currentUser = null;
+                try {
+                    localStorage.removeItem('umkm_active_uid');
+                    localStorage.removeItem('umkm_active_user');
+                } catch (_) {}
                 if (typeof loadUserState === 'function') loadUserState();
-                if (authButtonsContainer) {
-                    authButtonsContainer.classList.remove('hidden');
-                    authButtonsContainer.style.display = 'flex';
-                    authButtonsContainer.style.visibility = 'visible';
-                }
-                if (userProfileContainer) {
-                    userProfileContainer.classList.add('hidden');
-                    userProfileContainer.style.visibility = '';
-                }
-                if (cartIconBtn) cartIconBtn.classList.add('hidden');
-                if (profileDropdown) profileDropdown.classList.add('hidden');
-            }
 
-            if (typeof setupMobileProfileDropdown === 'function') setupMobileProfileDropdown();
+                // ====== SELALU: Force-sync UI header + watchdog ======
+                window.__forceSyncHeaderAuthUI(null);
+                window.__scheduleAuthUIWatchdog(null);
+            }
         } catch (observerErr) {
-            // Observer ERROR: JANGAN biarkan break observer berikutnya
             console.error('[Auth Observer] ERROR internal observer (tidak fatal, UI fallback):', observerErr);
+            // Last-resort fallback: coba sync UI juga meskipun error
+            try { window.__forceSyncHeaderAuthUI(user || null); } catch (_) {}
         }
     });
 }
+
+// === INITIAL UI SYNC: Segera setelah script di-parse (sebelum DOMContentLoaded / Firebase observer) ===
+// Tujuannya: Mencegah FOUC (flash of unstyled content) tombol Masuk/Daftar muncul dulu 1 detik lalu berubah.
+try {
+    window.__forceSyncHeaderAuthUI(null); // Default: guest mode dulu
+} catch (_) {}
+// Saat DOM selesai, cek current user via localStorage hanya jika Firebase Auth terverifikasi aktif
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        var currentFbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+        if (currentFbUser) {
+            var guessedUser = null;
+            try {
+                var cached = localStorage.getItem('umkm_active_user');
+                if (cached) guessedUser = JSON.parse(cached) || null;
+            } catch (_) {}
+            window.__forceSyncHeaderAuthUI(guessedUser || currentFbUser);
+        } else {
+            window.__forceSyncHeaderAuthUI(null);
+        }
+    } catch (_) {}
+});
 
 /* ===============================================================
    POST-DOMCONTLOADED SETUP (SEMUA script auth.js + auth_engine.js
@@ -325,7 +436,12 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             function needsWatchdog() {
                 try {
-                    if (sessionStorage.getItem('google_auth_flow') === 'redirect') return true;
+                    try {
+                        if (sessionStorage.getItem('google_auth_flow') === 'redirect') return true;
+                    } catch (_) {}
+                    try {
+                        if (localStorage.getItem('google_auth_flow') === 'redirect') return true;
+                    } catch (_) {}
                     var qs = (window.location.search || '') + (window.location.hash || '');
                     return /[?&](code|state|authuser|scope|prompt|client_id|redirect_uri|response_type)=/.test(qs);
                 } catch (_) { return false; }
@@ -341,8 +457,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     var stillNoUser = !currentAuth || !currentAuth.currentUser;
                     if (stillNoUser && !window.__googleAuthProcessed) {
                         console.warn('[Google Auth] WATCHDOG TIMEOUT: Firebase Auth token exchange melebihi batas waktu.');
-                        sessionStorage.removeItem('google_auth_mode');
-                        sessionStorage.removeItem('google_auth_flow');
+                        try { sessionStorage.removeItem('google_auth_mode'); } catch (_) {}
+                        try { sessionStorage.removeItem('google_auth_flow'); } catch (_) {}
+                        try { localStorage.removeItem('google_auth_mode'); } catch (_) {}
+                        try { localStorage.removeItem('google_auth_flow'); } catch (_) {}
 
                         // HANYA TOAST (non-blocking). JANGAN PERNAH auto-open modal!
                         if (typeof window.showAuthAlert === 'function') {
@@ -417,76 +535,72 @@ function setupMobileProfileDropdown() {
 
     if (!pDropdown) return;
 
-    const reportProfileDropdownDebug = function (hypothesisId, msg, data) {
-        fetch("http://127.0.0.1:7777/event", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                sessionId: "profile-dropdown-responsive",
-                runId: "pre-fix",
-                hypothesisId: hypothesisId,
-                location: "auth.js:setupMobileProfileDropdown",
-                msg: "[DEBUG] " + msg,
-                data: data || {},
-                ts: Date.now()
-            })
-        }).catch(() => { });
-    };
+    function _applyOverlayState(show) {
+        try {
+            // ================================================================
+            // FIX UTAMA: HAPUS body.profile-dropdown-open SAMPAI AKAR.
+            // JANGAN modifikasi class body — bisa trigger re-stack seluruh
+            // stacking context DOM → z-index dropdown tertukar dengan overlay.
+            // ================================================================
+            if (document.body) {
+                document.body.classList.remove('profile-dropdown-open');
+            }
 
-    // #region debug-point A:init
-    reportProfileDropdownDebug("A", "setup dropdown init", {
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        hasProfileBtn: !!profileBtn,
-        hasDropdown: !!pDropdown,
-        hasOverlay: !!pOverlay,
-        initialShow: pDropdown.classList.contains('show'),
-        breakpointMobile: window.matchMedia('(max-width: 768px)').matches,
-        breakpointTablet: window.matchMedia('(min-width: 769px) and (max-width: 1100px)').matches
-    });
-    // #endregion
+            if (pOverlay) {
+                // Hitung TINGGI HEADER SEBENARNYA di runtime (100% akurat) —
+                // jika header wrap / tinggi berubah karena responsive,
+                // overlay top otomatis adjust agar TIDAK PERNAH masuk area
+                // header (tempat dropdown profile berada).
+                let headerBottomPx = 62; // fallback default mobile
+                try {
+                    const headerEl = document.querySelector('.header') ||
+                                     document.querySelector('.main-header') ||
+                                     document.querySelector('header');
+                    if (headerEl) {
+                        const rect = headerEl.getBoundingClientRect();
+                        headerBottomPx = Math.max(1, Math.ceil(rect.bottom || 0));
+                    }
+                } catch (_) { headerBottomPx = 62; }
+
+                if (show) {
+                    // APPLY inline-style dengan PRIORITAS !important —
+                    // mengalahkan semua !important dari media query di CSS.
+                    pOverlay.style.setProperty('top', headerBottomPx + 'px', 'important');
+                    pOverlay.style.setProperty('left', '0px', 'important');
+                    pOverlay.style.setProperty('right', '0px', 'important');
+                    pOverlay.style.setProperty('bottom', '0px', 'important');
+                    pOverlay.style.setProperty('width', 'auto', 'important');
+                    pOverlay.style.setProperty('height', 'calc(100vh - ' + headerBottomPx + 'px)', 'important');
+                    pOverlay.style.setProperty('z-index', '2147483646', 'important');
+                    pOverlay.style.setProperty('display', 'block', 'important');
+                    pOverlay.style.setProperty('background', 'rgba(15, 23, 42, 0.30)', 'important');
+                    pOverlay.classList.add('active');
+                } else {
+                    // HAPUS inline-style custom yg kita set — balik ke CSS rule media query.
+                    try { pOverlay.style.removeProperty('top');       } catch (_) {}
+                    try { pOverlay.style.removeProperty('left');      } catch (_) {}
+                    try { pOverlay.style.removeProperty('right');     } catch (_) {}
+                    try { pOverlay.style.removeProperty('bottom');    } catch (_) {}
+                    try { pOverlay.style.removeProperty('width');     } catch (_) {}
+                    try { pOverlay.style.removeProperty('height');    } catch (_) {}
+                    try { pOverlay.style.removeProperty('z-index');   } catch (_) {}
+                    try { pOverlay.style.removeProperty('background');} catch (_) {}
+                    try { pOverlay.style.removeProperty('display');   } catch (_) {}
+                    pOverlay.classList.remove('active');
+                    try { pOverlay.style.setProperty('display', 'none', 'important'); } catch (_) {}
+                }
+            }
+        } catch (_) {}
+    }
 
     function closeDropdown(reason) {
         pDropdown.classList.remove('show');
-        // #region debug-point D:close
-        reportProfileDropdownDebug("D", "close dropdown", {
-            reason: reason || 'unknown',
-            showAfterClose: pDropdown.classList.contains('show'),
-            visibility: window.getComputedStyle(pDropdown).visibility,
-            opacity: window.getComputedStyle(pDropdown).opacity,
-            pointerEvents: window.getComputedStyle(pDropdown).pointerEvents
-        });
-        // #endregion
+        _applyOverlayState(false);
     }
 
     function openDropdown(reason) {
         pDropdown.classList.add('show');
-        // #region debug-point C:open
-        reportProfileDropdownDebug("C", "open dropdown requested", {
-            reason: reason || 'unknown',
-            showAfterOpen: pDropdown.classList.contains('show')
-        });
-        requestAnimationFrame(function () {
-            const styles = window.getComputedStyle(pDropdown);
-            const rect = pDropdown.getBoundingClientRect();
-            reportProfileDropdownDebug("C", "open dropdown rendered", {
-                reason: reason || 'unknown',
-                className: pDropdown.className,
-                display: styles.display,
-                visibility: styles.visibility,
-                opacity: styles.opacity,
-                pointerEvents: styles.pointerEvents,
-                top: rect.top,
-                left: rect.left,
-                right: rect.right,
-                bottom: rect.bottom,
-                width: rect.width,
-                height: rect.height,
-                viewportWidth: window.innerWidth,
-                viewportHeight: window.innerHeight
-            });
-        });
-        // #endregion
+        _applyOverlayState(true);
     }
 
     function toggleDropdown(e) {
@@ -494,13 +608,6 @@ function setupMobileProfileDropdown() {
             e.preventDefault();
             e.stopPropagation();
         }
-        // #region debug-point B:toggle
-        reportProfileDropdownDebug("B", "toggle dropdown click", {
-            targetId: e && e.target && e.target.id ? e.target.id : '',
-            targetTag: e && e.target && e.target.tagName ? e.target.tagName : '',
-            showBeforeToggle: pDropdown.classList.contains('show')
-        });
-        // #endregion
         if (pDropdown.classList.contains('show')) {
             closeDropdown('toggle-click');
         } else {
@@ -519,6 +626,12 @@ function setupMobileProfileDropdown() {
             closeDropdown('menu-link');
         });
     });
+    // Also close when clicking logout button / any button inside dropdown
+    pDropdown.querySelectorAll('button, [role="button"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            closeDropdown('menu-btn');
+        });
+    });
 
     // Close when clicking overlay / backdrop
     if (pOverlay) {
@@ -532,14 +645,7 @@ function setupMobileProfileDropdown() {
     if (!document._profileOutsideClickListener) {
         document._profileOutsideClickListener = function (e) {
             const container = document.getElementById('userProfileContainer');
-            if (container && !container.contains(e.target)) {
-                // #region debug-point E:outside-click
-                reportProfileDropdownDebug("E", "outside click detected", {
-                    targetId: e && e.target && e.target.id ? e.target.id : '',
-                    targetTag: e && e.target && e.target.tagName ? e.target.tagName : '',
-                    showBeforeClose: pDropdown.classList.contains('show')
-                });
-                // #endregion
+            if (container && !container.contains(e.target) && pDropdown.classList.contains('show')) {
                 closeDropdown('outside-click');
             }
         };
@@ -550,11 +656,19 @@ function setupMobileProfileDropdown() {
     if (!window._profileScrollListener) {
         window._profileScrollListener = function () {
             if (pDropdown.classList.contains('show')) {
-                closeDropdown();
+                closeDropdown('scroll');
             }
         };
         window.addEventListener('scroll', window._profileScrollListener, { passive: true });
     }
+
+    // SINGKRONISASI AWAL: Jika karena reload dll dropdown punya sisa class show / body class,
+    // kita bersihkan dulu, kecuali memang sengaja di-open.
+    try {
+        if (!pDropdown.classList.contains('show')) {
+            _applyOverlayState(false);
+        }
+    } catch(_) {}
 }
 
 

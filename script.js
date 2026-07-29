@@ -432,7 +432,10 @@ window.updateHeaderMode = function() {
     const header = document.querySelector('.header');
     if (!header) return;
 
-    const isHeroPage = document.body.classList.contains('home-mode');
+    const isHeroPage = document.body.classList.contains('home-mode') || 
+                       document.body.classList.contains('village-mode') || 
+                       document.body.classList.contains('berita-mode');
+
     if (isHeroPage && window.scrollY <= 30 && !document.body.classList.contains('berita-detail-open')) {
         header.classList.add('transparent-mode');
     } else {
@@ -441,6 +444,7 @@ window.updateHeaderMode = function() {
 };
 
 window.addEventListener('scroll', window.updateHeaderMode);
+window.addEventListener('resize', window.updateHeaderMode);
 
 // Tangkap event saat tombol Back/Forward browser ditekan
 window.addEventListener('popstate', (event) => {
@@ -2954,15 +2958,8 @@ if (btnSaveNewPassword) {
 
 // Tokopedia Transparent Header Logic
 function updateHeaderMode() {
-    const header = document.querySelector('.header');
-    if(document.body.classList.contains('home-mode')) {
-        if(window.scrollY < 50) {
-            header.classList.add('transparent-mode');
-        } else {
-            header.classList.remove('transparent-mode');
-        }
-    } else {
-        header.classList.remove('transparent-mode');
+    if (typeof window.updateHeaderMode === 'function') {
+        window.updateHeaderMode();
     }
 }
 

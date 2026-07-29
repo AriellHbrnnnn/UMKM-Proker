@@ -649,7 +649,7 @@ function renderProductGrid(umkmId, searchQuery = "") {
     gridDiv.className = 'product-grid';
 
     umkm.products.forEach((prod, idx) => {
-        if (searchQuery && !prod.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+        if (searchQuery && !prod.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
             !(prod.desc && prod.desc.toLowerCase().includes(searchQuery.toLowerCase()))) {
             return;
         }
@@ -703,7 +703,7 @@ function renderProductGrid(umkmId, searchQuery = "") {
 let currentDetailUmkmId = null;
 let currentDetailProdIdx = null;
 
-window.showProductDetail = function(umkmId, prodIndex) {
+window.showProductDetail = function (umkmId, prodIndex) {
     const umkm = umkmData.find(u => u.id === umkmId);
     if (!umkm || !umkm.products || !umkm.products[prodIndex]) return;
 
@@ -757,10 +757,10 @@ window.showProductDetail = function(umkmId, prodIndex) {
                 </div>
                 <div class="detail-info-card full">
                     <div class="detail-info-label"><i class="fas fa-align-left"></i> Deskripsi Produk</div>
-                    ${prod.desc ? 
-                        `<div class="detail-desc-text">${sanitizeHTML(prod.desc)}</div>` : 
-                        `<div class="detail-no-desc">Tidak ada deskripsi produk.</div>`
-                    }
+                    ${prod.desc ?
+            `<div class="detail-desc-text">${sanitizeHTML(prod.desc)}</div>` :
+            `<div class="detail-no-desc">Tidak ada deskripsi produk.</div>`
+        }
                 </div>
             </div>
         </div>
@@ -785,7 +785,7 @@ window.showProductDetail = function(umkmId, prodIndex) {
     document.body.classList.add('modal-open');
 };
 
-window.closeProductDetailModal = function() {
+window.closeProductDetailModal = function () {
     const modal = document.getElementById('productDetailModal');
     if (modal) {
         modal.classList.add('hidden');
@@ -1090,7 +1090,7 @@ function updateDashboardStats() {
         if (typeof currentResolver === 'function') {
             const cb = currentResolver;
             currentResolver = null;
-            try { cb(); } catch (e) {}
+            try { cb(); } catch (e) { }
         }
     }
 
@@ -1247,13 +1247,14 @@ async function saveAdminCredentials(user, plainPass, email, passHashOverride) {
 }
 
 function isSessionLocked() {
-    const token = sessionStorage.getItem('umkm_admin_session_token');
-    const sessionLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+    const token = sessionStorage.getItem('umkm_admin_session_token') || localStorage.getItem('umkm_admin_session_token');
+    const sessionLoggedIn = (sessionStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('isAdminLoggedIn') === 'true');
     return !token || !sessionLoggedIn;
 }
 
 window.refreshProfilDesaEditorIframe = function () {
-    const ok = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
+    const ok = (sessionStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('isAdminLoggedIn') === 'true') &&
+        !!(sessionStorage.getItem('umkm_admin_session_token') || localStorage.getItem('umkm_admin_session_token'));
     if (!ok) return;
     const aboutIframe = document.querySelector('#tentangTab iframe');
     if (!aboutIframe) return;
@@ -1266,6 +1267,10 @@ window.refreshProfilDesaEditorIframe = function () {
 window.handleLogoutAdmin = function () {
     sessionStorage.removeItem('umkm_admin_session_token');
     sessionStorage.removeItem('isAdminLoggedIn');
+    try {
+        localStorage.removeItem('umkm_admin_session_token');
+        localStorage.removeItem('isAdminLoggedIn');
+    } catch (_) { }
     window.location.replace('../index.html#tentang');
 };
 
@@ -1311,6 +1316,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const token = 'admin_token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 sessionStorage.setItem('umkm_admin_session_token', token);
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
+                try {
+                    localStorage.setItem('umkm_admin_session_token', token);
+                    localStorage.setItem('isAdminLoggedIn', 'true');
+                } catch (_) { }
 
                 if (loginError) loginError.classList.add('hidden');
                 // Animasi fade out seperti handler yang lama
@@ -1402,7 +1411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 message: 'Username dan password admin baru telah tersimpan ke Database Firebase.\nUntuk keamanan, silakan logout lalu login kembali menggunakan kredensial yang baru.',
                 okText: 'Saya Mengerti'
             });
-            
+
             if (submitBtn) submitBtn.disabled = false;
             document.getElementById('settingOldPass').value = '';
             document.getElementById('settingNewPass').value = '';
@@ -1559,7 +1568,7 @@ window.deleteUserFromAdmin = async function (userIdentifier) {
 // ==========================================
 // KELOLA TAB DASHBOARD ADMIN & BERITA
 // ==========================================
-window.switchAdminTab = function(tabId) {
+window.switchAdminTab = function (tabId) {
     const tabs = ['dashboard', 'umkm', 'berita', 'tentang', 'pengguna', 'pengaturan'];
     const tabTitles = {
         'dashboard': 'Dasbor Karanganyar',
@@ -1575,7 +1584,7 @@ window.switchAdminTab = function(tabId) {
     if (headerTitle && tabTitles[tabId]) {
         headerTitle.textContent = tabTitles[tabId];
     }
-    
+
     // Hide all tab panes & remove active nav state
     tabs.forEach(t => {
         const pane = document.getElementById(t + 'Tab');
@@ -1604,7 +1613,7 @@ window.switchAdminTab = function(tabId) {
     }
 };
 
-window.updateDashboardStats = async function() {
+window.updateDashboardStats = async function () {
     try {
         // Fetch UMKM Count
         const umkmRes = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/umkmData.json");
@@ -1654,7 +1663,7 @@ window.updateDashboardStats = async function() {
 
 // Initial Call
 document.addEventListener('DOMContentLoaded', () => {
-    if(typeof window.updateDashboardStats === 'function') {
+    if (typeof window.updateDashboardStats === 'function') {
         window.updateDashboardStats();
     }
 });
@@ -1674,7 +1683,7 @@ function sanitizeHTML(str) {
     return String(str).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
-window.fetchBeritaData = async function() {
+window.fetchBeritaData = async function () {
     const beritaTableBody = document.getElementById('beritaTableBody');
     try {
         const response = await fetch(BERITA_DATABASE_URL);
@@ -1722,7 +1731,7 @@ function setBeritaImagePreview(previewId, imageValue) {
     }
 }
 
-window.openBeritaModal = function() {
+window.openBeritaModal = function () {
     const beritaForm = document.getElementById('beritaForm');
     const beritaModal = document.getElementById('beritaModal');
     if (beritaForm) beritaForm.reset();
@@ -1740,7 +1749,7 @@ window.openBeritaModal = function() {
     }
 };
 
-window.closeBeritaModal = function() {
+window.closeBeritaModal = function () {
     const beritaForm = document.getElementById('beritaForm');
     const beritaModal = document.getElementById('beritaModal');
     if (beritaModal) {
@@ -1755,7 +1764,7 @@ window.closeBeritaModal = function() {
     setBeritaImagePreview('beritaFotoIsiPreview', '');
 };
 
-window.editBerita = function(id) {
+window.editBerita = function (id) {
     const berita = beritaData.find(item => item.id === id);
     const beritaModal = document.getElementById('beritaModal');
     const beritaForm = document.getElementById('beritaForm');
@@ -1773,14 +1782,14 @@ window.editBerita = function(id) {
     document.getElementById('beritaFotoIsi').value = berita.fotoIsi || '';
     setBeritaImagePreview('beritaFotoUtamaPreview', berita.fotoUtama);
     setBeritaImagePreview('beritaFotoIsiPreview', berita.fotoIsi);
-    
+
     if (beritaModal) {
         beritaModal.classList.remove('hidden');
         beritaModal.style.display = 'flex';
     }
 };
 
-window.deleteBerita = async function(id) {
+window.deleteBerita = async function (id) {
     if (confirm("Apakah Anda yakin ingin menghapus berita ini dari publikasi?")) {
         try {
             const response = await fetch(`${BERITA_DB_BASE_URL}/${id}.json`, { method: 'DELETE' });

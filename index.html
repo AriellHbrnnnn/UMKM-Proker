@@ -6,9 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="theme-color" content="#00AA5B">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' mailto:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' https: data: blob: https://*.googleusercontent.com https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://accounts.google.com https://www.google.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com https://accounts.google.com https://*.firebaseapp.com https://*.web.app; upgrade-insecure-requests">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; form-action 'self' mailto:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.firebasedatabase.app https://*.firebaseio.com https://accounts.google.com https://www.google.com https://www.gstatic.cn https://www.google.cn; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.firebasedatabase.app https://*.firebaseio.com https://accounts.google.com https://www.google.com https://www.gstatic.cn https://www.google.cn; script-src-attr 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' https: data: blob: https://*.googleusercontent.com https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://accounts.google.com https://www.google.com https://*.firebaseapp.com https://*.web.app; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com https://accounts.google.com https://*.firebaseapp.com https://*.web.app https://*.firebasedatabase.app; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=(), usb=()">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none">
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
 
     <!-- ========== SEO META TAGS UTAMA ========== -->
     <title>Padukuhan Karanganyar - Website Resmi Profil & UMKM Desa</title>
@@ -35,13 +38,13 @@
         content="Website resmi Padukuhan Karanganyar: Profil desa, peta sumber daya air, data wilayah, berita terkini, dan promosi produk UMKM lokal warga Karanganyar.">
     <meta property="og:url" content="https://padukuhan-karanganyar.netlify.app/">
     <meta property="og:image"
-        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
+        content="https://padukuhan-karanganyar.netlify.app/images/hero_desa_karanganyar.png">
     <meta property="og:image:secure_url"
-        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
-    <meta property="og:image:type" content="image/jpeg">
+        content="https://padukuhan-karanganyar.netlify.app/images/hero_desa_karanganyar.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Panorama Padukuhan Karanganyar dengan sawah terasering dan keramaian pasar desa">
+    <meta property="og:image:alt" content="Kenali lebih dekat Karanganyar - Panorama sawah terasering hijau Padukuhan Karanganyar Nglegi sebagai hero halaman utama profil desa">
 
     <!-- ========== TWITTER CARD ========== -->
     <meta name="twitter:card" content="summary_large_image">
@@ -51,8 +54,8 @@
     <meta name="twitter:description"
         content="Website resmi Padukuhan Karanganyar: Informasi profil desa, peta sumber daya air, berita, dan pusat promosi UMKM lokal warga.">
     <meta name="twitter:image"
-        content="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80">
-    <meta name="twitter:image:alt" content="Panorama Padukuhan Karanganyar">
+        content="https://padukuhan-karanganyar.netlify.app/images/hero_desa_karanganyar.png">
+    <meta name="twitter:image:alt" content="Hero Kenali Lebih Dekat Karanganyar - Sawah terasering hijau Padukuhan Karanganyar">
 
     <!-- ========== STRUCTURED DATA / JSON-LD (Google Rich Snippet) ========== -->
     <script type="application/ld+json">
@@ -63,8 +66,8 @@
       "name": "Padukuhan Karanganyar",
       "alternateName": "Karanganyar Nglegi",
       "url": "https://padukuhan-karanganyar.netlify.app/",
-      "image": "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80",
-      "logo": "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=600&auto=format&fit=crop&q=80",
+      "image": "https://padukuhan-karanganyar.netlify.app/images/hero_desa_karanganyar.png",
+      "logo": "https://padukuhan-karanganyar.netlify.app/images/hero_desa_karanganyar.png",
       "description": "Website resmi Padukuhan Karanganyar: informasi profil desa, data kependudukan, peta wilayah & sumber daya air, berita desa terkini, serta pusat promosi produk UMKM warga Karanganyar.",
       "areaServed": {
         "@type": "Place",
@@ -879,7 +882,8 @@
                         <iframe
                             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15814.735071195617!2d110.3341381!3d-7.9271617!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7b003a27fecf31%3A0xc39f28688435165c!2sKaranganyar%2C%20Kec.%20Panggang%2C%20Kabupaten%20Gunung%20Kidul%2C%20Daerah%20Istimewa%20Yogyakarta!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
                             width="100%" height="450"
-                            style="border:0; border-radius: 20px; box-shadow: var(--shadow-md);" allowfullscreen=""
+                            style="border:0; border-radius: 20px; box-shadow: var(--shadow-md);"
+                            allow="fullscreen"
                             loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
                 </div>
@@ -1036,7 +1040,7 @@
                     <div class="water-map-container">
                         <div class="water-map-img-wrapper">
                             <img id="petaSumberAirImg"
-                                src="https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=1200&auto=format&fit=crop&q=80"
+                                src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&auto=format&fit=crop&q=80"
                                 alt="Peta Sebaran Air Karanganyar"
                                 title="Klik untuk melihat detail Peta Sebaran Air"
                                 style="cursor: pointer; transition: transform 0.4s ease;">
@@ -1271,11 +1275,7 @@
                     <iframe id="cmsYoutubeIframe"
                         src="https://www.youtube.com/embed/LXb3EKWsInQ?rel=0&modestbranding=1&playsinline=1&mute=0&controls=1&fs=1&origin=https%3A%2F%2Fumkm-karanganyar.web.id"
                         title="Video Profil Padukuhan Karanganyar" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen; xr-spatial-tracking; presentation"
-                        allowfullscreen
-                        webkitallowfullscreen
-                        mozallowfullscreen
-                        msallowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen; xr-spatial-tracking"
                         loading="eager"
                         referrerpolicy="no-referrer-when-downgrade"
                         playsinline

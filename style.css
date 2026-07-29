@@ -1339,25 +1339,57 @@ footer {
     .main-header {
         flex-wrap: wrap;
         gap: 10px;
-        /* Kurangi gap agar muat di 1 baris */
         padding: 10px 20px;
+        min-width: 0;
+    }
+
+    /* URUTAN EKSPLISIT AGAR KONSISTEN DI SEMUA DEVICE MOBILE/TABLET */
+    .mobile-menu-btn {
+        order: 0 !important;
+        flex: 0 0 auto !important;
     }
 
     .logo {
+        order: 1 !important;
+        flex: 1 1 auto !important;
         font-size: 1.1rem;
-        /* Perkecil logo sedikit */
+        min-width: 0;
+        max-width: 55%;
+        overflow: hidden;
     }
 
     .header-actions {
+        order: 2 !important;
+        flex: 0 0 auto !important;
         margin-left: auto;
-        /* Dorong Masuk ke ujung kanan */
         gap: 10px;
+        flex-shrink: 0;
     }
 
     .search-container {
-        order: 3;
-        width: 100%;
+        order: 3 !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
         margin-top: 10px;
+        min-width: 0;
+    }
+
+    .search-wrapper {
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .search-box {
+        min-width: 0;
+    }
+
+    .search-box input {
+        min-width: 0;
+        font-size: 0.9rem;
+    }
+
+    .category-btn {
+        font-size: 0.85rem;
     }
 
     body {
@@ -1393,9 +1425,21 @@ body.hide-search {
 }
 
 /* Mencegah tombol 'Masuk' turun ke baris baru jika pencarian disembunyikan */
-body.village-mode .main-header,
-body.hide-search .main-header {
-    flex-wrap: nowrap;
+/* Hanya diterapkan di layar besar (>= 769px), mobile boleh wrap jika perlu */
+@media (min-width: 769px) {
+    body.village-mode .main-header,
+    body.hide-search .main-header {
+        flex-wrap: nowrap;
+    }
+}
+
+/* Pastikan di mobile, meskipun mode village/hide-search, header bisa wrap */
+@media (max-width: 768px) {
+    body.village-mode .main-header,
+    body.hide-search .main-header,
+    body.berita-mode .main-header {
+        flex-wrap: wrap !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -2785,7 +2829,10 @@ body.hide-auth-buttons #userProfileContainer {
     display: none !important;
 }
 
-/* Disable background dark overlay on desktop */
+/* Background backdrop overlay:
+   - DESKTOP >= 1101px : tidak tampil (desktop pakai hover sudah jelas posisinya)
+   - TABLET/MOBILE <= 1100px : muncul sebagai backdrop hanya ketika profile dropdown .show
+*/
 .profile-dropdown-overlay {
     display: none !important;
     opacity: 0 !important;
@@ -2794,8 +2841,53 @@ body.hide-auth-buttons #userProfileContainer {
     background: transparent !important;
 }
 
+@media (max-width: 1100px) {
+    .profile-dropdown-overlay {
+        position: fixed !important;
+        /* OVERLAY TIDAK BOLEH MASUK AREA HEADER (tempat dropdown profile berada)
+           Mulai dari top = bawah header, hanya cover KONTEN di bawahnya.
+           Nilai top ini nanti di-OVERRIDE lagi inline-style dari JS (_applyOverlayState)
+           dengan nilai height header AKTUAL di runtime (100% akurat), berikut fallback CSS. */
+        top: 62px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: auto !important;
+        height: calc(100vh - 62px) !important;
+        background: rgba(15, 23, 42, 0.30) !important; /* opacity turun ke 30% tidak terlalu gelap */
+        z-index: 2147483646 !important; /* level tertinggi ke-2 (dropdown 1 level di atasnya) */
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        display: block !important;
+        transition: opacity 0.2s ease, visibility 0.2s ease !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    /* HANYA trigger via JS class direct: .active (tidak pakai body class, tidak pakai sibling selector salah arah) */
+    .profile-dropdown-overlay.active {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+}
+
 .header, .main-header, #userProfileContainer {
     overflow: visible !important;
+}
+/* FORCE STACKING CONTEXT TERTINGGI untuk parent header dan profile container,
+   agar child dropdown (fixed position) selalu berada di atas overlay backdrop
+   walau ada bug stacking context di browser tertentu. */
+.header, .main-header {
+    position: relative !important;
+    z-index: 2147483640 !important; /* 1 level di atas overlay global jika ada, di bawah dropdown 2147483647 */
+}
+#userProfileContainer {
+    position: relative !important;
+    z-index: 2147483645 !important; /* parent profile container: di atas header normal, 2 level di atas overlay 2147483646 */
+    isolation: isolate !important;
 }
 
 /* Base Dropdown Container */
@@ -2810,7 +2902,7 @@ body.hide-auth-buttons #userProfileContainer {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
     border: 1px solid #E5E7E9 !important;
     padding: 16px !important;
-    z-index: 99999 !important;
+    z-index: 2147483647 !important;
     display: flex !important;
     gap: 16px !important;
     opacity: 0 !important;
@@ -2828,6 +2920,31 @@ body.hide-auth-buttons #userProfileContainer {
     visibility: visible !important;
     pointer-events: auto !important;
     transform: translateY(0) !important;
+    /* PROPERTI PENTING HARUS DI-REDECLARE JUGA SAAT SHOW (menghindari override dari rule lain): */
+    background: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
+    border: 1px solid #E5E7E9 !important;
+    z-index: 2147483647 !important;
+    color: #0f172a !important;
+}
+/* ===== SUPER SHOW (spesifisitas 021 = 2 ID + 1 class) =====
+   Selector 210 poin: PASTI MENANG lawan HOVER 200 poin.
+   Berguna untuk semua breakpoint jika ada specificity conflict apapun. */
+#userProfileContainer #profileDropdown.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
+    border: 1px solid #E5E7E9 !important;
+    border-radius: 12px !important;
+    z-index: 2147483647 !important;
+    color: #0f172a !important;
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
 }
 
 #profileDropdown a,
@@ -2843,6 +2960,7 @@ body.hide-auth-buttons #userProfileContainer {
     .header {
         top: 0 !important;
     }
+    /* ===== URUTAN PRIORITAS CSS: 1. BASE (opacity 0) ===== */
     .profile-dropdown-container,
     #profileDropdown {
         position: fixed !important;
@@ -2855,14 +2973,77 @@ body.hide-auth-buttons #userProfileContainer {
         flex-direction: column !important;
         gap: 12px !important;
         padding: 16px !important;
+        /* ===== PROPERTI VISUAL DIPAKSA PUTIH 100% DI MOBILE ===== */
+        background: #ffffff !important;
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #E5E7E9 !important;
         border-radius: 16px !important;
         max-height: calc(100vh - 90px) !important;
         overflow-y: auto !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateY(8px) !important;
+        transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+    /* ===== URUTAN 2. HOVER DISABLE (opacity 0) spesifisitas 020 =====
+       (mobile TIDAK pakai hover, hanya click toggle class .show) */
+    #userProfileContainer:hover #profileDropdown,
+    #profileDropdown:hover {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateY(8px) !important;
+        /* tetap putih walau disembunyikan via hover (mencegah flicker abu-abu) */
+        background: #ffffff !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #E5E7E9 !important;
+        z-index: 2147483647 !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
     }
     #profileDropdown > div {
         width: 100% !important;
         flex: none !important;
+        background: transparent !important; /* pastikan child tidak punya background abu */
+        color: #0f172a !important;
+    }
+    /* MOBILE: Overlay hanya cover area DI BAWAH header,
+       tidak menyentuh area dropdown profile */
+    .profile-dropdown-overlay {
+        top: 62px !important;
+        height: calc(100vh - 62px) !important;
+    }
+    /* ============================================================
+       URUTAN 3 (PALING AKHIR) — .show STATE (spesifisitas 021)
+       SELECTOR DIPERKAYA: 2 ID + 1 class (0,2,1)
+       = 210 poin → PASTI MENANG lawan HOVER (200)
+       ============================================================ */
+    #userProfileContainer #profileDropdown.show,
+    #profileDropdown.show {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateY(0) !important;
+        /* ===== PROPERTI VISUAL DIPAKSA PUTIH 100% DI MOBILE ===== */
+        background: #ffffff !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #E5E7E9 !important;
+        border-radius: 16px !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;           /* hilangkan filter abu-abu (invert/grayscale) */
+        mix-blend-mode: normal !important; /* pastikan tidak blend dengan overlay */
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
     }
 }
 
@@ -2885,6 +3066,7 @@ body.hide-auth-buttons #userProfileContainer {
         display: inline-block;
     }
 
+    /* ===== URUTAN 1. BASE (opacity 0, spesifisitas 010) ===== */
     .profile-dropdown-container,
     #profileDropdown {
         position: fixed !important;
@@ -2900,27 +3082,76 @@ body.hide-auth-buttons #userProfileContainer {
         gap: 16px !important;
         padding: 16px !important;
         border-radius: 16px !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
         transform: translateY(8px) scale(0.98) !important;
+        transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease !important;
+        /* ===== PROPERTI VISUAL DIPAKSA PUTIH 100% DI TABLET ===== */
+        background: #ffffff !important;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22) !important;
+        border: 1px solid #E5E7E9 !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
     }
 
+    /* ===== URUTAN 2. HOVER DISABLE (opacity 0) spesifisitas 020 =====
+       (tablet TIDAK pakai hover, hanya click toggle class .show) */
     #userProfileContainer:hover #profileDropdown,
     #profileDropdown:hover {
         opacity: 0 !important;
         visibility: hidden !important;
         pointer-events: none !important;
         transform: translateY(8px) scale(0.98) !important;
-    }
-
-    #profileDropdown.show {
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        transform: translateY(0) scale(1) !important;
+        /* tetap putih walau disembunyikan via hover (mencegah flicker abu-abu) */
+        background: #ffffff !important;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22) !important;
+        border: 1px solid #E5E7E9 !important;
+        z-index: 2147483647 !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
     }
 
     #profileDropdown > div {
         width: auto !important;
         flex: 1 1 0 !important;
+        background: transparent !important; /* child tidak punya background abu */
+        color: #0f172a !important;
+    }
+    /* TABLET: Overlay hanya cover area DI BAWAH header,
+       tidak menyentuh area dropdown profile */
+    .profile-dropdown-overlay {
+        top: 72px !important;
+        height: calc(100vh - 72px) !important;
+    }
+    /* ============================================================
+       URUTAN 3 (PALING AKHIR) — .show STATE (spesifisitas 021)
+       SELECTOR DIPERKAYA: 2 ID + 1 class (0,2,1)
+       = 210 poin → PASTI MENANG lawan HOVER (200)
+       ============================================================ */
+    #userProfileContainer #profileDropdown.show,
+    #profileDropdown.show {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateY(0) scale(1) !important;
+        /* ===== PROPERTI VISUAL DIPAKSA PUTIH 100% DI TABLET SAAT TERBUKA ===== */
+        background: #ffffff !important;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22) !important;
+        border: 1px solid #E5E7E9 !important;
+        border-radius: 16px !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
     }
 }
 
@@ -4206,7 +4437,7 @@ body[data-theme="dark"] .cart-page-header {
     position: relative;
     height: calc(100vh + 80px);
     min-height: 500px;
-    background: url('images/hero_desa_karanganyar.png') center/cover no-repeat fixed;
+    background: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5397,11 +5628,11 @@ body.pdp-mode .main-header {
 
 /* 1. Fix z-index modal agar tidak tertimpa header/search */
 .modal-overlay {
-    z-index: 99999 !important;
+    z-index: 2147483647 !important;
 }
 
 #loginModal {
-    z-index: 99999 !important;
+    z-index: 2147483647 !important;
     overflow-y: auto;
 }
 
@@ -6090,33 +6321,84 @@ body[data-theme="dark"] .km-row-content p {
         padding-right: 14px !important;
     }
 
+    body.home-mode:not(.village-mode) {
+        padding-top: 128px !important;
+    }
+
     .main-header {
         padding: 10px 12px !important;
         gap: 8px !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         min-width: 0;
     }
 
+    body.home-mode:not(.village-mode) .main-header {
+        padding-bottom: 12px !important;
+    }
+
+    /* URUTAN EKSPLISIT MOBILE KECIL */
+    .mobile-menu-btn {
+        order: 0 !important;
+        flex: 0 0 auto !important;
+    }
+
     .logo {
+        order: 1 !important;
         min-width: 0;
-        flex: 1 1 auto;
+        flex: 1 1 auto !important;
         gap: 4px;
         font-size: 0.95rem !important;
         overflow: hidden;
+        max-width: 50%;
     }
 
     .logo span {
         display: inline-block;
-        max-width: 170px;
+        max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     .header-actions {
+        order: 2 !important;
+        flex: 0 0 auto !important;
         gap: 8px !important;
         margin-left: auto !important;
         flex-shrink: 0;
+    }
+
+    .search-container {
+        order: 3 !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        margin-top: 8px !important;
+        min-width: 0 !important;
+    }
+
+    .search-wrapper {
+        gap: 6px !important;
+        min-width: 0 !important;
+    }
+
+    .category-btn {
+        padding: 8px 6px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .search-box {
+        min-width: 0 !important;
+    }
+
+    .search-box input {
+        padding: 10px 10px 10px 4px !important;
+        font-size: 0.85rem !important;
+        min-width: 0 !important;
+    }
+
+    .search-icon-left {
+        padding: 0 6px 0 10px !important;
+        font-size: 0.95rem !important;
     }
 
     #userNameDisplay,
@@ -6145,12 +6427,12 @@ body[data-theme="dark"] .km-row-content p {
     }
 
     .slider-container {
-        height: min(68vh, 560px);
+        height: min(72vh, 580px);
     }
 
     .slide {
         padding: 24px 16px !important;
-        padding-top: 110px !important;
+        padding-top: 130px !important;
         justify-content: center;
         text-align: center;
     }
@@ -6211,6 +6493,41 @@ body[data-theme="dark"] .km-row-content p {
         font-size: 0.78rem;
     }
 
+    #beritaHero {
+        margin-bottom: 20px !important;
+    }
+
+    .berita-slider-container {
+        height: min(62vh, 460px) !important;
+    }
+
+    .berita-slide-single {
+        padding-top: 32px !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .berita-slide-single .banner-content {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .berita-slide-single .banner-content h2 {
+        font-size: clamp(2rem, 10vw, 2.7rem) !important;
+        line-height: 1.08 !important;
+        margin-bottom: 12px !important;
+    }
+
+    .berita-slide-single .banner-content p {
+        font-size: 0.98rem !important;
+        line-height: 1.5 !important;
+        max-width: 100% !important;
+        margin: 0 auto 18px !important;
+    }
+
     .umkm-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         gap: 12px !important;
@@ -6230,6 +6547,45 @@ body[data-theme="dark"] .km-row-content p {
         width: auto !important;
         max-width: calc(100vw - 20px) !important;
         top: 62px !important;
+        /* ===== DIPAKSA PUTIH 100% DI HP KECIL (≤480px) ===== */
+        background: #ffffff !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #E5E7E9 !important;
+        border-radius: 16px !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+
+    /* ============================================================
+       SUPER SHOW di HP kecil (spesifisitas 021: 2 ID + 1 class)
+       Pastikan opacity 1 + visibility visible JUGA di-set di sini,
+       bukan cuma visual — mengalahkan hover disable rule 200 poin.
+       ============================================================ */
+    #userProfileContainer #profileDropdown.show,
+    #profileDropdown.show {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateY(0) !important;
+        background: #ffffff !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #E5E7E9 !important;
+        border-radius: 16px !important;
+        z-index: 2147483647 !important;
+        color: #0f172a !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+    /* HP kecil: Overlay mulai tepat di bawah header 62px */
+    .profile-dropdown-overlay {
+        top: 62px !important;
+        height: calc(100vh - 62px) !important;
     }
 
     footer {

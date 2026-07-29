@@ -1,7 +1,20 @@
 // admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
 (function() {
     function hasActiveAdminSession() {
-        return sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
+        const isSessionOk = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
+        if (isSessionOk) return true;
+
+        const isLocalOk = localStorage.getItem('isAdminLoggedIn') === 'true' && !!localStorage.getItem('umkm_admin_session_token');
+        if (isLocalOk) return true;
+
+        try {
+            if (window.parent && window.parent !== window && window.parent.sessionStorage) {
+                const isParentOk = window.parent.sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!window.parent.sessionStorage.getItem('umkm_admin_session_token');
+                if (isParentOk) return true;
+            }
+        } catch (_) {}
+
+        return false;
     }
 
     function sanitizeBasicHtml(rawHtml) {
@@ -58,6 +71,51 @@
     // ==========================================================
     const FIREBASE_RTDB_BASE = "https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app";
     const CMS_DB_URL = FIREBASE_RTDB_BASE + "/cms_profile.json";
+
+    // INDEXEDDB VAULT HELPER (Mencegah QuotaExceededError untuk Video MP4 Besar)
+    const cmsVideoStore = {
+        dbName: 'UMKM_CMS_DB',
+        storeName: 'cms_assets',
+        async open() {
+            return new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(this.dbName, 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName);
+                        }
+                    };
+                    req.onsuccess = (e) => resolve(e.target.result);
+                    req.onerror = () => resolve(null);
+                } catch (_) { resolve(null); }
+            });
+        },
+        async set(key, val) {
+            try {
+                const db = await this.open();
+                if (!db) return false;
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readwrite');
+                    tx.objectStore(this.storeName).put(val, key);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (_) { return false; }
+        },
+        async get(key) {
+            try {
+                const db = await this.open();
+                if (!db) return null;
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readonly');
+                    const req = tx.objectStore(this.storeName).get(key);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (_) { return null; }
+        }
+    };
 
     // Helper: Kirim seluruh data CMS yang terkumpul ke Firebase RTDB (single PUT)
     async function saveAllCMSToFirebase(cmsMapping, savedSnapshot = null) {
@@ -175,6 +233,7 @@
     // Mendapatkan mapping CMS
     function getCMSMapping() {
         return [
+            { selector: '.tkp-hero', type: 'hero_bg', key: 'cms_hero_bg', label: 'Background Hero (Video / Foto)' },
             { selector: '.tkp-hero h1', type: 'html', key: 'cms_hero_title', label: 'Judul Hero' },
             { selector: '.tkp-hero p', type: 'text', key: 'cms_hero_desc', label: 'Deskripsi Hero' },
             { selector: '.tkp-challenge .tkp-section-title', type: 'text', key: 'cms_tantangan_title', label: 'Judul Tantangan' },
@@ -193,9 +252,9 @@
             { selector: '.tkp-stats-right .tkp-stat-card:nth-child(1) .count-up:nth-of-type(1), .tkp-stat-item:nth-child(1) h3 span:nth-child(1)', type: 'number', key: 'cms_stat_rt', label: 'Jumlah RT', attr: 'data-target' },
             { selector: '.tkp-stats-right .tkp-stat-card:nth-child(1) .count-up:nth-of-type(2), .tkp-stat-item:nth-child(1) h3 span:nth-child(2)', type: 'number', key: 'cms_stat_rw', label: 'Jumlah RW', attr: 'data-target' },
             { selector: '.tkp-stats-right .tkp-stat-card:nth-child(2) .count-up, .tkp-stat-item:nth-child(2) h3 span', type: 'number', key: 'cms_stat_kk', label: 'Kepala Keluarga (KK)', attr: 'data-target' },
-            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) .count-up:nth-of-type(1), .tkp-stat-item:nth-child(3) h3 span:nth-child(1)', type: 'number', key: 'cms_stat_l', label: 'Penduduk Laki-laki', attr: 'data-target' },
-            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) .count-up:nth-of-type(2), .tkp-stat-item:nth-child(3) h3 span:nth-child(2)', type: 'number', key: 'cms_stat_p', label: 'Penduduk Perempuan', attr: 'data-target' },
-            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) .count-up:nth-of-type(3)', type: 'number', key: 'cms_stat_total', label: 'Total Penduduk (Jiwa)', attr: 'data-target' },
+            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) h3 > span:nth-child(1) .count-up, .tkp-stat-item:nth-child(3) h3 span:nth-child(1) .count-up', type: 'number', key: 'cms_stat_l', label: 'Penduduk Laki-laki', attr: 'data-target' },
+            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) h3 > span:nth-child(2) .count-up, .tkp-stat-item:nth-child(3) h3 span:nth-child(2) .count-up', type: 'number', key: 'cms_stat_p', label: 'Penduduk Perempuan', attr: 'data-target' },
+            { selector: '.tkp-stats-right .tkp-stat-card:nth-child(3) p .count-up, .tkp-stat-item:nth-child(3) p .count-up', type: 'number', key: 'cms_stat_total', label: 'Total Penduduk (Jiwa)', attr: 'data-target' },
             { selector: '.batas-card:nth-child(1) div:nth-child(2), .tkp-stat-item:nth-child(4) > div > div:nth-child(1) > div:nth-child(2)', type: 'text', key: 'cms_batas_u', label: 'Batas Utara' },
             { selector: '.batas-card:nth-child(2) div:nth-child(2), .tkp-stat-item:nth-child(4) > div > div:nth-child(2) > div:nth-child(2)', type: 'text', key: 'cms_batas_s', label: 'Batas Selatan' },
             { selector: '.batas-card:nth-child(3) div:nth-child(2), .tkp-stat-item:nth-child(4) > div > div:nth-child(3) > div:nth-child(2)', type: 'text', key: 'cms_batas_t', label: 'Batas Timur' },
@@ -226,101 +285,184 @@
         ];
     }
 
-    // Apply satu item CMS value ke DOM
+    // Helper function kompresi gambar CMS
+    function compressImageCMS(file, maxWidth = 1600, quality = 0.82) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = err => reject(err);
+            };
+            reader.onerror = err => reject(err);
+        });
+    }
+
+    // Direct HTML/Image element mutator
     function applyCMSItemToDOM(item, savedVal) {
+        if (!savedVal) return;
         const el = document.querySelector(item.selector);
         if (!el) return;
-        if (item.type === 'text') el.innerText = savedVal;
-        else if (item.type === 'html') el.innerHTML = sanitizeBasicHtml(savedVal);
-        else if (item.type === 'image' || item.type === 'iframe') {
+
+        if (item.type === 'text') {
+            el.innerText = savedVal;
+        } else if (item.type === 'html') {
+            el.innerHTML = sanitizeBasicHtml(savedVal);
+        } else if (item.type === 'image' || item.type === 'iframe') {
             if (item.key === 'cms_map_custom_image') {
                 const imgCustom = document.getElementById('mapCustomImage');
-                if (imgCustom) {
-                    applyMapAsset(imgCustom, sanitizeAssetUrl(savedVal, 'image'), {
-                        wrapperSelector: '#mapSlideImgmap',
-                        label: 'Peta Wilayah Padukuhan Karanganyar',
-                        accentColor: '#0f172a'
-                    });
-                }
+                const safeMapUrl = sanitizeAssetUrl(savedVal, 'image');
+                if (imgCustom) imgCustom.src = safeMapUrl;
+                
+                const ph = document.getElementById('mapImgPlaceholder');
+                if (ph) ph.style.display = 'none';
             } else if (item.key === 'cms_peta_sumber_air') {
                 const imgWater = document.getElementById('petaSumberAirImg');
-                if (imgWater) {
-                    applyMapAsset(imgWater, sanitizeAssetUrl(savedVal, 'image'), {
-                        wrapperSelector: '.water-map-img-wrapper',
-                        label: 'Peta Sebaran & Sumber Daya Air Karanganyar',
-                        accentColor: '#0f766e'
-                    });
-                }
+                const safeWaterUrl = sanitizeAssetUrl(savedVal, 'image');
+                if (imgWater) imgWater.src = safeWaterUrl;
             } else if (item.type === 'iframe') {
                 const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
-                if (iframe) {
-                    // ⭐⭐⭐ SELALU gunakan helper buildYoutubeEmbedUrl untuk YouTube
-                    // agar parameter playsinline/controls/fs SELALU ada (mobile bisa tap play!)
-                    let finalSrc = sanitizeAssetUrl(savedVal, 'iframe') || '';
+                let safeFrameUrl = sanitizeAssetUrl(savedVal, 'iframe');
+                if (iframe && safeFrameUrl) {
                     try {
-                        if (item.key === 'cms_video_url' && finalSrc && finalSrc.includes('youtube.com/embed/')) {
-                            finalSrc = buildYoutubeEmbedUrl(finalSrc);
-                        } else if (item.key === 'cms_map_url') {
-                            // Google Maps embed URL parameter standar
-                            if (finalSrc && !finalSrc.includes('?')) {
-                                // Do nothing, biarkan sesuai input
-                            }
+                        const frameUrlObj = new URL(safeFrameUrl);
+                        if (frameUrlObj.hostname.includes('google.com') && frameUrlObj.pathname.includes('/maps/embed')) {
+                            const params = new URLSearchParams(frameUrlObj.search);
+                            if (params.has('output')) safeFrameUrl = safeFrameUrl.replace('output=embed', 'output=embed&z=17');
+                            else safeFrameUrl += (safeFrameUrl.includes('?') ? '&' : '?') + 'z=17';
                         }
                     } catch(e) {}
-                    iframe.src = finalSrc;
+                    iframe.src = safeFrameUrl;
                 }
             } else {
                 el.src = sanitizeAssetUrl(savedVal, 'image');
             }
+        } else if (item.type === 'hero_bg') {
+            applyHeroBgToDOM(el, savedVal);
         } else if (item.type === 'number') {
             if (item.attr) el.setAttribute(item.attr, savedVal);
             el.innerText = savedVal;
         }
     }
 
-    // 1. Apply saved CMS data: PRIORITAS FIREBASE DB > localStorage
+    async function applyHeroBgToDOM(heroEl, savedVal) {
+        if (!heroEl) return;
+        let bgWrapper = heroEl.querySelector('.tkp-hero-bg');
+        if (!bgWrapper) {
+            bgWrapper = document.createElement('div');
+            bgWrapper.className = 'tkp-hero-bg';
+            bgWrapper.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; z-index:0; pointer-events:none;';
+            heroEl.insertBefore(bgWrapper, heroEl.firstChild);
+        }
+
+        let mediaType = 'image';
+        let url = '';
+
+        try {
+            const storedFile = await cmsVideoStore.get('cms_hero_bg_file');
+            if (storedFile && (storedFile instanceof Blob || storedFile instanceof File)) {
+                mediaType = storedFile.type.startsWith('image/') ? 'image' : 'video';
+                url = URL.createObjectURL(storedFile);
+            }
+        } catch (_) {}
+
+        if (!url && savedVal) {
+            try {
+                if (typeof savedVal === 'string' && savedVal.trim().startsWith('{')) {
+                    const parsed = JSON.parse(savedVal);
+                    mediaType = parsed.mediaType || 'image';
+                    url = parsed.url || '';
+                } else {
+                    url = String(savedVal).trim();
+                    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                        mediaType = 'youtube';
+                    } else if (url.startsWith('data:video/') || /\.(mp4|webm|ogv)($|\?)/i.test(url)) {
+                        mediaType = 'video';
+                    } else {
+                        mediaType = 'image';
+                    }
+                }
+            } catch (_) {
+                url = String(savedVal);
+            }
+        }
+
+        if (!url) {
+            bgWrapper.innerHTML = '';
+            heroEl.style.background = '#0f172a';
+            return;
+        }
+
+        heroEl.style.background = 'none';
+
+        if (mediaType === 'youtube') {
+            let videoId = '';
+            if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0].split('#')[0];
+            } else if (url.includes('v=')) {
+                videoId = new URLSearchParams(url.split('?')[1]).get('v');
+            } else if (url.includes('youtube.com/embed/')) {
+                videoId = url.split('youtube.com/embed/')[1].split('?')[0].split('#')[0];
+            }
+            if (videoId) {
+                bgWrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&autohide=1&modestbranding=1&playsinline=1&enablejsapi=1" style="position:absolute; top:50%; left:50%; width:100vw; height:100vh; min-width:177.77vh; min-height:56.25vw; transform:translate(-50%, -50%); object-fit:cover; border:none; pointer-events:none;"></iframe>`;
+            } else {
+                bgWrapper.innerHTML = '';
+                heroEl.style.background = '#0f172a';
+            }
+        } else if (mediaType === 'video') {
+            bgWrapper.innerHTML = `<video autoplay loop muted playsinline webkit-playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;"><source src="${url}"></video>`;
+        } else {
+            bgWrapper.innerHTML = `<img src="${url}" alt="Hero Background" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">`;
+        }
+    }
+
+    // 1. Apply saved CMS data: PRIORITAS INDEXEDDB / FIREBASE DB > localStorage
     async function applySavedCMSData() {
         const cmsMapping = getCMSMapping();
 
         // --- STEP 1: Coba tarik data dari Firebase DB terlebih dahulu ---
         const fbSnapshot = await fetchCMSFromFirebase();
         if (fbSnapshot) {
-            // Priority: Firebase value > localStorage value. Sync ke localStorage juga.
-            cmsMapping.forEach(item => {
+            for (const item of cmsMapping) {
                 if (fbSnapshot[item.key] != null && fbSnapshot[item.key] !== "") {
+                    if (item.key === 'cms_hero_bg') {
+                        await cmsVideoStore.set('cms_hero_bg', fbSnapshot[item.key]);
+                    }
                     try { localStorage.setItem(item.key, fbSnapshot[item.key]); } catch (e) {}
                 }
-            });
-            // Jika Firebase sudah punya beberapa key tapi localStorage tidak lengkap,
-            // push snapshot gabungan kembali ke Firebase agar DB selalu lengkap
-            if (Object.keys(fbSnapshot).length < cmsMapping.length) {
-                saveAllCMSToFirebase(cmsMapping, fbSnapshot).catch(() => {});
             }
-        } else {
-            // Tidak ada data di Firebase: coba push data localStorage jika ada
-            const anyLocal = cmsMapping.some(item => {
-                const v = localStorage.getItem(item.key);
-                return v != null && v !== "";
-            });
-            if (anyLocal) saveAllCMSToFirebase(cmsMapping).catch(() => {});
         }
 
         // --- STEP 2: Apply nilai yang sudah disinkron ke DOM ---
-        cmsMapping.forEach(item => {
-            const savedVal = localStorage.getItem(item.key);
+        for (const item of cmsMapping) {
+            let savedVal = localStorage.getItem(item.key);
+            if (item.type === 'hero_bg') {
+                const idbHero = await cmsVideoStore.get('cms_hero_bg');
+                if (idbHero) savedVal = idbHero;
+            }
             if (savedVal) applyCMSItemToDOM(item, savedVal);
-        });
+        }
 
         // --- STEP 3: Binding Lightbox untuk gambar peta & galeri (bukan di mode admin) ---
         setTimeout(() => bindLightboxHandlers(cmsMapping), 200);
 
         return cmsMapping;
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { applySavedCMSData(); });
-    } else {
-        applySavedCMSData();
     }
 
     // ==========================================================
@@ -559,6 +701,21 @@
                                 };
                             }
                         }
+                    } else if (item.type === 'hero_bg') {
+                        el.style.position = 'relative';
+                        let btn = el.querySelector('.cms-real-btn-' + item.key);
+                        if (!btn) {
+                            btn = document.createElement('button');
+                            btn.className = 'cms-real-btn cms-real-btn-' + item.key;
+                            btn.innerHTML = `✏️ Edit Background Hero (Video / Foto)`;
+                            btn.style.cssText = 'position: absolute !important; top: 90px !important; right: 20px !important; z-index: 99999 !important; background: #00AA5B !important; color: #ffffff !important; border: 2px solid #ffffff !important; padding: 10px 18px !important; border-radius: 24px !important; font-weight: 700 !important; font-size: 13px !important; font-family: "Poppins", sans-serif !important; cursor: pointer !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; display: flex !important; align-items: center !important; gap: 8px !important; pointer-events: auto !important;';
+                            el.appendChild(btn);
+                        }
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openEditor(el, item, cmsMapping);
+                        };
                     } else if (item.type === 'iframe') {
                         const iframe = el.tagName.toLowerCase() === 'iframe' ? el : el.querySelector('iframe');
                         const parent = iframe ? iframe.parentElement : el;
@@ -636,9 +793,55 @@
         modalBackdrop.className = 'cms-floating-editor-backdrop';
         modalBackdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); z-index: 9999999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 15px; box-sizing: border-box;';
         
+        let currentMediaType = 'video';
+        let currentUrl = '';
+        if (item.type === 'hero_bg') {
+            const rawVal = localStorage.getItem(item.key) || '';
+            if (rawVal) {
+                try {
+                    if (rawVal.trim().startsWith('{')) {
+                        const parsed = JSON.parse(rawVal);
+                        currentMediaType = (parsed.mediaType === 'image') ? 'image' : 'video';
+                        currentUrl = parsed.url || '';
+                    } else {
+                        currentUrl = rawVal.trim();
+                        if (currentUrl.startsWith('data:video/') || /\.(mp4|webm|ogv)($|\?)/i.test(currentUrl)) currentMediaType = 'video';
+                        else currentMediaType = 'image';
+                    }
+                } catch (_) { currentUrl = rawVal; }
+            }
+        }
+
         let inputHtml = '';
         if (item.type === 'text' || item.type === 'html') {
             inputHtml = `<textarea rows="5" class="cms-input-field" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box;">${escapedCurrentValue}</textarea>`;
+        } else if (item.type === 'hero_bg') {
+            inputHtml = `
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 8px;">Pilih Jenis Media Latar Belakang (Hero Background):</label>
+                    <div class="cms-hero-type-group" style="display: flex; gap: 10px; margin-bottom: 14px;">
+                        <button type="button" class="cms-hero-type-btn" data-type="video" style="flex: 1; padding: 12px 10px; border-radius: 12px; border: 2px solid ${currentMediaType === 'video' ? '#00AA5B' : '#cbd5e1'}; background: ${currentMediaType === 'video' ? '#e8f5e9' : '#f8fafc'}; color: ${currentMediaType === 'video' ? '#2e7d32' : '#475569'}; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-file-video" style="font-size: 1.1rem; color: #00AA5B;"></i> Video MP4
+                        </button>
+                        <button type="button" class="cms-hero-type-btn" data-type="image" style="flex: 1; padding: 12px 10px; border-radius: 12px; border: 2px solid ${currentMediaType === 'image' ? '#00AA5B' : '#cbd5e1'}; background: ${currentMediaType === 'image' ? '#e8f5e9' : '#f8fafc'}; color: ${currentMediaType === 'image' ? '#2e7d32' : '#475569'}; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-image" style="font-size: 1.1rem; color: #0284c7;"></i> Foto / Gambar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cms-hero-file-section" style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;" class="cms-hero-file-label">
+                        ${currentMediaType === 'video' ? 'Upload File Video MP4 dari HP/Laptop:' : 'Upload File Foto/Gambar dari HP/Laptop:'}
+                    </label>
+                    <input type="file" class="cms-hero-file-input" accept="${currentMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*'}" style="width: 100%; padding: 10px; border: 2px dashed #00AA5B; border-radius: 10px; font-size: 0.85rem; background: #f0fdf4; box-sizing: border-box; cursor: pointer;">
+                </div>
+
+                <div style="text-align: center; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 14px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px;">Pratinjau Latar Belakang (Preview):</span>
+                    <div class="cms-hero-preview-stage" style="position: relative; width: 100%; height: 180px; border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
+                    </div>
+                </div>
+            `;
         } else if (item.type === 'image') {
             inputHtml = `
                 <div style="margin-bottom: 12px;">
@@ -677,7 +880,49 @@
         document.body.appendChild(modalBackdrop);
         activeEditor = modalBackdrop;
 
-        if (item.type === 'image') {
+        let activeHeroUrl = currentUrl;
+        let pendingHeroFile = null;
+        if (item.type === 'hero_bg') {
+            let selectedMediaType = currentMediaType;
+            const typeBtns = modalBackdrop.querySelectorAll('.cms-hero-type-btn');
+            const fileLabel = modalBackdrop.querySelector('.cms-hero-file-label');
+            const fileInput = modalBackdrop.querySelector('.cms-hero-file-input');
+            const previewStage = modalBackdrop.querySelector('.cms-hero-preview-stage');
+
+            const updatePreview = () => {
+                applyHeroBgToDOM(previewStage, JSON.stringify({ mediaType: selectedMediaType, url: activeHeroUrl }));
+            };
+
+            typeBtns.forEach(btn => {
+                btn.onclick = () => {
+                    selectedMediaType = btn.dataset.type;
+                    typeBtns.forEach(b => {
+                        const isActive = b.dataset.type === selectedMediaType;
+                        b.style.background = isActive ? '#e8f5e9' : '#f8fafc';
+                        b.style.color = isActive ? '#2e7d32' : '#475569';
+                        b.style.borderColor = isActive ? '#00AA5B' : '#cbd5e1';
+                    });
+                    if (fileLabel) {
+                        fileLabel.textContent = selectedMediaType === 'video' ? 'Upload File Video MP4 dari Perangkat:' : 'Upload File Foto/Gambar dari Perangkat:';
+                    }
+                    if (fileInput) fileInput.accept = selectedMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*';
+                    updatePreview();
+                };
+            });
+
+            if (fileInput) {
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        pendingHeroFile = file;
+                        activeHeroUrl = URL.createObjectURL(file);
+                        updatePreview();
+                    }
+                });
+            }
+
+            updatePreview();
+        } else if (item.type === 'image') {
             const fileInput = modalBackdrop.querySelector('.cms-input-file');
             const textInput = modalBackdrop.querySelector('.cms-input-field');
             const previewImg = modalBackdrop.querySelector('.cms-preview-img');
@@ -724,7 +969,18 @@
 
         modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', async () => {
             let newValue = '';
-            if (item.type === 'text' || item.type === 'html') {
+            if (item.type === 'hero_bg') {
+                const activeBtn = modalBackdrop.querySelector('.cms-hero-type-btn[style*="#2e7d32"], .cms-hero-type-btn[style*="#00AA5B"], .cms-hero-type-btn[style*="e8f5e9"]');
+                const mediaType = activeBtn ? activeBtn.dataset.type : 'video';
+                
+                if (pendingHeroFile) {
+                    await cmsVideoStore.set('cms_hero_bg_file', pendingHeroFile);
+                }
+                
+                const safeUrl = activeHeroUrl.startsWith('blob:') ? '' : activeHeroUrl;
+                newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
+                await cmsVideoStore.set('cms_hero_bg', newValue);
+            } else if (item.type === 'text' || item.type === 'html') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else if (item.type === 'image') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
@@ -773,6 +1029,19 @@
             } catch(e) {}
 
             applyCMSItemToDOM(item, newValue);
+
+            if (item.key === 'cms_stat_l' || item.key === 'cms_stat_p') {
+                const elL = document.querySelector('.tkp-stats-right .tkp-stat-card:nth-child(3) h3 > span:nth-child(1) .count-up');
+                const elP = document.querySelector('.tkp-stats-right .tkp-stat-card:nth-child(3) h3 > span:nth-child(2) .count-up');
+                const valL = parseInt(item.key === 'cms_stat_l' ? newValue : (localStorage.getItem('cms_stat_l') || (elL ? elL.getAttribute('data-target') || elL.innerText : '331')), 10);
+                const valP = parseInt(item.key === 'cms_stat_p' ? newValue : (localStorage.getItem('cms_stat_p') || (elP ? elP.getAttribute('data-target') || elP.innerText : '347')), 10);
+                if (!isNaN(valL) && !isNaN(valP)) {
+                    const tot = String(valL + valP);
+                    try { localStorage.setItem('cms_stat_total', tot); } catch(e) {}
+                    const totalItem = cmsMapping.find(m => m.key === 'cms_stat_total');
+                    if (totalItem) applyCMSItemToDOM(totalItem, tot);
+                }
+            }
 
             // ✅ PENTING: Simpan SEMUA data CMS ke Firebase DB (bukan cuma localStorage)
             const saveBtn = modalBackdrop.querySelector('.cms-btn-save');
