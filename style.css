@@ -47,6 +47,8 @@ html {
     background-color: #111;
     /* Dark background for overscroll */
     overflow-x: hidden;
+    /* Offset scroll untuk header fixed — semua scrollIntoView & anchor otomatis offset */
+    scroll-padding-top: 120px;
 }
 
 body {
@@ -631,6 +633,8 @@ main {
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
     margin-bottom: 30px;
+    /* Offset agar tidak tertutup header saat di-scroll ke sana */
+    scroll-margin-top: 120px;
 }
 
 .section-title {

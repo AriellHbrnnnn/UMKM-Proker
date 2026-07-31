@@ -912,6 +912,18 @@ storeTabBtns.forEach(btn => {
 });
 
 // Fungsi kembali ke Home atau Tentang
+// Helper: scroll ke seksi Promo/UMKM dengan offset header yang benar
+window.scrollToPromoSection = function() {
+    const kategorisec = document.querySelector('#homePage .categories-section');
+    const umkmGrid = document.getElementById('umkmGrid');
+    const target = kategorisec || umkmGrid;
+    if (!target) return;
+    // Hitung posisi dengan offset header (115px)
+    const headerH = (document.querySelector('.header') || {}).offsetHeight || 115;
+    const y = target.getBoundingClientRect().top + window.scrollY - headerH - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+};
+
 const goHome = (e) => {
     if(e) e.preventDefault();
     
@@ -921,11 +933,14 @@ const goHome = (e) => {
         return;
     }
 
-    // Jika navigasi dipicu oleh klik logo atau menu Promo Desa, paksa scroll ke 0 (atas)
-    if (e && (e.currentTarget === logoBtn || (e.currentTarget.classList && e.currentTarget.classList.contains('linkPromoDesa')))) {
-        scrollPositions['homePage'] = 0;
-    }
+    const isPromoDesa = e && e.currentTarget && e.currentTarget.classList && e.currentTarget.classList.contains('linkPromoDesa');
     switchPage('homePage');
+
+    // Jika klik "Promo Desa" dari nav, langsung scroll ke seksi kategori/UMKM
+    if (isPromoDesa) {
+        setTimeout(() => window.scrollToPromoSection(), 80);
+    }
+    // Jika klik logo, scroll ke atas (default switchPage sudah scroll ke 0)
 };
 
 logoBtn.addEventListener('click', goHome);
