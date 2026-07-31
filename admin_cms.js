@@ -1099,14 +1099,41 @@
         let activeHeroUrl = currentUrl;
         let pendingHeroFile = null;
         if (item.type === 'hero_bg') {
+            // Fix initial selectedMediaType — termasuk 'youtube'
             let selectedMediaType = currentMediaType;
+            if (currentUrl && (currentUrl.includes('youtube.com') || currentUrl.includes('youtu.be'))) {
+                selectedMediaType = 'youtube';
+            }
+            // Normalisasi: 'youtube' tampilkan di tab 'video'
+            const activeTab = (selectedMediaType === 'youtube' || selectedMediaType === 'video') ? 'video' : 'image';
+
             const typeBtns = modalBackdrop.querySelectorAll('.cms-hero-type-btn');
             const imgSection = modalBackdrop.querySelector('.cms-hero-image-section');
             const vidSection = modalBackdrop.querySelector('.cms-hero-video-section');
             const fileInput = modalBackdrop.querySelector('.cms-hero-file-input');
             const pickBtn = modalBackdrop.querySelector('.cms-hero-pick-btn');
-            const urlInput = modalBackdrop.querySelector('.cms-hero-url-input');
+            // PENTING: ambil SEMUA url inputs (ada 2: satu di tab foto, satu di tab video)
+            const urlInputs = modalBackdrop.querySelectorAll('.cms-hero-url-input');
             const previewStage = modalBackdrop.querySelector('.cms-hero-preview-stage');
+
+            // Inisialisasi tampilan tab yang benar di awal
+            typeBtns.forEach(b => {
+                const active = b.dataset.type === activeTab;
+                b.style.background = active ? '#ffffff' : 'transparent';
+                b.style.color = active ? '#00AA5B' : '#64748b';
+                b.style.boxShadow = active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none';
+            });
+            if (imgSection) imgSection.style.display = activeTab === 'image' ? 'block' : 'none';
+            if (vidSection) vidSection.style.display = activeTab === 'video' ? 'block' : 'none';
+            // Isi nilai awal di input URL yang aktif
+            urlInputs.forEach(inp => {
+                const inImg = imgSection && imgSection.contains(inp);
+                const inVid = vidSection && vidSection.contains(inp);
+                if ((activeTab === 'image' && inImg) || (activeTab === 'video' && inVid)) {
+                    const cleanUrl = (currentUrl && !currentUrl.startsWith('blob:') && !currentUrl.startsWith('data:')) ? currentUrl : '';
+                    inp.value = cleanUrl;
+                }
+            });
 
             // Helper: update preview — YouTube pakai thumbnail, bukan iframe (iframe diblokir saat preview)
             const updatePreview = () => {
@@ -1224,7 +1251,7 @@
                 if (dragArea) {
                     dragArea.querySelector('div[style*="font-weight: 700"]').textContent = '✅ ' + file.name;
                 }
-                if (urlInput) urlInput.value = '';
+                urlInputs.forEach(inp => { inp.value = ''; }); // bersihkan semua URL input
                 updatePreview();
             };
 
@@ -1236,20 +1263,24 @@
                 });
             }
 
-            // URL input change → update preview langsung
-            if (urlInput) {
-                urlInput.addEventListener('input', (e) => {
+            // URL input change → pasang listener ke SEMUA url inputs (tab foto + tab video)
+            urlInputs.forEach(inp => {
+                inp.addEventListener('input', (e) => {
                     const val = e.target.value.trim();
                     pendingHeroFile = null;
                     activeHeroUrl = val;
                     if (val.includes('youtube.com') || val.includes('youtu.be')) {
                         selectedMediaType = 'youtube';
+                    } else if (vidSection && vidSection.contains(inp)) {
+                        selectedMediaType = 'video';
+                    } else {
+                        selectedMediaType = 'image';
                     }
-                    // Debounce preview update
-                    clearTimeout(urlInput._previewTimer);
-                    urlInput._previewTimer = setTimeout(() => updatePreview(), 600);
+                    // Debounce preview — 400ms
+                    clearTimeout(inp._previewTimer);
+                    inp._previewTimer = setTimeout(() => updatePreview(), 400);
                 });
-            }
+            });
 
             // Init preview dengan nilai awal
             updatePreview();
