@@ -1,4 +1,4 @@
-﻿// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
+// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
 (function() {
     function hasActiveAdminSession() {
         const isSessionOk = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
@@ -126,15 +126,21 @@
                     ? savedSnapshot[item.key]
                     : (localStorage.getItem(item.key) ?? "");
 
-                // ⚠️ Jangan simpan data base64 besar ke Firebase (video MP4 lokal > 1MB)
-                // Firebase Realtime DB punya limit 10MB per node, dan base64 video bisa ratusan MB.
-                // Data hero_bg berupa base64 video: cukup simpan placeholder / kosongkan saja.
+                // Filter untuk cms_hero_bg: hanya blokir video base64 (terlalu besar)
+                // Foto base64 yang sudah dikompres (~100-500KB) BOLEH disimpan ke Firebase
+                // agar foto background tampil global untuk semua pengunjung
                 if (item.key === 'cms_hero_bg' && typeof val === 'string') {
-                    if (val.startsWith('data:video/') || val.startsWith('blob:')) {
-                        // Jangan simpan ke Firebase — terlalu besar / tidak portable
+                    if (val.startsWith('blob:')) {
+                        // blob: URL tidak portable — jangan simpan
                         payload[item.key] = "";
                         return;
                     }
+                    if (val.startsWith('data:video/')) {
+                        // Video base64 bisa ratusan MB — jangan simpan ke Firebase
+                        payload[item.key] = "";
+                        return;
+                    }
+                    // data:image/ (foto compressed) → boleh, ukurannya kecil setelah compressImageCMS
                 }
                 payload[item.key] = val;
             });
@@ -971,39 +977,54 @@
         if (item.type === 'text' || item.type === 'html') {
             inputHtml = `<textarea rows="5" class="cms-input-field" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box;">${escapedCurrentValue}</textarea>`;
         } else if (item.type === 'hero_bg') {
+            // Tentukan nilai URL awal yang tampil di input (bersih dari blob/data)
+            const _initUrlVal = (currentUrl && !currentUrl.startsWith('blob:') && !currentUrl.startsWith('data:')) ? currentUrl : '';
             inputHtml = `
-                <div style="margin-bottom: 16px;">
-                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 8px;">Pilih Jenis Media Latar Belakang (Hero Background):</label>
-                    <div class="cms-hero-type-group" style="display: flex; gap: 10px; margin-bottom: 14px;">
-                        <button type="button" class="cms-hero-type-btn" data-type="video" style="flex: 1; padding: 12px 10px; border-radius: 12px; border: 2px solid ${currentMediaType === 'video' ? '#00AA5B' : '#cbd5e1'}; background: ${currentMediaType === 'video' ? '#e8f5e9' : '#f8fafc'}; color: ${currentMediaType === 'video' ? '#2e7d32' : '#475569'}; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <i class="fas fa-file-video" style="font-size: 1.1rem; color: #00AA5B;"></i> Video MP4
+                <!-- TAB PILIH JENIS -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; background: #f1f5f9; border-radius: 10px; padding: 4px;">
+                    <button type="button" class="cms-hero-type-btn" data-type="image" style="flex: 1; padding: 9px 8px; border-radius: 8px; border: none; background: ${currentMediaType === 'image' ? '#ffffff' : 'transparent'}; color: ${currentMediaType === 'image' ? '#00AA5B' : '#64748b'}; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: ${currentMediaType === 'image' ? '0 1px 4px rgba(0,0,0,0.12)' : 'none'}; transition: all 0.2s; font-family: inherit;">
+                        <i class="fas fa-image"></i> Foto / Gambar
+                    </button>
+                    <button type="button" class="cms-hero-type-btn" data-type="video" style="flex: 1; padding: 9px 8px; border-radius: 8px; border: none; background: ${currentMediaType === 'video' ? '#ffffff' : 'transparent'}; color: ${currentMediaType === 'video' ? '#00AA5B' : '#64748b'}; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: ${currentMediaType === 'video' ? '0 1px 4px rgba(0,0,0,0.12)' : 'none'}; transition: all 0.2s; font-family: inherit;">
+                        <i class="fab fa-youtube"></i> Video YouTube
+                    </button>
+                </div>
+
+                <!-- SECTION FOTO (tampil jika type = image) -->
+                <div class="cms-hero-image-section" style="display: ${currentMediaType === 'image' ? 'block' : 'none'};">
+                    <div style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; background: #f8fafc; margin-bottom: 14px; cursor: pointer; transition: border-color 0.2s;" id="cmsHeroDragDrop">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #00AA5B; margin-bottom: 8px; display: block;"></i>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem; margin-bottom: 4px;">Upload Foto Latar Belakang</div>
+                        <div style="color: #64748b; font-size: 0.78rem; margin-bottom: 12px;">JPG, PNG, atau WebP — Otomatis dikompres & tersimpan global</div>
+                        <input type="file" class="cms-hero-file-input" accept="image/*" style="display: none;">
+                        <button type="button" class="cms-hero-pick-btn" style="padding: 8px 20px; border-radius: 8px; border: 1.5px solid #00AA5B; background: white; color: #00AA5B; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit;">
+                            <i class="fas fa-folder-open"></i> Pilih Foto
                         </button>
-                        <button type="button" class="cms-hero-type-btn" data-type="image" style="flex: 1; padding: 12px 10px; border-radius: 12px; border: 2px solid ${currentMediaType === 'image' ? '#00AA5B' : '#cbd5e1'}; background: ${currentMediaType === 'image' ? '#e8f5e9' : '#f8fafc'}; color: ${currentMediaType === 'image' ? '#2e7d32' : '#475569'}; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <i class="fas fa-image" style="font-size: 1.1rem; color: #0284c7;"></i> Foto / Gambar
-                        </button>
+                    </div>
+                    <div style="text-align: center; color: #94a3b8; font-size: 0.78rem; margin-bottom: 10px;">— atau tempel URL foto —</div>
+                    <input type="text" class="cms-hero-url-input" placeholder="https://contoh.com/foto.jpg" value="${_initUrlVal && !_initUrlVal.includes('youtube') ? _initUrlVal : ''}" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; box-sizing: border-box; font-family: inherit; margin-bottom: 14px;">
+                </div>
+
+                <!-- SECTION VIDEO (tampil jika type = video) -->
+                <div class="cms-hero-video-section" style="display: ${currentMediaType === 'video' ? 'block' : 'none'};">
+                    <div style="background: #fafafa; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.3rem;"></i>
+                            <span style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Tempel Link YouTube</span>
+                        </div>
+                        <input type="text" class="cms-hero-url-input" placeholder="Contoh: https://youtu.be/XXXXX atau https://www.youtube.com/watch?v=XXXXX" value="${_initUrlVal && _initUrlVal.includes('youtube') ? _initUrlVal : (_initUrlVal && !_initUrlVal.includes('.') ? '' : _initUrlVal)}" style="width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; box-sizing: border-box; font-family: inherit;">
+                        <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">Link YouTube → otomatis dikonversi dan tersimpan untuk semua pengunjung web</div>
                     </div>
                 </div>
 
-                <div class="cms-hero-file-section" style="margin-bottom: 14px;">
-                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;" class="cms-hero-file-label">
-                        Opsi 1: Upload File dari Perangkat:
-                    </label>
-                    <input type="file" class="cms-hero-file-input" accept="${currentMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*'}" style="width: 100%; padding: 10px; border: 2px dashed #00AA5B; border-radius: 10px; font-size: 0.85rem; background: #f0fdf4; box-sizing: border-box; cursor: pointer;">
-                </div>
-
-                <div class="cms-hero-url-section" style="margin-bottom: 16px;">
-                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">
-                        Opsi 2: Atau Tempel Link URL Video/Foto (Disarankan untuk Live Deploy):
-                    </label>
-                    <input type="text" class="cms-hero-url-input" placeholder="Contoh: https://youtu.be/ID_VIDEO atau https://drive.google.com/..." value="${escapedCurrentValue.startsWith('blob:') ? '' : (escapedCurrentValue.startsWith('data:') ? '' : escapedCurrentValue)}" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
-                    <div style="font-size: 0.73rem; margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;">
-                        <b>⚠️ PENTING:</b> Gunakan <b>URL eksternal</b> (YouTube, Google Drive, Cloudinary, dll) agar tampil di semua pengunjung. Upload file lokal di Opsi 1 <b>HANYA tampil di browser/perangkat Anda</b> dan tidak akan muncul setelah di-deploy ke Netlify atau dibuka di HP orang lain.
+                <!-- PREVIEW -->
+                <div style="background: #0f172a; border-radius: 12px; border: 1px solid #334155; overflow: hidden;">
+                    <div style="padding: 8px 12px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-eye" style="color: #94a3b8; font-size: 0.75rem;"></i>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8;">PRATINJAU (Preview)</span>
                     </div>
-                </div>
-
-                <div style="text-align: center; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 14px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px;">Pratinjau Latar Belakang (Preview):</span>
-                    <div class="cms-hero-preview-stage" style="position: relative; width: 100%; height: 180px; border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
+                    <div class="cms-hero-preview-stage" style="position: relative; width: 100%; height: 160px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #475569; font-size: 0.8rem;">Pilih foto atau masukkan URL untuk melihat preview</span>
                     </div>
                 </div>
             `;
@@ -1026,16 +1047,24 @@
             inputHtml = `<input type="${item.type === 'number' ? 'number' : 'text'}" class="cms-input-field" value="${escapedCurrentValue}" placeholder="Masukkan URL Embed..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;">`;
         }
 
+        // Modal dengan layout flexbox column: header sticky + body scrollable + footer sticky
         modalBackdrop.innerHTML = `
-            <div style="background: #ffffff; width: 100%; max-width: 520px; border-radius: 16px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; position: relative;">
-                <div style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <span style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-edit" style="color: #00AA5B;"></i> Edit ${item.label || 'Elemen'}</span>
-                    <button class="cms-btn-close" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+            <div style="background: #ffffff; width: 100%; max-width: 540px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; max-height: 92vh; overflow: hidden;">
+                <!-- HEADER STICKY -->
+                <div style="padding: 18px 20px 14px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;">
+                    <span style="font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-edit" style="color: #00AA5B;"></i> Edit ${item.label || 'Elemen'}
+                    </span>
+                    <button class="cms-btn-close" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
                 </div>
-                ${inputHtml}
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button class="cms-btn-cancel" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #64748b; font-weight: 700; cursor: pointer;">Batal</button>
-                    <button class="cms-btn-save" style="padding: 10px 24px; border-radius: 8px; border: none; background: #00AA5B; color: white; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,170,91,0.3); display: flex; align-items: center; gap: 6px;">
+                <!-- BODY SCROLLABLE -->
+                <div style="padding: 18px 20px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch;">
+                    ${inputHtml}
+                </div>
+                <!-- FOOTER STICKY (tombol selalu terlihat) -->
+                <div style="padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; background: #f8fafc; border-radius: 0 0 16px 16px;">
+                    <button class="cms-btn-cancel" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #64748b; font-weight: 700; cursor: pointer; font-family: inherit;">Batal</button>
+                    <button class="cms-btn-save" style="padding: 10px 24px; border-radius: 8px; border: none; background: #00AA5B; color: white; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,170,91,0.3); display: flex; align-items: center; gap: 6px; font-family: inherit;">
                         <i class="fas fa-check"></i> Simpan Perubahan
                     </button>
                 </div>
@@ -1060,73 +1089,126 @@
         if (item.type === 'hero_bg') {
             let selectedMediaType = currentMediaType;
             const typeBtns = modalBackdrop.querySelectorAll('.cms-hero-type-btn');
-            const fileLabel = modalBackdrop.querySelector('.cms-hero-file-label');
+            const imgSection = modalBackdrop.querySelector('.cms-hero-image-section');
+            const vidSection = modalBackdrop.querySelector('.cms-hero-video-section');
             const fileInput = modalBackdrop.querySelector('.cms-hero-file-input');
+            const pickBtn = modalBackdrop.querySelector('.cms-hero-pick-btn');
             const urlInput = modalBackdrop.querySelector('.cms-hero-url-input');
             const previewStage = modalBackdrop.querySelector('.cms-hero-preview-stage');
 
+            // Helper: update preview
             const updatePreview = () => {
+                if (!previewStage) return;
+                if (!activeHeroUrl) {
+                    previewStage.innerHTML = `<span style="color:#475569;font-size:0.8rem;">Pilih foto atau masukkan URL untuk melihat preview</span>`;
+                    return;
+                }
                 applyHeroBgToDOM(previewStage, JSON.stringify({ mediaType: selectedMediaType, url: activeHeroUrl }));
             };
 
-            typeBtns.forEach(btn => {
-                btn.onclick = () => {
-                    selectedMediaType = btn.dataset.type;
-                    typeBtns.forEach(b => {
-                        const isActive = b.dataset.type === selectedMediaType;
-                        b.style.background = isActive ? '#e8f5e9' : '#f8fafc';
-                        b.style.color = isActive ? '#2e7d32' : '#475569';
-                        b.style.borderColor = isActive ? '#00AA5B' : '#cbd5e1';
-                    });
-                    if (fileLabel) {
-                        fileLabel.textContent = selectedMediaType === 'video' ? 'Opsi 1: Upload File Video MP4 dari Perangkat:' : 'Opsi 1: Upload File Foto/Gambar dari Perangkat:';
-                    }
-                    if (fileInput) fileInput.accept = selectedMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*';
-                    updatePreview();
-                };
-            });
+            // Helper: switch tab visual
+            const switchTab = (type) => {
+                selectedMediaType = type;
+                typeBtns.forEach(b => {
+                    const active = b.dataset.type === type;
+                    b.style.background = active ? '#ffffff' : 'transparent';
+                    b.style.color = active ? '#00AA5B' : '#64748b';
+                    b.style.boxShadow = active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none';
+                });
+                if (imgSection) imgSection.style.display = type === 'image' ? 'block' : 'none';
+                if (vidSection) vidSection.style.display = type === 'video' ? 'block' : 'none';
+                // Reset activeHeroUrl saat ganti tab
+                activeHeroUrl = '';
+                pendingHeroFile = null;
+                updatePreview();
+            };
 
+            // Tab switch
+            typeBtns.forEach(btn => { btn.onclick = () => switchTab(btn.dataset.type); });
+
+            // Tombol pilih foto → trigger file input
+            if (pickBtn && fileInput) {
+                pickBtn.onclick = () => fileInput.click();
+                // Drag area juga bisa diklik
+                const dragArea = modalBackdrop.querySelector('#cmsHeroDragDrop');
+                if (dragArea) {
+                    dragArea.addEventListener('click', (e) => {
+                        if (e.target !== pickBtn) fileInput.click();
+                    });
+                    dragArea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dragArea.style.borderColor = '#00AA5B';
+                        dragArea.style.background = '#f0fdf4';
+                    });
+                    dragArea.addEventListener('dragleave', () => {
+                        dragArea.style.borderColor = '#cbd5e1';
+                        dragArea.style.background = '#f8fafc';
+                    });
+                    dragArea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dragArea.style.borderColor = '#cbd5e1';
+                        dragArea.style.background = '#f8fafc';
+                        const files = e.dataTransfer.files;
+                        if (files && files[0]) processImageFile(files[0]);
+                    });
+                }
+            }
+
+            // Helper: proses file gambar → compress → base64 → preview
+            const processImageFile = async (file) => {
+                if (!file.type.startsWith('image/')) {
+                    alert('Hanya file gambar (JPG, PNG, WebP) yang diperbolehkan untuk foto background.');
+                    return;
+                }
+                pendingHeroFile = file;
+                // Tampilkan loading di preview
+                if (previewStage) {
+                    previewStage.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:1.8rem;color:#00AA5B;display:block;margin:0 auto 10px;"></i><span style="font-size:0.82rem;">Mengompres foto...</span></div>`;
+                }
+                try {
+                    activeHeroUrl = await compressImageCMS(file);
+                } catch (err) {
+                    // Fallback: baca sebagai base64 langsung
+                    activeHeroUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result || '');
+                        reader.readAsDataURL(file);
+                    });
+                }
+                selectedMediaType = 'image';
+                // Update drag area: tampilkan nama file
+                const dragArea = modalBackdrop.querySelector('#cmsHeroDragDrop');
+                if (dragArea) {
+                    dragArea.querySelector('div[style*="font-weight: 700"]').textContent = '✅ ' + file.name;
+                }
+                if (urlInput) urlInput.value = '';
+                updatePreview();
+            };
+
+            // File input change
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) processImageFile(file);
+                });
+            }
+
+            // URL input change → update preview langsung
             if (urlInput) {
                 urlInput.addEventListener('input', (e) => {
                     const val = e.target.value.trim();
-                    if (val) {
-                        pendingHeroFile = null;
-                        activeHeroUrl = val;
-                        if (val.includes('youtube.com') || val.includes('youtu.be')) {
-                            selectedMediaType = 'youtube';
-                        }
-                        updatePreview();
+                    pendingHeroFile = null;
+                    activeHeroUrl = val;
+                    if (val.includes('youtube.com') || val.includes('youtu.be')) {
+                        selectedMediaType = 'youtube';
                     }
+                    // Debounce preview update
+                    clearTimeout(urlInput._previewTimer);
+                    urlInput._previewTimer = setTimeout(() => updatePreview(), 600);
                 });
             }
 
-            if (fileInput) {
-                fileInput.addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        pendingHeroFile = file;
-                        activeHeroUrl = URL.createObjectURL(file);
-                        
-                        if (previewStage) {
-                            previewStage.innerHTML = `<div style="color:white; font-size:0.85rem; font-weight:700; text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin" style="font-size:1.8rem; color:#00AA5B; display:block; margin:0 auto 10px auto;"></i> Mengompresi video otomatis agar terhubung ke Database...</div>`;
-                        }
-
-                        try {
-                            if (selectedMediaType === 'image') {
-                                activeHeroUrl = await compressImageCMS(file);
-                            } else {
-                                activeHeroUrl = await compressVideoCMS(file);
-                            }
-                        } catch (err) {
-                            console.warn("Kompresi otomatis fallback:", err);
-                        }
-                        
-                        if (urlInput) urlInput.value = '';
-                        updatePreview();
-                    }
-                });
-            }
-
+            // Init preview dengan nilai awal
             updatePreview();
         } else if (item.type === 'image') {
             const fileInput = modalBackdrop.querySelector('.cms-input-file');
@@ -1186,34 +1268,66 @@
         modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', async () => {
             let newValue = '';
             if (item.type === 'hero_bg') {
-                const activeBtn = modalBackdrop.querySelector('.cms-hero-type-btn[style*="#2e7d32"], .cms-hero-type-btn[style*="#00AA5B"], .cms-hero-type-btn[style*="e8f5e9"]');
-                let mediaType = activeBtn ? activeBtn.dataset.type : 'video';
-                
-                if (activeHeroUrl.includes('youtube.com') || activeHeroUrl.includes('youtu.be')) {
+                const saveBtn = modalBackdrop.querySelector('.cms-btn-save');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
+                }
+
+                // --- Tentukan mediaType final ---
+                let mediaType = selectedMediaType || 'image';
+                if (activeHeroUrl && (activeHeroUrl.includes('youtube.com') || activeHeroUrl.includes('youtu.be'))) {
                     mediaType = 'youtube';
                 }
 
-                if (pendingHeroFile) {
-                    await cmsVideoStore.set('cms_hero_bg_file', pendingHeroFile);
-                    if (activeHeroUrl.startsWith('blob:')) {
-                        try {
-                            activeHeroUrl = await compressVideoCMS(pendingHeroFile);
-                        } catch (_) {
+                // --- Jika masih ada pendingHeroFile (foto belum diproses) ---
+                if (pendingHeroFile && activeHeroUrl.startsWith('blob:')) {
+                    try {
+                        activeHeroUrl = await compressImageCMS(pendingHeroFile);
+                        mediaType = 'image';
+                    } catch (_) {
+                        activeHeroUrl = await new Promise((resolve) => {
                             const reader = new FileReader();
-                            activeHeroUrl = await new Promise((resolve) => {
-                                reader.onloadend = () => resolve(reader.result || '');
-                                reader.readAsDataURL(pendingHeroFile);
-                            });
-                        }
+                            reader.onloadend = () => resolve(reader.result || '');
+                            reader.readAsDataURL(pendingHeroFile);
+                        });
+                        mediaType = 'image';
                     }
                 }
 
-                const safeUrl = activeHeroUrl.startsWith('blob:') ? '' : activeHeroUrl;
-                newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
-                localStorage.setItem('cms_hero_bg', newValue);
-                await cmsVideoStore.set('cms_hero_bg', newValue);
+                // --- Jika URL YouTube, ubah ke format embed ---
+                if (mediaType === 'youtube' || activeHeroUrl.includes('youtu')) {
+                    let ytId = '';
+                    if (activeHeroUrl.includes('youtu.be/')) {
+                        ytId = activeHeroUrl.split('youtu.be/')[1].split('?')[0];
+                    } else if (activeHeroUrl.includes('v=')) {
+                        try { ytId = new URLSearchParams(activeHeroUrl.split('?')[1]).get('v'); } catch(_) {}
+                    } else if (activeHeroUrl.includes('youtube.com/embed/')) {
+                        ytId = activeHeroUrl.split('youtube.com/embed/')[1].split('?')[0];
+                    }
+                    if (ytId) {
+                        activeHeroUrl = 'https://www.youtube.com/embed/' + ytId + '?autoplay=1&mute=1&loop=1&playlist=' + ytId + '&playsinline=1&controls=0&rel=0';
+                        mediaType = 'youtube';
+                    }
+                }
 
-                // Kirim snapshot langsung ke Firebase Database
+                // --- Jangan simpan blob: URL ke Firebase ---
+                const safeUrl = (activeHeroUrl && activeHeroUrl.startsWith('blob:')) ? '' : (activeHeroUrl || '');
+
+                if (!safeUrl) {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = `<i class="fas fa-check"></i> Simpan Perubahan`;
+                    }
+                    alert('Harap pilih foto atau masukkan URL terlebih dahulu.');
+                    return;
+                }
+
+                newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
+                try { localStorage.setItem('cms_hero_bg', newValue); } catch(e) {}
+                try { await cmsVideoStore.set('cms_hero_bg', newValue); } catch(e) {}
+
+                // Kirim ke Firebase DB agar tampil global untuk semua pengunjung
                 const cmsMapping = getCMSMapping();
                 const snapshot = {};
                 cmsMapping.forEach(m => {
