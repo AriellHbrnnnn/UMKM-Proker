@@ -1,4 +1,4 @@
-// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
+ï»¿// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
 (function() {
     function hasActiveAdminSession() {
         const isSessionOk = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
@@ -1098,9 +1098,10 @@
 
         let activeHeroUrl = currentUrl;
         let pendingHeroFile = null;
+        let selectedMediaType = 'image'; // outer scope - accessible di save handler
         if (item.type === 'hero_bg') {
             // Fix initial selectedMediaType â€” termasuk 'youtube'
-            let selectedMediaType = currentMediaType;
+            selectedMediaType = currentMediaType; // assign ke outer scope var
             if (currentUrl && (currentUrl.includes('youtube.com') || currentUrl.includes('youtu.be'))) {
                 selectedMediaType = 'youtube';
             }
@@ -1340,7 +1341,7 @@
         });
 
         // ================================================================
-        // SAVE HANDLER — ZERO AWAIT SEBELUM closeModal()
+        // SAVE HANDLER ï¿½ ZERO AWAIT SEBELUM closeModal()
         // Modal SELALU tutup < 50ms setelah klik Simpan
         // ================================================================
         modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', () => {
@@ -1398,7 +1399,7 @@
                 const newVal = JSON.stringify({ mediaType, url: safeUrl });
                 try { localStorage.setItem('cms_hero_bg', newVal); } catch(_) {}
 
-                // TUTUP MODAL SEKARANG — tidak ada await sama sekali
+                // TUTUP MODAL SEKARANG ï¿½ tidak ada await sama sekali
                 try { closeModal(); } catch(_) {}
 
                 const toast = document.createElement('div');
