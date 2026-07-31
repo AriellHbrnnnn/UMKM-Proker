@@ -1,4 +1,4 @@
-// Logic Sistem Login (Prototype)
+﻿// Logic Sistem Login (Prototype)
 /* =========================================
    AUTH, CART, AND USER PROFILE SYSTEM
 ========================================= */
@@ -123,7 +123,10 @@ if (auth) {
      MENGALAHKAN inline style dari script lain / race condition.
    =============================================================== */
 window.__forceSyncHeaderAuthUI = function __forceSyncHeaderAuthUI(user) {
-    try {
+    // Gunakan requestAnimationFrame agar perubahan DOM diterapkan di frame render berikutnya
+    // Ini mencegah mobile browser (Chrome/Samsung) mengabaikan update saat tab baru aktif kembali
+    function _doSync() {
+        try {
         const abc = document.getElementById('authButtonsContainer');
         const upc = document.getElementById('userProfileContainer');
         const cartBtn = document.getElementById('cartIconBtn');
@@ -221,9 +224,18 @@ window.__forceSyncHeaderAuthUI = function __forceSyncHeaderAuthUI(user) {
                 try { ov.style.setProperty('display', 'none', 'important'); } catch(_){}
             }
         }
-    } catch (e) {
-        console.warn('[__forceSyncHeaderAuthUI] Silent error:', e);
-    }
+        } catch (e) {
+            console.warn('[__forceSyncHeaderAuthUI] Silent error:', e);
+        }
+    } // end _doSync
+
+    // Jalankan sync sekarang + juga lewat requestAnimationFrame untuk mobile
+    _doSync();
+    try {
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(function() { try { _doSync(); } catch(_){} });
+        }
+    } catch(_) {}
 };
 
 /* ===============================================================
@@ -232,17 +244,25 @@ window.__forceSyncHeaderAuthUI = function __forceSyncHeaderAuthUI(user) {
    lain "merusak" lagi UI header kita.
    =============================================================== */
 window.__scheduleAuthUIWatchdog = function __scheduleAuthUIWatchdog(expectedUser) {
-    const delays = [0, 200, 500, 1000, 2000, 3500, 5000];
+    // Delay lebih panjang untuk mobile (HP sering throttle timer di tab background)
+    const delays = [0, 200, 500, 1000, 2000, 3500, 5000, 7000, 10000];
     delays.forEach(function(ms, idx) {
         const key = '__authWatchdog_' + Date.now() + '_' + idx;
         window[key] = setTimeout(function() {
             try {
-                // Pakai actual user di firebase (jika ada) atau pakai expectedUser
+                // Pakai actual user di Firebase (jika ada) atau pakai expectedUser
                 let actual = null;
                 try {
                     if (auth && auth.currentUser) actual = auth.currentUser;
                 } catch(_){}
                 if (!actual) actual = expectedUser || null;
+                // Juga cek localStorage sebagai fallback untuk mobile
+                if (!actual) {
+                    try {
+                        var cached = localStorage.getItem('umkm_active_user');
+                        if (cached) actual = JSON.parse(cached) || null;
+                    } catch(_) {}
+                }
                 window.__forceSyncHeaderAuthUI(actual);
             } catch(_){} finally {
                 try { delete window[key]; } catch(_){}
@@ -278,10 +298,13 @@ if (auth) {
                     user.providerData.some(function(p) { return p && p.providerId === 'google.com'; }));
 
                 // ----- Kasus Khusus: Google OAuth BARU SELESAI -----
-                // Cek dulu apakah fungsi dari auth_engine.js SUDAH TERSEDIA.
-                // Jika BELUM tersedia → JANGAN ambil path ini. Fallback ke update UI biasa.
+                // FIX MOBILE: Di HP, sessionStorage bisa hilang setelah popup → savedGoogleMode null.
+                // Solusi: Jika user adalah Google provider DAN belum pernah diproses, selalu proses.
+                // Ini aman karena onAuthStateChanged hanya dipanggil saat state berubah.
                 var googleProcessedExternally = false;
-                if (isGoogleUser && savedGoogleMode && !window.__googleAuthProcessed) {
+                // Kondisi trigger: Google user + belum diproses (TIDAK lagi mewajibkan savedGoogleMode ada)
+                var shouldProcessGoogleUser = isGoogleUser && !window.__googleAuthProcessed;
+                if (shouldProcessGoogleUser) {
                     var hasLoginUserObject = typeof window.loginUserObject === 'function';
                     var hasSaveRegistered = typeof window.saveRegisteredUser === 'function';
                     var hasSyncFirebase = typeof window.syncUserToFirebaseDatabase === 'function';
@@ -331,8 +354,10 @@ if (auth) {
 
                         window.loginUserObject(mergedUser, true);
 
-                        var toastMode = savedGoogleMode === 'register' ? 'mendaftar' : 'masuk';
-                        if (typeof window.showAuthAlert === 'function') {
+                        // Hanya tampilkan toast jika ada savedGoogleMode (baru login/daftar)
+                        // Saat page refresh biasa, tidak perlu toast lagi
+                        if (savedGoogleMode && typeof window.showAuthAlert === 'function') {
+                            var toastMode = savedGoogleMode === 'register' ? 'mendaftar' : 'masuk';
                             window.showAuthAlert('Berhasil ' + toastMode + ' dengan Google: ' + email, 'success');
                         }
                         try { sessionStorage.removeItem('google_auth_mode'); } catch (_) {}

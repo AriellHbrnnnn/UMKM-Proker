@@ -1,4 +1,4 @@
-// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
+﻿// admin_cms.js - Standalone CMS & Admin Edit Detector (TERINTEGRASI FIREBASE REST DB)
 (function() {
     function hasActiveAdminSession() {
         const isSessionOk = sessionStorage.getItem('isAdminLoggedIn') === 'true' && !!sessionStorage.getItem('umkm_admin_session_token');
@@ -125,6 +125,17 @@
                 const val = (savedSnapshot && savedSnapshot[item.key] != null)
                     ? savedSnapshot[item.key]
                     : (localStorage.getItem(item.key) ?? "");
+
+                // ⚠️ Jangan simpan data base64 besar ke Firebase (video MP4 lokal > 1MB)
+                // Firebase Realtime DB punya limit 10MB per node, dan base64 video bisa ratusan MB.
+                // Data hero_bg berupa base64 video: cukup simpan placeholder / kosongkan saja.
+                if (item.key === 'cms_hero_bg' && typeof val === 'string') {
+                    if (val.startsWith('data:video/') || val.startsWith('blob:')) {
+                        // Jangan simpan ke Firebase — terlalu besar / tidak portable
+                        payload[item.key] = "";
+                        return;
+                    }
+                }
                 payload[item.key] = val;
             });
             const response = await fetch(CMS_DB_URL, {
@@ -178,6 +189,126 @@
                 img.onerror = err => reject(err);
             };
             reader.onerror = err => reject(err);
+        });
+    }
+
+    // Helper function kompresi video otomatis CMS (Untuk Hero Background)
+    function compressVideoCMS(file) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!file || !(file instanceof Blob)) {
+                    return reject(new Error("File video tidak valid"));
+                }
+                // Jika file video sudah sangat kecil (di bawah 3MB), langsung konversi ke Base64 DataURL
+                if (file.size <= 3 * 1024 * 1024) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                    return;
+                }
+
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.muted = true;
+                video.playsInline = true;
+                const videoUrl = URL.createObjectURL(file);
+                video.src = videoUrl;
+
+                video.onloadedmetadata = () => {
+                    let width = video.videoWidth || 854;
+                    let height = video.videoHeight || 480;
+                    const maxWidth = 854;
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    width = width % 2 === 0 ? width : width - 1;
+                    height = height % 2 === 0 ? height : height - 1;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+
+                    let mimeType = 'video/webm;codecs=vp8';
+                    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = 'video/webm';
+                    }
+                    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = 'video/mp4';
+                    }
+
+                    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported(mimeType)) {
+                        URL.revokeObjectURL(videoUrl);
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                        return;
+                    }
+
+                    const stream = canvas.captureStream(24);
+                    let mediaRecorder;
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, {
+                            mimeType: mimeType,
+                            videoBitsPerSecond: 800000
+                        });
+                    } catch (_) {
+                        mediaRecorder = new MediaRecorder(stream);
+                    }
+
+                    const chunks = [];
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) chunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        URL.revokeObjectURL(videoUrl);
+                        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' });
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    };
+
+                    mediaRecorder.start(100);
+                    video.play().catch(() => {});
+
+                    let animationFrameId;
+                    const duration = Math.min(video.duration || 15, 15);
+                    const startTime = Date.now();
+
+                    function drawFrame() {
+                        if (video.paused || video.ended || (Date.now() - startTime) >= duration * 1000) {
+                            video.pause();
+                            if (mediaRecorder.state !== 'inactive') {
+                                mediaRecorder.stop();
+                            }
+                            cancelAnimationFrame(animationFrameId);
+                            return;
+                        }
+                        ctx.drawImage(video, 0, 0, width, height);
+                        animationFrameId = requestAnimationFrame(drawFrame);
+                    }
+
+                    drawFrame();
+                };
+
+                video.onerror = () => {
+                    URL.revokeObjectURL(videoUrl);
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                };
+            } catch (_) {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            }
         });
     }
 
@@ -432,30 +563,54 @@
         }
     }
 
-    // 1. Apply saved CMS data: PRIORITAS INDEXEDDB / FIREBASE DB > localStorage
+    // 1. Apply saved CMS data: PRIORITAS FIREBASE DB > INDEXEDDB > localStorage
     async function applySavedCMSData() {
         const cmsMapping = getCMSMapping();
 
-        // --- STEP 1: Coba tarik data dari Firebase DB terlebih dahulu ---
+        // --- STEP 1: Tarik data dari Firebase DB (sumber kebenaran utama untuk deploy) ---
         const fbSnapshot = await fetchCMSFromFirebase();
+        let fbHeroBgValue = null; // Nilai hero_bg dari Firebase (URL/JSON string)
+
         if (fbSnapshot) {
             for (const item of cmsMapping) {
                 if (fbSnapshot[item.key] != null && fbSnapshot[item.key] !== "") {
+                    const val = fbSnapshot[item.key];
                     if (item.key === 'cms_hero_bg') {
-                        await cmsVideoStore.set('cms_hero_bg', fbSnapshot[item.key]);
+                        fbHeroBgValue = val;
+                        // Jika nilai dari Firebase adalah URL atau JSON (bukan blob: URL),
+                        // simpan ke IndexedDB DAN localStorage agar offline fallback bekerja
+                        const isExternalUrl = (typeof val === 'string') &&
+                            (val.startsWith('http') || val.startsWith('{') || val.startsWith('data:'));
+                        if (isExternalUrl) {
+                            try { await cmsVideoStore.set('cms_hero_bg', val); } catch(_) {}
+                        }
                     }
-                    try { localStorage.setItem(item.key, fbSnapshot[item.key]); } catch (e) {}
+                    try { localStorage.setItem(item.key, val); } catch (e) {}
                 }
             }
         }
 
-        // --- STEP 2: Apply nilai yang sudah disinkron ke DOM ---
+        // --- STEP 2: Apply nilai ke DOM ---
         for (const item of cmsMapping) {
-            let savedVal = localStorage.getItem(item.key);
+            let savedVal = null;
+
             if (item.type === 'hero_bg') {
-                const idbHero = await cmsVideoStore.get('cms_hero_bg');
-                if (idbHero) savedVal = idbHero;
+                // Prioritas: (1) Firebase value URL, (2) IndexedDB blob/file, (3) localStorage
+                if (fbHeroBgValue) {
+                    savedVal = fbHeroBgValue;
+                } else {
+                    // Coba IndexedDB (upload lokal — hanya ada di browser yang sama)
+                    try {
+                        const idbHero = await cmsVideoStore.get('cms_hero_bg');
+                        if (idbHero) savedVal = idbHero;
+                    } catch(_) {}
+                    // Fallback ke localStorage
+                    if (!savedVal) savedVal = localStorage.getItem(item.key);
+                }
+            } else {
+                savedVal = localStorage.getItem(item.key);
             }
+
             if (savedVal) applyCMSItemToDOM(item, savedVal);
         }
 
@@ -829,11 +984,21 @@
                     </div>
                 </div>
 
-                <div class="cms-hero-file-section" style="margin-bottom: 16px;">
+                <div class="cms-hero-file-section" style="margin-bottom: 14px;">
                     <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;" class="cms-hero-file-label">
-                        ${currentMediaType === 'video' ? 'Upload File Video MP4 dari HP/Laptop:' : 'Upload File Foto/Gambar dari HP/Laptop:'}
+                        Opsi 1: Upload File dari Perangkat:
                     </label>
                     <input type="file" class="cms-hero-file-input" accept="${currentMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*'}" style="width: 100%; padding: 10px; border: 2px dashed #00AA5B; border-radius: 10px; font-size: 0.85rem; background: #f0fdf4; box-sizing: border-box; cursor: pointer;">
+                </div>
+
+                <div class="cms-hero-url-section" style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">
+                        Opsi 2: Atau Tempel Link URL Video/Foto (Disarankan untuk Live Deploy):
+                    </label>
+                    <input type="text" class="cms-hero-url-input" placeholder="Contoh: https://youtu.be/ID_VIDEO atau https://drive.google.com/..." value="${escapedCurrentValue.startsWith('blob:') ? '' : (escapedCurrentValue.startsWith('data:') ? '' : escapedCurrentValue)}" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+                    <div style="font-size: 0.73rem; margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;">
+                        <b>⚠️ PENTING:</b> Gunakan <b>URL eksternal</b> (YouTube, Google Drive, Cloudinary, dll) agar tampil di semua pengunjung. Upload file lokal di Opsi 1 <b>HANYA tampil di browser/perangkat Anda</b> dan tidak akan muncul setelah di-deploy ke Netlify atau dibuka di HP orang lain.
+                    </div>
                 </div>
 
                 <div style="text-align: center; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 14px;">
@@ -879,6 +1044,16 @@
 
         document.body.appendChild(modalBackdrop);
         activeEditor = modalBackdrop;
+        // Kunci scroll body agar halaman di belakang tidak ikut scroll saat user scroll di modal
+        // Simpan posisi scroll dulu agar tidak jump saat modal ditutup
+        try {
+            const _scrollY = window.scrollY || 0;
+            document.body._cmsScrollLockY = _scrollY;
+            document.body.style.setProperty('overflow', 'hidden', 'important');
+            document.body.style.setProperty('position', 'fixed', 'important');
+            document.body.style.setProperty('top', '-' + _scrollY + 'px', 'important');
+            document.body.style.setProperty('width', '100%', 'important');
+        } catch(_) {}
 
         let activeHeroUrl = currentUrl;
         let pendingHeroFile = null;
@@ -887,6 +1062,7 @@
             const typeBtns = modalBackdrop.querySelectorAll('.cms-hero-type-btn');
             const fileLabel = modalBackdrop.querySelector('.cms-hero-file-label');
             const fileInput = modalBackdrop.querySelector('.cms-hero-file-input');
+            const urlInput = modalBackdrop.querySelector('.cms-hero-url-input');
             const previewStage = modalBackdrop.querySelector('.cms-hero-preview-stage');
 
             const updatePreview = () => {
@@ -903,12 +1079,26 @@
                         b.style.borderColor = isActive ? '#00AA5B' : '#cbd5e1';
                     });
                     if (fileLabel) {
-                        fileLabel.textContent = selectedMediaType === 'video' ? 'Upload File Video MP4 dari Perangkat:' : 'Upload File Foto/Gambar dari Perangkat:';
+                        fileLabel.textContent = selectedMediaType === 'video' ? 'Opsi 1: Upload File Video MP4 dari Perangkat:' : 'Opsi 1: Upload File Foto/Gambar dari Perangkat:';
                     }
                     if (fileInput) fileInput.accept = selectedMediaType === 'video' ? 'video/mp4,video/webm' : 'image/*';
                     updatePreview();
                 };
             });
+
+            if (urlInput) {
+                urlInput.addEventListener('input', (e) => {
+                    const val = e.target.value.trim();
+                    if (val) {
+                        pendingHeroFile = null;
+                        activeHeroUrl = val;
+                        if (val.includes('youtube.com') || val.includes('youtu.be')) {
+                            selectedMediaType = 'youtube';
+                        }
+                        updatePreview();
+                    }
+                });
+            }
 
             if (fileInput) {
                 fileInput.addEventListener('change', async (e) => {
@@ -916,6 +1106,22 @@
                     if (file) {
                         pendingHeroFile = file;
                         activeHeroUrl = URL.createObjectURL(file);
+                        
+                        if (previewStage) {
+                            previewStage.innerHTML = `<div style="color:white; font-size:0.85rem; font-weight:700; text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin" style="font-size:1.8rem; color:#00AA5B; display:block; margin:0 auto 10px auto;"></i> Mengompresi video otomatis agar terhubung ke Database...</div>`;
+                        }
+
+                        try {
+                            if (selectedMediaType === 'image') {
+                                activeHeroUrl = await compressImageCMS(file);
+                            } else {
+                                activeHeroUrl = await compressVideoCMS(file);
+                            }
+                        } catch (err) {
+                            console.warn("Kompresi otomatis fallback:", err);
+                        }
+                        
+                        if (urlInput) urlInput.value = '';
                         updatePreview();
                     }
                 });
@@ -952,6 +1158,16 @@
 
         const closeModal = () => {
             modalBackdrop.remove();
+            // Buka kembali scroll body dan kembalikan ke posisi scroll sebelumnya
+            try {
+                const savedY = document.body._cmsScrollLockY || 0;
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('position');
+                document.body.style.removeProperty('top');
+                document.body.style.removeProperty('width');
+                window.scrollTo(0, savedY);
+                delete document.body._cmsScrollLockY;
+            } catch(_) {}
             activeEditor = null;
         };
 
@@ -971,15 +1187,40 @@
             let newValue = '';
             if (item.type === 'hero_bg') {
                 const activeBtn = modalBackdrop.querySelector('.cms-hero-type-btn[style*="#2e7d32"], .cms-hero-type-btn[style*="#00AA5B"], .cms-hero-type-btn[style*="e8f5e9"]');
-                const mediaType = activeBtn ? activeBtn.dataset.type : 'video';
+                let mediaType = activeBtn ? activeBtn.dataset.type : 'video';
                 
+                if (activeHeroUrl.includes('youtube.com') || activeHeroUrl.includes('youtu.be')) {
+                    mediaType = 'youtube';
+                }
+
                 if (pendingHeroFile) {
                     await cmsVideoStore.set('cms_hero_bg_file', pendingHeroFile);
+                    if (activeHeroUrl.startsWith('blob:')) {
+                        try {
+                            activeHeroUrl = await compressVideoCMS(pendingHeroFile);
+                        } catch (_) {
+                            const reader = new FileReader();
+                            activeHeroUrl = await new Promise((resolve) => {
+                                reader.onloadend = () => resolve(reader.result || '');
+                                reader.readAsDataURL(pendingHeroFile);
+                            });
+                        }
+                    }
                 }
-                
+
                 const safeUrl = activeHeroUrl.startsWith('blob:') ? '' : activeHeroUrl;
                 newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
+                localStorage.setItem('cms_hero_bg', newValue);
                 await cmsVideoStore.set('cms_hero_bg', newValue);
+
+                // Kirim snapshot langsung ke Firebase Database
+                const cmsMapping = getCMSMapping();
+                const snapshot = {};
+                cmsMapping.forEach(m => {
+                    if (m.key === 'cms_hero_bg') snapshot[m.key] = newValue;
+                    else snapshot[m.key] = localStorage.getItem(m.key) ?? "";
+                });
+                await saveAllCMSToFirebase(cmsMapping, snapshot);
             } else if (item.type === 'text' || item.type === 'html') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else if (item.type === 'image') {

@@ -1,4 +1,4 @@
-
+﻿
 // ==========================================
 // USER STATE MANAGEMENT
 // ==========================================
@@ -402,8 +402,9 @@ function switchPage(pageId, skipHistory = false) {
         history.pushState({ pageId: pageId }, "", window.location.pathname + hashStr);
     }
     
-    // Tokopedia header mode
-    if(pageId === 'homePage' || pageId === 'tentangPage' || pageId === 'beritaPage') {
+    // Header transparent mode: HANYA homePage dan tentangPage yang punya hero transparan
+    // beritaPage dan promoPage TIDAK boleh transparent (tidak ada hero section transparan)
+    if(pageId === 'homePage' || pageId === 'tentangPage') {
         document.body.classList.add('home-mode');
     } else {
         document.body.classList.remove('home-mode');
@@ -414,29 +415,30 @@ function switchPage(pageId, skipHistory = false) {
         window.updateHeaderMode();
     }
     
-    // Pulihkan posisi scroll hanya jika kembali ke halaman utama (homePage)
-    if (pageId === 'homePage' && scrollPositions[pageId] !== undefined) {
-        // Gunakan setTimeout agar browser selesai me-render layout sebelum menggulir halaman
-        setTimeout(() => {
-            window.scrollTo(0, scrollPositions[pageId]);
-        }, 30);
-    } else {
-        setTimeout(() => {
-            window.scrollTo(0, 0);
-        }, 30);
-    }
+    // FIX: Selalu scroll ke atas saat pindah halaman (tidak simpan/restore posisi scroll)
+    // Ini mencegah scroll position terbawa dari halaman sebelumnya di HP
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        // Update header SETELAH scroll ke 0 agar transparent-mode ter-evaluate dengan benar
+        if (typeof window.updateHeaderMode === 'function') {
+            window.updateHeaderMode();
+        }
+    }, 10);
 }
 
 // LOGIKA TRANSMUTASI SCROLL HEADER (MODAL/HERO TOKOPEDIA STYLE)
+// Transparent header HANYA untuk halaman yg memiliki hero transparan: home + tentang
+// beritaPage dan promoPage punya hero image sendiri tapi header HARUS selalu putih (tidak transparan)
 window.updateHeaderMode = function() {
     const header = document.querySelector('.header');
     if (!header) return;
 
-    const isHeroPage = document.body.classList.contains('home-mode') || 
-                       document.body.classList.contains('village-mode') || 
-                       document.body.classList.contains('berita-mode');
+    // home-mode = homePage, village-mode = tentangPage
+    // berita-mode dan promo TIDAK termasuk → header selalu putih
+    const isTransparentHeroPage = document.body.classList.contains('home-mode') || 
+                                  document.body.classList.contains('village-mode');
 
-    if (isHeroPage && window.scrollY <= 30 && !document.body.classList.contains('berita-detail-open')) {
+    if (isTransparentHeroPage && window.scrollY <= 30 && !document.body.classList.contains('berita-detail-open')) {
         header.classList.add('transparent-mode');
     } else {
         header.classList.remove('transparent-mode');
@@ -4091,46 +4093,85 @@ function formatFooterSocialUrl(input, platform) {
     return val;
 }
 
-window.applyFooterSocialLinks = async function () {
+// Helper: terapkan nilai ke elemen footer (dapat dipanggil ulang jika elemen belum ada di DOM)
+function _applyFooterSocialToElements(igUrl, tiktokUrl) {
     const igLinkEl = document.getElementById('footerInstagramLink');
     const tiktokLinkEl = document.getElementById('footerTiktokLink');
-    if (!igLinkEl && !tiktokLinkEl) return;
+    let applied = false;
+    if (igLinkEl && igUrl) {
+        const finalIg = formatFooterSocialUrl(igUrl, 'instagram');
+        igLinkEl.href = finalIg;
+        igLinkEl.setAttribute('href', finalIg);
+        igLinkEl.title = 'Instagram Padukuhan Karanganyar: ' + finalIg;
+        applied = true;
+    }
+    if (tiktokLinkEl && tiktokUrl) {
+        const finalTiktok = formatFooterSocialUrl(tiktokUrl, 'tiktok');
+        tiktokLinkEl.href = finalTiktok;
+        tiktokLinkEl.setAttribute('href', finalTiktok);
+        tiktokLinkEl.title = 'TikTok Padukuhan Karanganyar: ' + finalTiktok;
+        applied = true;
+    }
+    return applied;
+}
 
-    let igUrl = localStorage.getItem('cms_social_instagram') || '';
-    let tiktokUrl = localStorage.getItem('cms_social_tiktok') || '';
+window.applyFooterSocialLinks = async function () {
+    // Selalu fetch dari Firebase dengan cache-bust agar tidak pakai stale browser cache
+    let igUrl = '';
+    let tiktokUrl = '';
 
     try {
-        const res = await fetch("https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/cms_social.json");
+        const res = await fetch(
+            'https://umkm-karanganyar-default-rtdb.asia-southeast1.firebasedatabase.app/cms_social.json?t=' + Date.now(),
+            { cache: 'no-store' }
+        );
         const data = await res.json();
-        if (data) {
-            if (data.instagram != null) {
-                igUrl = data.instagram;
-                localStorage.setItem('cms_social_instagram', igUrl);
+        if (data && typeof data === 'object') {
+            if (data.instagram != null && data.instagram !== '') {
+                igUrl = String(data.instagram).trim();
+                try { localStorage.setItem('cms_social_instagram', igUrl); } catch(_) {}
             }
-            if (data.tiktok != null) {
-                tiktokUrl = data.tiktok;
-                localStorage.setItem('cms_social_tiktok', tiktokUrl);
+            if (data.tiktok != null && data.tiktok !== '') {
+                tiktokUrl = String(data.tiktok).trim();
+                try { localStorage.setItem('cms_social_tiktok', tiktokUrl); } catch(_) {}
             }
         }
     } catch (_) {}
 
-    if (igLinkEl) {
-        const finalIg = formatFooterSocialUrl(igUrl, 'instagram');
-        igLinkEl.href = finalIg;
-        igLinkEl.title = `Instagram Padukuhan Karanganyar: ${finalIg}`;
-    }
+    // Fallback ke localStorage jika Firebase gagal atau data kosong
+    if (!igUrl) { try { igUrl = localStorage.getItem('cms_social_instagram') || ''; } catch(_) {} }
+    if (!tiktokUrl) { try { tiktokUrl = localStorage.getItem('cms_social_tiktok') || ''; } catch(_) {} }
 
-    if (tiktokLinkEl) {
-        const finalTiktok = formatFooterSocialUrl(tiktokUrl, 'tiktok');
-        tiktokLinkEl.href = finalTiktok;
-        tiktokLinkEl.title = `TikTok Padukuhan Karanganyar: ${finalTiktok}`;
+    // Cache global agar retry bisa pakai tanpa fetch ulang
+    window._cachedSocialIg = igUrl;
+    window._cachedSocialTiktok = tiktokUrl;
+
+    // Coba apply sekarang
+    var applied = _applyFooterSocialToElements(igUrl, tiktokUrl);
+
+    // Jika elemen belum ada di DOM, retry otomatis beberapa kali
+    if (!applied) {
+        [100, 300, 800, 1500, 3000].forEach(function(delay) {
+            setTimeout(function() {
+                _applyFooterSocialToElements(
+                    window._cachedSocialIg || '',
+                    window._cachedSocialTiktok || ''
+                );
+            }, delay);
+        });
     }
 };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.applyFooterSocialLinks);
-} else {
+// Jalankan saat DOM siap, lalu retry setelah 2 detik
+function _initFooterSocialLinks() {
     window.applyFooterSocialLinks();
+    setTimeout(window.applyFooterSocialLinks, 2000);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initFooterSocialLinks);
+} else {
+    _initFooterSocialLinks();
 }
 
 // ⭐ CATATAN: Global ESC listener TIDAK PERLU LAGI (karena openImageLightbox
