@@ -1339,139 +1339,113 @@
             }
         });
 
-        modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', async () => {
-            let newValue = '';
+        // ================================================================
+        // SAVE HANDLER � ZERO AWAIT SEBELUM closeModal()
+        // Modal SELALU tutup < 50ms setelah klik Simpan
+        // ================================================================
+        modalBackdrop.querySelector('.cms-btn-save').addEventListener('click', () => {
+            // -- HERO BG (YouTube / Foto) -------------------------------
             if (item.type === 'hero_bg') {
-                const saveBtn = modalBackdrop.querySelector('.cms-btn-save');
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
-                }
-
-                // --- Tentukan mediaType final ---
                 let mediaType = selectedMediaType || 'image';
                 if (activeHeroUrl && (activeHeroUrl.includes('youtube.com') || activeHeroUrl.includes('youtu.be'))) {
                     mediaType = 'youtube';
                 }
 
-                // --- Jika masih ada pendingHeroFile (foto belum diproses) ---
-                if (pendingHeroFile && activeHeroUrl.startsWith('blob:')) {
-                    try {
-                        activeHeroUrl = await compressImageCMS(pendingHeroFile);
-                        mediaType = 'image';
-                    } catch (_) {
-                        activeHeroUrl = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result || '');
-                            reader.readAsDataURL(pendingHeroFile);
-                        });
-                        mediaType = 'image';
-                    }
-                }
-
-                // --- Jika URL YouTube, ubah ke format embed ---
-                if (mediaType === 'youtube' || activeHeroUrl.includes('youtu')) {
-                    let ytId = '';
-                    if (activeHeroUrl.includes('youtu.be/')) {
-                        ytId = activeHeroUrl.split('youtu.be/')[1].split('?')[0];
-                    } else if (activeHeroUrl.includes('v=')) {
-                        try { ytId = new URLSearchParams(activeHeroUrl.split('?')[1]).get('v'); } catch(_) {}
-                    } else if (activeHeroUrl.includes('youtube.com/embed/')) {
-                        ytId = activeHeroUrl.split('youtube.com/embed/')[1].split('?')[0];
-                    }
-                    if (ytId) {
-                        activeHeroUrl = 'https://www.youtube.com/embed/' + ytId + '?autoplay=1&mute=1&loop=1&playlist=' + ytId + '&playsinline=1&controls=0&rel=0';
-                        mediaType = 'youtube';
-                    }
-                }
-
-                // --- Jangan simpan blob: URL ke Firebase ---
-                const safeUrl = (activeHeroUrl && activeHeroUrl.startsWith('blob:')) ? '' : (activeHeroUrl || '');
-
-                if (!safeUrl) {
-                    if (saveBtn) {
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = `<i class="fas fa-check"></i> Simpan Perubahan`;
-                    }
-                    alert('Harap pilih foto atau masukkan URL terlebih dahulu.');
+                // -- Kasus foto upload: compress di background ----------
+                if (pendingHeroFile) {
+                    try { closeModal(); } catch(_) {}
+                    const toastProses = document.createElement('div');
+                    toastProses.id = 'cms-compress-toast';
+                    toastProses.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengompres foto...';
+                    toastProses.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1e40af;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;display:flex;gap:8px;align-items:center;';
+                    document.body.appendChild(toastProses);
+                    (async () => {
+                        let imgUrl = '';
+                        try { imgUrl = await compressImageCMS(pendingHeroFile); }
+                        catch(_) { imgUrl = await new Promise(r => { const rd = new FileReader(); rd.onloadend = () => r(rd.result || ''); rd.readAsDataURL(pendingHeroFile); }); }
+                        const toastEl = document.getElementById('cms-compress-toast');
+                        if (toastEl) toastEl.remove();
+                        if (!imgUrl) return;
+                        const val = JSON.stringify({ mediaType: 'image', url: imgUrl });
+                        try { localStorage.setItem('cms_hero_bg', val); } catch(_) {}
+                        const el = document.querySelector(item.selector);
+                        if (el) applyHeroBgToDOM(el, val);
+                        const mp = getCMSMapping(), sn = {};
+                        mp.forEach(m => { sn[m.key] = m.key === 'cms_hero_bg' ? val : (localStorage.getItem(m.key) ?? ''); });
+                        saveAllCMSToFirebase(mp, sn).catch(() => {});
+                        const t = document.createElement('div');
+                        t.innerText = 'Foto background disimpan!';
+                        t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
+                        document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+                    })();
                     return;
                 }
 
-                newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
-                try { localStorage.setItem('cms_hero_bg', newValue); } catch(e) {}
-                try { cmsVideoStore.set('cms_hero_bg', newValue); } catch(e) {} // non-blocking
+                // -- Kasus YouTube URL / foto URL -----------------------
+                if (!activeHeroUrl) { alert('Harap masukkan URL YouTube atau pilih foto terlebih dahulu.'); return; }
 
-                // Terapkan ke DOM langsung (await agar tidak ada race condition)
-                const heroEl = document.querySelector(item.selector);
-                if (heroEl) {
-                    try { await applyHeroBgToDOM(heroEl, newValue); } catch(_) {}
+                if (mediaType === 'youtube' || (activeHeroUrl && activeHeroUrl.includes('youtu'))) {
+                    let ytId = '';
+                    if (activeHeroUrl.includes('youtu.be/')) ytId = activeHeroUrl.split('youtu.be/')[1].split('?')[0].split('#')[0];
+                    else if (activeHeroUrl.includes('v=')) { try { ytId = new URLSearchParams(activeHeroUrl.split('?')[1]).get('v'); } catch(_) {} }
+                    else if (activeHeroUrl.includes('youtube.com/embed/')) ytId = activeHeroUrl.split('youtube.com/embed/')[1].split('?')[0].split('#')[0];
+                    if (ytId) { activeHeroUrl = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&playsinline=1&controls=0&rel=0`; mediaType = 'youtube'; }
                 }
 
-                // Tutup modal & tampilkan toast SEKARANG (instan)
+                const safeUrl = (activeHeroUrl && !activeHeroUrl.startsWith('blob:')) ? activeHeroUrl : '';
+                if (!safeUrl) { alert('URL tidak valid.'); return; }
+
+                const newVal = JSON.stringify({ mediaType, url: safeUrl });
+                try { localStorage.setItem('cms_hero_bg', newVal); } catch(_) {}
+
+                // TUTUP MODAL SEKARANG � tidak ada await sama sekali
                 try { closeModal(); } catch(_) {}
-                const toastHero = document.createElement('div');
-                toastHero.innerText = '\u2705 Background disimpan!';
-                toastHero.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
-                document.body.appendChild(toastHero);
-                setTimeout(() => toastHero.remove(), 3000);
 
-                // Kirim ke Firebase di BACKGROUND — tidak blocking UI
-                const cmsMappingHero = getCMSMapping();
-                const snapshotHero = {};
-                cmsMappingHero.forEach(m => {
-                    if (m.key === 'cms_hero_bg') snapshotHero[m.key] = newValue;
-                    else snapshotHero[m.key] = localStorage.getItem(m.key) ?? "";
-                });
-                saveAllCMSToFirebase(cmsMappingHero, snapshotHero).catch(e => console.warn('[CMS] Firebase sync error:', e));
+                const toast = document.createElement('div');
+                toast.innerText = 'Background disimpan!';
+                toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
+                document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
 
-                return; // SELESAI
-            } else if (item.type === 'text' || item.type === 'html') {
+                // Apply DOM + Firebase di background
+                setTimeout(() => {
+                    const el = document.querySelector(item.selector);
+                    if (el) applyHeroBgToDOM(el, newVal);
+                    const mp = getCMSMapping(), sn = {};
+                    mp.forEach(m => { sn[m.key] = m.key === 'cms_hero_bg' ? newVal : (localStorage.getItem(m.key) ?? ''); });
+                    saveAllCMSToFirebase(mp, sn).catch(() => {});
+                }, 50);
+                return;
+            }
+
+            // -- TIPE LAIN (text, html, image, iframe, number) ---------
+            let newValue = '';
+            if (item.type === 'text' || item.type === 'html') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else if (item.type === 'image') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else {
-                newValue = modalBackdrop.querySelector('.cms-input-field').value.trim();
-                
+                newValue = (modalBackdrop.querySelector('.cms-input-field').value || '').trim();
                 if (item.type === 'iframe') {
                     const srcMatch = newValue.match(/src\s*=\s*["']([^"']+)["']/i);
-                    if (srcMatch && srcMatch[1]) {
-                        newValue = srcMatch[1];
-                    }
-                    if (newValue.includes('youtube.com/embed/')) {
-                        newValue = newValue.split('?')[0].split('#')[0];
-                    }
+                    if (srcMatch && srcMatch[1]) newValue = srcMatch[1];
+                    if (newValue.includes('youtube.com/embed/')) newValue = newValue.split('?')[0].split('#')[0];
                     if (newValue.includes('youtube.com/watch') || newValue.includes('youtu.be/')) {
-                        let videoId = '';
-                        if (newValue.includes('youtu.be/')) {
-                            videoId = newValue.split('youtu.be/')[1].split('?')[0];
-                        } else if (newValue.includes('v=')) {
-                            try {
-                                videoId = new URLSearchParams(newValue.split('?')[1]).get('v');
-                            } catch(e) {}
-                        }
-                        if (videoId) {
-                            newValue = 'https://www.youtube.com/embed/' + videoId;
-                        }
+                        let vid = '';
+                        if (newValue.includes('youtu.be/')) vid = newValue.split('youtu.be/')[1].split('?')[0];
+                        else if (newValue.includes('v=')) { try { vid = new URLSearchParams(newValue.split('?')[1]).get('v'); } catch(_) {} }
+                        if (vid) newValue = `https://www.youtube.com/embed/${vid}`;
                     }
-                    // ⭐⭐⭐ SELALU TAMBAHKAN PARAMETER MOBILE-FRIENDLY DI AKHIR
-                    // (supaya playsinline=1 controls=1 fs=1 SELALU ADA, baik disimpan ke DB maupun ke DOM)
                     if (item.key === 'cms_video_url' && newValue && newValue.includes('youtube.com/embed/')) {
                         newValue = buildYoutubeEmbedUrl(newValue);
                     }
                 }
             }
 
-            if (item.type === 'html') {
-                newValue = sanitizeBasicHtml(newValue);
-            } else if (item.type === 'image') {
-                newValue = sanitizeAssetUrl(newValue, 'image');
-            } else if (item.type === 'iframe') {
-                newValue = sanitizeAssetUrl(newValue, 'iframe');
-            }
+            if (item.type === 'html') newValue = sanitizeBasicHtml(newValue);
+            else if (item.type === 'image') newValue = sanitizeAssetUrl(newValue, 'image');
+            else if (item.type === 'iframe') newValue = sanitizeAssetUrl(newValue, 'iframe');
 
-            // Simpan ke localStorage (instan)
-            try { localStorage.setItem(item.key, newValue); } catch(e) {}
-
+            try { localStorage.setItem(item.key, newValue); } catch(_) {}
             applyCMSItemToDOM(item, newValue);
 
             if (item.key === 'cms_stat_l' || item.key === 'cms_stat_p') {
@@ -1481,22 +1455,19 @@
                 const valP = parseInt(item.key === 'cms_stat_p' ? newValue : (localStorage.getItem('cms_stat_p') || (elP ? elP.getAttribute('data-target') || elP.innerText : '347')), 10);
                 if (!isNaN(valL) && !isNaN(valP)) {
                     const tot = String(valL + valP);
-                    try { localStorage.setItem('cms_stat_total', tot); } catch(e) {}
+                    try { localStorage.setItem('cms_stat_total', tot); } catch(_) {}
                     const totalItem = getCMSMapping().find(m => m.key === 'cms_stat_total');
                     if (totalItem) applyCMSItemToDOM(totalItem, tot);
                 }
             }
 
-            // Tutup modal & tampilkan toast SEKARANG (tidak tunggu Firebase)
             try { closeModal(); } catch(_) {}
-            const toast = document.createElement('div');
-            toast.innerText = `\u2705 ${item.label || 'Perubahan'} disimpan!`;
-            toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            const t2 = document.createElement('div');
+            t2.innerText = `${item.label || 'Perubahan'} disimpan!`;
+            t2.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
+            document.body.appendChild(t2); setTimeout(() => t2.remove(), 3000);
 
-            // Kirim ke Firebase di BACKGROUND — tidak blocking
-            saveAllCMSToFirebase(getCMSMapping()).catch(e => console.warn('[CMS] Firebase sync error:', e));
+            setTimeout(() => { saveAllCMSToFirebase(getCMSMapping()).catch(() => {}); }, 50);
         });
     }
 })();
