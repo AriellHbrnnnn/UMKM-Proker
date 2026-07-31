@@ -1,4 +1,4 @@
-﻿
+
 // ==========================================
 // USER STATE MANAGEMENT
 // ==========================================
@@ -402,9 +402,10 @@ function switchPage(pageId, skipHistory = false) {
         history.pushState({ pageId: pageId }, "", window.location.pathname + hashStr);
     }
     
-    // Header transparent mode: HANYA homePage dan tentangPage yang punya hero transparan
-    // beritaPage dan promoPage TIDAK boleh transparent (tidak ada hero section transparan)
-    if(pageId === 'homePage' || pageId === 'tentangPage') {
+    // Header transparent mode: HANYA tentangPage yang punya hero video transparan
+    // homePage (Promo Desa) header SELALU terlihat (putih) agar teks navigasi terbaca
+    // Sama seperti beritaPage yang sudah benar
+    if(pageId === 'tentangPage') {
         document.body.classList.add('home-mode');
     } else {
         document.body.classList.remove('home-mode');
@@ -426,17 +427,15 @@ function switchPage(pageId, skipHistory = false) {
     }, 10);
 }
 
-// LOGIKA TRANSMUTASI SCROLL HEADER (MODAL/HERO TOKOPEDIA STYLE)
-// Transparent header HANYA untuk halaman yg memiliki hero transparan: home + tentang
-// beritaPage dan promoPage punya hero image sendiri tapi header HARUS selalu putih (tidak transparan)
+// LOGIKA TRANSMUTASI SCROLL HEADER
+// Transparent header HANYA untuk tentangPage (village-mode) yang punya video hero transparan
+// homePage (Promo Desa) dan beritaPage = header selalu putih dan terlihat
 window.updateHeaderMode = function() {
     const header = document.querySelector('.header');
     if (!header) return;
 
-    // home-mode = homePage, village-mode = tentangPage
-    // berita-mode dan promo TIDAK termasuk → header selalu putih
-    const isTransparentHeroPage = document.body.classList.contains('home-mode') || 
-                                  document.body.classList.contains('village-mode');
+    // village-mode = tentangPage saja yang punya hero transparan
+    const isTransparentHeroPage = document.body.classList.contains('village-mode');
 
     if (isTransparentHeroPage && window.scrollY <= 30 && !document.body.classList.contains('berita-detail-open')) {
         header.classList.add('transparent-mode');
@@ -489,6 +488,7 @@ window.addEventListener('popstate', (event) => {
         // Apply body classes
         if (showPage === 'tentangPage') {
             document.body.classList.add('village-mode');
+            document.body.classList.add('home-mode'); // padding-top:0 untuk hero video full-screen
             setTimeout(() => triggerHeroTypewriter(), 50);
         }
         if (showPage === 'helpPage') document.body.classList.add('hide-search');
