@@ -1399,28 +1399,29 @@
 
                 newValue = JSON.stringify({ mediaType: mediaType, url: safeUrl });
                 try { localStorage.setItem('cms_hero_bg', newValue); } catch(e) {}
-                try { await cmsVideoStore.set('cms_hero_bg', newValue); } catch(e) {}
+                try { cmsVideoStore.set('cms_hero_bg', newValue); } catch(e) {} // non-blocking
 
-                // Kirim ke Firebase DB — satu kali saja, langsung return
+                // Terapkan ke DOM langsung
+                applyCMSItemToDOM(item, newValue);
+
+                // Tutup modal & tampilkan toast SEKARANG (instan, tidak tunggu Firebase)
+                closeModal();
+                const toastHero = document.createElement('div');
+                toastHero.innerText = '✅ Background disimpan!';
+                toastHero.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
+                document.body.appendChild(toastHero);
+                setTimeout(() => toastHero.remove(), 3000);
+
+                // Kirim ke Firebase di BACKGROUND — tidak blocking UI
                 const cmsMappingHero = getCMSMapping();
                 const snapshotHero = {};
                 cmsMappingHero.forEach(m => {
                     if (m.key === 'cms_hero_bg') snapshotHero[m.key] = newValue;
                     else snapshotHero[m.key] = localStorage.getItem(m.key) ?? "";
                 });
-                await saveAllCMSToFirebase(cmsMappingHero, snapshotHero);
+                saveAllCMSToFirebase(cmsMappingHero, snapshotHero).catch(e => console.warn('[CMS] Firebase sync error:', e));
 
-                // Terapkan ke DOM
-                applyCMSItemToDOM(item, newValue);
-
-                // Tampilkan toast dan tutup modal
-                closeModal();
-                const toastHero = document.createElement('div');
-                toastHero.innerText = 'Background berhasil disimpan!';
-                toastHero.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
-                document.body.appendChild(toastHero);
-                setTimeout(() => toastHero.remove(), 3000);
-                return; // SELESAI — jangan lanjut ke blok bawah
+                return; // SELESAI
             } else if (item.type === 'text' || item.type === 'html') {
                 newValue = modalBackdrop.querySelector('.cms-input-field').value;
             } else if (item.type === 'image') {
@@ -1465,7 +1466,7 @@
                 newValue = sanitizeAssetUrl(newValue, 'iframe');
             }
 
-            // Simpan ke localStorage
+            // Simpan ke localStorage (instan)
             try { localStorage.setItem(item.key, newValue); } catch(e) {}
 
             applyCMSItemToDOM(item, newValue);
@@ -1483,21 +1484,16 @@
                 }
             }
 
-            // Simpan ke Firebase — satu kali saja
-            const saveBtn2 = modalBackdrop.querySelector('.cms-btn-save');
-            if (saveBtn2) {
-                saveBtn2.disabled = true;
-                saveBtn2.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
-            }
-            await saveAllCMSToFirebase(getCMSMapping());
-
+            // Tutup modal & tampilkan toast SEKARANG (tidak tunggu Firebase)
             closeModal();
-
             const toast = document.createElement('div');
-            toast.innerText = `Perubahan ${item.label || 'elemen'} berhasil disimpan!`;
+            toast.innerText = `✅ ${item.label || 'Perubahan'} disimpan!`;
             toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+
+            // Kirim ke Firebase di BACKGROUND — tidak blocking
+            saveAllCMSToFirebase(getCMSMapping()).catch(e => console.warn('[CMS] Firebase sync error:', e));
         });
     }
 })();
