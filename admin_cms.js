@@ -1401,13 +1401,16 @@
                 try { localStorage.setItem('cms_hero_bg', newValue); } catch(e) {}
                 try { cmsVideoStore.set('cms_hero_bg', newValue); } catch(e) {} // non-blocking
 
-                // Terapkan ke DOM langsung
-                applyCMSItemToDOM(item, newValue);
+                // Terapkan ke DOM langsung (await agar tidak ada race condition)
+                const heroEl = document.querySelector(item.selector);
+                if (heroEl) {
+                    try { await applyHeroBgToDOM(heroEl, newValue); } catch(_) {}
+                }
 
-                // Tutup modal & tampilkan toast SEKARANG (instan, tidak tunggu Firebase)
-                closeModal();
+                // Tutup modal & tampilkan toast SEKARANG (instan)
+                try { closeModal(); } catch(_) {}
                 const toastHero = document.createElement('div');
-                toastHero.innerText = '✅ Background disimpan!';
+                toastHero.innerText = '\u2705 Background disimpan!';
                 toastHero.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
                 document.body.appendChild(toastHero);
                 setTimeout(() => toastHero.remove(), 3000);
@@ -1485,9 +1488,9 @@
             }
 
             // Tutup modal & tampilkan toast SEKARANG (tidak tunggu Firebase)
-            closeModal();
+            try { closeModal(); } catch(_) {}
             const toast = document.createElement('div');
-            toast.innerText = `✅ ${item.label || 'Perubahan'} disimpan!`;
+            toast.innerText = `\u2705 ${item.label || 'Perubahan'} disimpan!`;
             toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00AA5B;color:white;padding:12px 24px;border-radius:10px;z-index:9999999;box-shadow:0 10px 25px rgba(0,0,0,0.2);font-family:"Poppins",sans-serif;font-weight:700;font-size:0.9rem;';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
