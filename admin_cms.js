@@ -510,15 +510,8 @@
         let mediaType = 'image';
         let url = '';
 
-        try {
-            const storedFile = await cmsVideoStore.get('cms_hero_bg_file');
-            if (storedFile && (storedFile instanceof Blob || storedFile instanceof File)) {
-                mediaType = storedFile.type.startsWith('image/') ? 'image' : 'video';
-                url = URL.createObjectURL(storedFile);
-            }
-        } catch (_) {}
-
-        if (!url && savedVal) {
+        // --- Parse nilai yang disimpan (Firebase / localStorage) ---
+        if (savedVal) {
             try {
                 if (typeof savedVal === 'string' && savedVal.trim().startsWith('{')) {
                     const parsed = JSON.parse(savedVal);
@@ -539,6 +532,25 @@
             }
         }
 
+        // --- Jika URL sudah ada dari Firebase (YouTube / https image / base64 image) → langsung pakai ---
+        // IndexedDB hanya sebagai fallback untuk file lokal yang diupload sebelumnya
+        const isFirebaseUrl = url && (
+            mediaType === 'youtube' ||
+            url.startsWith('http') ||
+            url.startsWith('data:image/')
+        );
+
+        if (!isFirebaseUrl) {
+            // Fallback: cek IndexedDB untuk file lokal
+            try {
+                const storedFile = await cmsVideoStore.get('cms_hero_bg_file');
+                if (storedFile && (storedFile instanceof Blob || storedFile instanceof File)) {
+                    mediaType = storedFile.type.startsWith('image/') ? 'image' : 'video';
+                    url = URL.createObjectURL(storedFile);
+                }
+            } catch (_) {}
+        }
+
         if (!url) {
             bgWrapper.innerHTML = '';
             heroEl.style.background = '#0f172a';
@@ -552,12 +564,12 @@
             if (url.includes('youtu.be/')) {
                 videoId = url.split('youtu.be/')[1].split('?')[0].split('#')[0];
             } else if (url.includes('v=')) {
-                videoId = new URLSearchParams(url.split('?')[1]).get('v');
+                try { videoId = new URLSearchParams(url.split('?')[1]).get('v'); } catch(_) {}
             } else if (url.includes('youtube.com/embed/')) {
                 videoId = url.split('youtube.com/embed/')[1].split('?')[0].split('#')[0];
             }
             if (videoId) {
-                bgWrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&autohide=1&modestbranding=1&playsinline=1&enablejsapi=1" style="position:absolute; top:50%; left:50%; width:100vw; height:100vh; min-width:177.77vh; min-height:56.25vw; transform:translate(-50%, -50%); object-fit:cover; border:none; pointer-events:none;"></iframe>`;
+                bgWrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&autohide=1&modestbranding=1&playsinline=1&enablejsapi=1" allow="autoplay; encrypted-media" allowfullscreen style="position:absolute; top:50%; left:50%; width:100vw; height:100vh; min-width:177.77vh; min-height:56.25vw; transform:translate(-50%, -50%); object-fit:cover; border:none; pointer-events:none;"></iframe>`;
             } else {
                 bgWrapper.innerHTML = '';
                 heroEl.style.background = '#0f172a';
@@ -1096,13 +1108,44 @@
             const urlInput = modalBackdrop.querySelector('.cms-hero-url-input');
             const previewStage = modalBackdrop.querySelector('.cms-hero-preview-stage');
 
-            // Helper: update preview
+            // Helper: update preview — YouTube pakai thumbnail, bukan iframe (iframe diblokir saat preview)
             const updatePreview = () => {
                 if (!previewStage) return;
                 if (!activeHeroUrl) {
                     previewStage.innerHTML = `<span style="color:#475569;font-size:0.8rem;">Pilih foto atau masukkan URL untuk melihat preview</span>`;
                     return;
                 }
+
+                // Untuk YouTube: tampilkan thumbnail sebagai preview (iframe diblokir browser di konteks ini)
+                const isYt = activeHeroUrl.includes('youtube.com') || activeHeroUrl.includes('youtu.be');
+                if (isYt || selectedMediaType === 'youtube') {
+                    let ytId = '';
+                    if (activeHeroUrl.includes('youtu.be/')) {
+                        ytId = activeHeroUrl.split('youtu.be/')[1].split('?')[0].split('#')[0];
+                    } else if (activeHeroUrl.includes('v=')) {
+                        try { ytId = new URLSearchParams(activeHeroUrl.split('?')[1]).get('v'); } catch(_) {}
+                    } else if (activeHeroUrl.includes('youtube.com/embed/')) {
+                        ytId = activeHeroUrl.split('youtube.com/embed/')[1].split('?')[0];
+                    }
+                    if (ytId) {
+                        const thumb = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+                        const thumbFallback = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+                        previewStage.innerHTML = `
+                            <img src="${thumb}" onerror="this.src='${thumbFallback}'" alt="YouTube Preview"
+                                style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">
+                            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,0,0,0.85);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
+                                <i class="fab fa-youtube" style="color:white;font-size:1.4rem;"></i>
+                            </div>
+                            <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.9);font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.8);">
+                                ▶ Video YouTube — akan diputar otomatis sebagai background
+                            </div>`;
+                    } else {
+                        previewStage.innerHTML = `<span style="color:#ef4444;font-size:0.8rem;">URL YouTube tidak valid</span>`;
+                    }
+                    return;
+                }
+
+                // Untuk foto/gambar/video lokal
                 applyHeroBgToDOM(previewStage, JSON.stringify({ mediaType: selectedMediaType, url: activeHeroUrl }));
             };
 
